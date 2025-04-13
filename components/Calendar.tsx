@@ -35,7 +35,7 @@ export function Calendar(props: CalendarProps) {
   const prevMonthEnd = new Date(currentYear, currentMonth, 0)
   const prevMonthDays = eachDayOfInterval({
     start: new Date(currentYear, currentMonth - 1, prevMonthEnd.getDate() - monthStart.getDay() + 1),
-    end: prevMonthEnd
+    end: prevMonthEnd,
   })
 
   // Get days from current month
@@ -48,7 +48,7 @@ export function Calendar(props: CalendarProps) {
   const nextMonthStart = new Date(currentYear, currentMonth + 1, 1)
   const nextMonthDays = eachDayOfInterval({
     start: nextMonthStart,
-    end: new Date(currentYear, currentMonth + 1, 6 - monthEnd.getDay())
+    end: new Date(currentYear, currentMonth + 1, 6 - monthEnd.getDay()),
   })
 
   const days = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays]
@@ -89,17 +89,23 @@ export function Calendar(props: CalendarProps) {
 
           const isPrevMonth = day < monthStart
           const isNextMonth = day > monthEnd
-          
+
           return (
             <div
               key={day.toString()}
               className={classNames(
                 'flex h-16 items-center justify-center rounded-md text-base font-semibold',
-                isPrevMonth || isNextMonth ? 'text-gray-400' : 
-                isToday ? 'bg-blue-100 font-medium text-blue-800' : 
-                isAjustWorkDay ? 'bg-green-100 text-green-800' : 
-                isHolday ? 'bg-red-200 text-red-800' : 
-                isWeekend ? 'bg-red-100 text-red-800' : ''
+                isPrevMonth || isNextMonth
+                  ? 'text-gray-400'
+                  : isToday
+                    ? 'bg-blue-100 font-medium text-blue-800'
+                    : isAjustWorkDay
+                      ? 'bg-green-100 text-green-800'
+                      : isHolday
+                        ? 'bg-red-200 text-red-800'
+                        : isWeekend
+                          ? 'bg-red-100 text-red-800'
+                          : ''
               )}
             >
               <div className="flex flex-col items-center">
