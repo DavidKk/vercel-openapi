@@ -103,7 +103,7 @@ export function isWorkday(date: Date, holidays: Holiday[]): boolean {
   const holiday = holidays.find((h) => h.date === dateStr)
 
   // 如果是调班日，返回true（工作日）
-  if (holiday?.isRestDay) {
+  if (holiday?.isWorkDay) {
     return true
   }
 
