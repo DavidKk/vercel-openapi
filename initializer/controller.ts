@@ -5,6 +5,7 @@ import { isStandardResponse, standardResponseError, stringifyUnknownError } from
 
 export interface Context {
   params: Promise<any>
+  search: string
   searchParams: URLSearchParams
 }
 
@@ -14,6 +15,9 @@ export interface ContextWithParams<P> extends Context {
 
 export function api<P>(handle: (req: NextRequest, context: ContextWithParams<P>) => Promise<Record<string, any>>) {
   return async (req: NextRequest, context: Context) => {
+    const url = new URL(req.url)
+    context.searchParams = url.searchParams
+
     return runWithContext(req, async () => {
       try {
         const result = await handle(req, context)

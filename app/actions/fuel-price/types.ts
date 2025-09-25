@@ -23,6 +23,19 @@ export function isFuelPriceData(obj: any): obj is FuelPriceData {
   )
 }
 
+// 燃油类型定义
+export const FUEL_TYPES = ['b92', 'b95', 'b98', 'b0'] as const
+export type FuelType = (typeof FUEL_TYPES)[number]
+
+/**
+ * Check if a string is a valid fuel type
+ * @param fuelType The fuel type to check
+ * @returns boolean True if the fuel type is valid, false otherwise
+ */
+export function isFuelType(fuelType: string): fuelType is FuelType {
+  return FUEL_TYPES.includes(fuelType as FuelType)
+}
+
 // Define response structure
 export interface FuelPrice {
   data: FuelPriceData[]

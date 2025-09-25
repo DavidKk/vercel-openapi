@@ -1,3 +1,5 @@
 export { getFuelPrice, getCachedFuelPrice, getCachedProvinceFuelPrice } from './api'
 export { isFuelPriceData, isFuelPriceList, isFuelPrice } from './types'
 export type { FuelPriceData, FuelPrice, FuelPriceHistory, FuelPriceList, ProvinceFuelPrice } from './types'
+export { calcRechargePromo } from './promo'
+export type { RechargePromoResult } from './promo'
