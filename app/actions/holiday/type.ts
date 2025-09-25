@@ -17,9 +17,9 @@ interface Workday extends BaseHolidayInfo {
   target?: string
 }
 
-type HolidayDetail = Holiday | Workday
+export type HolidayDetail = Holiday | Workday
 
-interface HolidayData {
+export interface HolidayData {
   [date: string]: HolidayDetail
 }
 

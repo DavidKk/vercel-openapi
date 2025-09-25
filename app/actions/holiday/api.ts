@@ -1,4 +1,5 @@
 import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
+import { fetchAndParseHolidayData } from './timor'
 import type { HolidayApiResponse } from './type'
 
 export interface Holiday {
@@ -9,8 +10,11 @@ export interface Holiday {
   isRestDay?: boolean
 }
 
-const CHINA_HOLIDAY_URL = 'https://timor.tech/api/holiday/year'
-const MEMORY_CACHE: Record<number, Holiday[]> = {}
+interface MemoryCache {
+  [year: number]: Holiday[]
+}
+
+const MEMORY_CACHE: MemoryCache = {}
 
 /**
  * 获取当前年份的节假日列表
@@ -23,7 +27,7 @@ export async function listHoliday(year = new Date().getFullYear()) {
   }
 
   try {
-    const cache = await loadHolidayFromCache()
+    const cache = await loadHolidayFromCache(year)
     if (cache.length > 0) {
       MEMORY_CACHE[year] = cache
       return cache
@@ -54,17 +58,9 @@ export async function listHoliday(year = new Date().getFullYear()) {
  * @throws 当请求失败或返回错误码时抛出异常
  */
 async function requestHoliday(year = new Date().getFullYear()) {
-  const response = await fetch(`${CHINA_HOLIDAY_URL}/${year}`)
-  if (!response.ok) {
-    throw new Error('fetch holiday data failed')
-  }
+  const holidayData = await fetchAndParseHolidayData(year)
 
-  const body = (await response.json()) as HolidayApiResponse
-  if (body.code !== 0) {
-    throw new Error('fetch holiday data failed')
-  }
-
-  return Object.values(body.holiday).map((holiday) => ({
+  return Object.values(holidayData).map((holiday) => ({
     date: holiday.date,
     isHoliday: holiday.holiday,
     name: holiday.name,

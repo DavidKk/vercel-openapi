@@ -3,6 +3,7 @@
 import { listHoliday, isWorkday as isWorkdayInHolidays } from './api'
 
 export { listHoliday }
+export type { Holiday } from './api'
 
 /**
  * 判断指定日期是否为节假日
