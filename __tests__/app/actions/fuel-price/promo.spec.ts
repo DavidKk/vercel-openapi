@@ -1,4 +1,4 @@
-import { calcRechargePromo } from '../app/actions/fuel-price/promo'
+import { calcRechargePromo } from '@/app/actions/fuel-price/promo'
 
 describe('calcRechargePromo', () => {
   it('should calculate the correct promo values', () => {
