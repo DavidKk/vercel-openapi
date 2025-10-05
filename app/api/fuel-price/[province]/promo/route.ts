@@ -1,8 +1,8 @@
-import { api } from '@/initializer/controller'
-import { jsonSuccess, invalidParameters } from '@/initializer/response'
 import { getCachedProvinceFuelPrice } from '@/app/actions/fuel-price/api'
 import { calcRechargePromo } from '@/app/actions/fuel-price/promo'
-import { isFuelType, type FuelPriceData } from '@/app/actions/fuel-price/types'
+import { type FuelPriceData, isFuelType } from '@/app/actions/fuel-price/types'
+import { api } from '@/initializer/controller'
+import { invalidParameters, jsonSuccess } from '@/initializer/response'
 
 export const runtime = 'edge'
 

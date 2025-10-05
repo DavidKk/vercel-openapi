@@ -1,6 +1,6 @@
+import { getCachedProvinceFuelPrice } from '@/app/actions/fuel-price/api'
 import { api } from '@/initializer/controller'
 import { jsonSuccess } from '@/initializer/response'
-import { getCachedProvinceFuelPrice } from '@/app/actions/fuel-price/api'
 
 export const runtime = 'edge'
 

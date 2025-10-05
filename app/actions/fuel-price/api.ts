@@ -1,4 +1,5 @@
 import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
+
 import { fetchAndParseFuelPriceData } from './autohome'
 import type { FuelPrice, FuelPriceList, ProvinceFuelPrice } from './types'
 import { isFuelPrice } from './types'

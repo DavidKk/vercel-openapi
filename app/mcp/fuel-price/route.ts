@@ -1,8 +1,9 @@
 import { createMCPHttpServer } from '@/initializer/mcp'
 import { version } from '@/package.json'
-import listFuelPrices from './listFuelPrices'
-import getProvinceFuelPrice from './getProvinceFuelPrice'
+
 import calcRechargePromo from './calcRechargePromo'
+import getProvinceFuelPrice from './getProvinceFuelPrice'
+import listFuelPrices from './listFuelPrices'
 
 const name = 'fuel-price-service'
 const description = 'Provides fuel price query service for provinces and cities in China'

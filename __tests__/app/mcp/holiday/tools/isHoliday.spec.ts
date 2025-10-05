@@ -1,5 +1,5 @@
-import isHoliday from '@/app/mcp/holiday/isHoliday'
 import { isHoliday as checkIsHoliday } from '@/app/actions/holiday'
+import isHoliday from '@/app/mcp/holiday/isHoliday'
 
 // Mock the API functions
 jest.mock('@/app/actions/holiday', () => ({

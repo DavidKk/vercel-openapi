@@ -1,6 +1,10 @@
 import { listHoliday } from '@/app/actions/holiday'
 import { Calendar } from '@/components/Calendar'
 
+/**
+ * Holiday calendar page component
+ * Displays a calendar view of holidays for the current year
+ */
 export default async function CalendarPage() {
   const holidays = await listHoliday()
 

@@ -1,15 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import classNames from 'classnames'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns'
-import type { Holiday } from '@/app/actions/holiday/api'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid'
+import classNames from 'classnames'
+import { eachDayOfInterval, endOfMonth, format, isSameDay, startOfMonth } from 'date-fns'
+import { useState } from 'react'
 
+import type { Holiday } from '@/app/actions/holiday/api'
+
+/**
+ * Props for the Calendar component
+ */
 interface CalendarProps {
+  /** Array of holiday data to display in the calendar */
   holidays: Holiday[]
 }
 
+/**
+ * Calendar component that displays a monthly view with holiday information
+ * Highlights holidays, workdays, and the current day
+ */
 export function Calendar(props: CalendarProps) {
   const { holidays } = props
   const today = new Date()

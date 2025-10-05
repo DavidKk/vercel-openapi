@@ -1,8 +1,9 @@
 import { z } from 'zod'
-import { tool } from '@/initializer/mcp'
+
 import { getCachedProvinceFuelPrice } from '@/app/actions/fuel-price/api'
 import { calcRechargePromo as calculateRechargePromo } from '@/app/actions/fuel-price/promo'
-import { isFuelType, type FuelPriceData } from '@/app/actions/fuel-price/types'
+import { type FuelPriceData, isFuelType } from '@/app/actions/fuel-price/types'
+import { tool } from '@/initializer/mcp'
 
 const name = 'calc_recharge_promo'
 const description = 'Calculate fuel recharge promotion for a specified province'

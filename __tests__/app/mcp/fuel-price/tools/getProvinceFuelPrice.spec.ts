@@ -1,5 +1,5 @@
-import getProvinceFuelPrice from '@/app/mcp/fuel-price/getProvinceFuelPrice'
 import { getCachedProvinceFuelPrice } from '@/app/actions/fuel-price/api'
+import getProvinceFuelPrice from '@/app/mcp/fuel-price/getProvinceFuelPrice'
 
 // Mock the API functions
 jest.mock('@/app/actions/fuel-price/api', () => ({
