@@ -255,6 +255,29 @@ function getPriceChangeIndicator(currentPrice: string, previousPrice: string | u
 }
 
 /**
+ * Helper function to calculate price change amount
+ * @param currentPrice Current price string
+ * @param previousPrice Previous price string
+ * @returns Price change amount or null
+ */
+function getPriceChangeAmount(currentPrice: string, previousPrice: string | undefined): string | null {
+  if (!previousPrice) {
+    return null
+  }
+
+  // Remove any non-numeric characters except decimal point
+  const current = parseFloat(currentPrice.replace(/[^\d.]/g, ''))
+  const previous = parseFloat(previousPrice.replace(/[^\d.]/g, ''))
+
+  if (isNaN(current) || isNaN(previous)) {
+    return null
+  }
+
+  const change = current - previous
+  return change.toFixed(2)
+}
+
+/**
  * Helper function to format price with change indicator
  * @param currentPrice Current price string
  * @param previousPrice Previous price string
@@ -270,10 +293,20 @@ function formatPriceWithChange(currentPrice: string, previousPrice?: string) {
     return <span>-</span>
   }
 
+  const changeAmount = getPriceChangeAmount(currentPrice, previousPrice)
+
   return (
     <span>
       {currentPrice}
-      {getPriceChangeIndicator(currentPrice, previousPrice)}
+      {changeAmount && changeAmount !== '0.00' && (
+        <sup className="text-xs ml-1">
+          {parseFloat(changeAmount) > 0 ? (
+            <span className="text-red-500">+{changeAmount}</span>
+          ) : (
+            <span className="text-green-500">{changeAmount}</span>
+          )}
+        </sup>
+      )}
     </span>
   )
 }
