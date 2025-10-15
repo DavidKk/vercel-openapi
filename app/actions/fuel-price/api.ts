@@ -15,9 +15,17 @@ const MEMORY_CACHE: MemoryCache = {
   timestamp: 0,
 }
 
-const CACHE_DURATION = 60 * 60 * 1000
+const CACHE_DURATION = 60 * 60 * 1000 // 1 hour cache
 const CURRENT_FUEL_PRICE_FILE = 'current-fuel-price.json'
 const PREVIOUS_FUEL_PRICE_FILE = 'previous-fuel-price.json'
+
+/**
+ * Clear the in-memory cache
+ */
+export function clearFuelPriceCache() {
+  MEMORY_CACHE.data = null
+  MEMORY_CACHE.timestamp = 0
+}
 
 /**
  * Get fuel price data by fetching and parsing data from the primary data source
@@ -114,6 +122,8 @@ function hasFuelPriceChanged(current: FuelPrice, previous: FuelPrice | null): bo
  */
 export async function getCachedFuelPrice(): Promise<FuelPriceList> {
   const now = Date.now()
+
+  // Check memory cache
   if (MEMORY_CACHE.data && now - MEMORY_CACHE.timestamp < CACHE_DURATION) {
     return {
       previous: [],
@@ -123,10 +133,13 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
     }
   }
 
+  // Read data from Gist
   const previousData = await readFuelPriceFromGist(PREVIOUS_FUEL_PRICE_FILE)
   const currentData = await readFuelPriceFromGist(CURRENT_FUEL_PRICE_FILE)
 
+  // Check if data in Gist is expired
   if (currentData && now - new Date(currentData.lastUpdated).getTime() < CACHE_DURATION) {
+    // Update memory cache
     MEMORY_CACHE.data = currentData
     MEMORY_CACHE.timestamp = now
 
@@ -138,23 +151,45 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
     }
   }
 
-  const freshData = await getFuelPrice()
-  if (hasFuelPriceChanged(freshData, currentData)) {
-    if (currentData) {
-      await writeFuelPriceToGist(PREVIOUS_FUEL_PRICE_FILE, currentData)
+  // Get fresh data
+  try {
+    const freshData = await getFuelPrice()
+
+    // Only update Gist when data has changed
+    if (hasFuelPriceChanged(freshData, currentData)) {
+      if (currentData) {
+        await writeFuelPriceToGist(PREVIOUS_FUEL_PRICE_FILE, currentData)
+      }
+      await writeFuelPriceToGist(CURRENT_FUEL_PRICE_FILE, freshData)
     }
 
-    await writeFuelPriceToGist(CURRENT_FUEL_PRICE_FILE, freshData)
-  }
+    // Update memory cache
+    MEMORY_CACHE.data = freshData
+    MEMORY_CACHE.timestamp = now
 
-  MEMORY_CACHE.data = freshData
-  MEMORY_CACHE.timestamp = now
+    return {
+      previous: currentData ? currentData.data : [],
+      current: freshData.data,
+      latestUpdated: new Date(freshData.lastUpdated).getTime(),
+      previousUpdated: currentData ? new Date(currentData.lastUpdated).getTime() : 0,
+    }
+  } catch (error) {
+    // If fetching new data fails but we have cached data, use cached data
+    if (currentData) {
+      // Update memory cache
+      MEMORY_CACHE.data = currentData
+      MEMORY_CACHE.timestamp = now
 
-  return {
-    previous: currentData ? currentData.data : [],
-    current: freshData.data,
-    latestUpdated: new Date(freshData.lastUpdated).getTime(),
-    previousUpdated: currentData ? new Date(currentData.lastUpdated).getTime() : 0,
+      return {
+        previous: previousData ? previousData.data : [],
+        current: currentData.data,
+        latestUpdated: new Date(currentData.lastUpdated).getTime(),
+        previousUpdated: previousData ? new Date(previousData.lastUpdated).getTime() : 0,
+      }
+    }
+
+    // If no cached data and fetching new data fails, throw error
+    throw error
   }
 }
 

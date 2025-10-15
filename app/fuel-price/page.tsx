@@ -10,3 +10,9 @@ export default async function FuelPricePage() {
   const fuelPrices = await getCachedFuelPrice()
   return <FuelPriceTable fuelPrices={fuelPrices} />
 }
+
+// Revalidation time in seconds
+export const revalidate = 3600 // Revalidate every hour
+
+// Disable static generation, force server-side rendering
+export const dynamic = 'force-dynamic'
