@@ -8,6 +8,7 @@ A lightweight solution providing public API caching proxy and holiday data servi
 
 - **API Caching Proxy**: Provides a caching layer for public APIs to reduce direct calls and improve response speed
 - **Holiday Data Service**: Built-in holiday data interface supporting date queries and holiday checks
+- **Geolocation Service**: Reverse geocoding service to get location information from latitude and longitude
 - **MCP (Machine Control Protocol) Support**: Standardized tool interface for integrating with AI agents and automation systems
 - **Developer Friendly**: Clean RESTful API design with JWT authentication and 2FA support
 
@@ -29,9 +30,13 @@ This service implements the Machine Control Protocol (MCP), which provides a sta
    - `isFutureHoliday`: Check if a future date (by days from today) is a holiday in China
 
 2. **Fuel Price Service Tools** (`/mcp/fuel-price`):
+
    - `listFuelPrices`: Get fuel price list for all provinces and cities in China
    - `getProvinceFuelPrice`: Get fuel price for a specified province
    - `calcRechargePromo`: Calculate fuel recharge promotion for a specified province
+
+3. **Geolocation Service Tools** (`/mcp/geo`):
+   - `reverse_geocode`: Get geographic location information by latitude and longitude (mainland China only)
 
 ### Using MCP Tools
 

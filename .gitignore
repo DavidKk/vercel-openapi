@@ -4,6 +4,7 @@ coverage
 junit.xml
 *.tsbuildinfo
 tsconfig.build.json
+test-results
 
 # Husky
 .husky

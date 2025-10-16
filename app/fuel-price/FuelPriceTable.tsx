@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 
 import type { FuelPriceData, FuelPriceList } from '@/app/actions/fuel-price/types'
 import { Spinner } from '@/components/Spinner'
-import { useLocation } from '@/hooks/useLocation'
+import { useUserLocation } from '@/hooks/useUserLocation'
 
 /**
  * Props for the FuelPriceTable component
@@ -20,8 +20,7 @@ export interface FuelPriceTableProps {
  * Highlights the user's location and shows price changes over time
  */
 export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
-  const { province: userProvinceInfo, loading: loadingLocation } = useLocation()
-  const userProvince = userProvinceInfo?.chinese || null
+  const { province: userProvince, loading: loadingLocation, error: locationError } = useUserLocation()
 
   // State for sorting - now includes 'none' for default order
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' | 'none' } | null>(null)
@@ -49,8 +48,15 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
   let userProvinceData = null
   let otherProvincesData = [...fuelPrices.current]
 
-  if (userProvince) {
-    const userIndex = otherProvincesData.findIndex((item) => item.province === userProvince)
+  // Compatibility handling: Geocoding returns "广东省", while fuel price data uses "广东"
+  // Remove "省" from both sides for comparison to ensure accurate matching
+  const normalizedUserProvince = userProvince ? userProvince.replace(/省$/, '') : null
+
+  if (normalizedUserProvince) {
+    const userIndex = otherProvincesData.findIndex((item) => {
+      const normalizedItemProvince = item.province.replace(/省$/, '')
+      return normalizedItemProvince === normalizedUserProvince
+    })
 
     if (userIndex !== -1) {
       userProvinceData = otherProvincesData[userIndex]
@@ -126,16 +132,6 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">China Fuel Prices</h1>
         <p className="text-gray-600">Latest gasoline and diesel prices across Chinese cities</p>
-        <div className="mt-2">
-          <span className="inline-flex items-center mr-4">
-            <span className="text-red-500">▲</span>
-            <span className="ml-1 text-sm">Price increased</span>
-          </span>
-          <span className="inline-flex items-center">
-            <span className="text-green-500">▼</span>
-            <span className="ml-1 text-sm">Price decreased</span>
-          </span>
-        </div>
         <p className="text-sm text-gray-500 mt-2">Last updated: {latestUpdated}</p>
       </div>
 
@@ -209,49 +205,8 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
           </table>
         </div>
       </div>
-
-      {/* 显示价格变化历史 */}
-      {fuelPrices.previous.length > 0 && previousUpdated && (
-        <div className="mt-8 bg-blue-50 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Price Change History</h2>
-          <p className="text-gray-600 mb-4">Previous update: {previousUpdated}</p>
-          <div className="text-sm text-gray-500">
-            <p>Note: Only showing data when prices have changed.</p>
-          </div>
-        </div>
-      )}
     </div>
   )
-}
-
-/**
- * Helper function to compare prices and determine if there's an increase or decrease
- * @param currentPrice Current price string
- * @param previousPrice Previous price string
- * @returns React element with price change indicator or null
- */
-function getPriceChangeIndicator(currentPrice: string, previousPrice: string | undefined) {
-  if (!previousPrice) {
-    return null
-  }
-
-  // Remove any non-numeric characters except decimal point
-  const current = parseFloat(currentPrice.replace(/[^\d.]/g, ''))
-  const previous = parseFloat(previousPrice.replace(/[^\d.]/g, ''))
-
-  if (isNaN(current) || isNaN(previous)) {
-    return null
-  }
-
-  if (current > previous) {
-    return <span className="ml-1 text-red-500">▲</span>
-  }
-
-  if (current < previous) {
-    return <span className="ml-1 text-green-500">▼</span>
-  }
-
-  return null
 }
 
 /**
@@ -300,11 +255,7 @@ function formatPriceWithChange(currentPrice: string, previousPrice?: string) {
       {currentPrice}
       {changeAmount && changeAmount !== '0.00' && (
         <sup className="text-xs ml-1">
-          {parseFloat(changeAmount) > 0 ? (
-            <span className="text-red-500">+{changeAmount}</span>
-          ) : (
-            <span className="text-green-500">{changeAmount}</span>
-          )}
+          {parseFloat(changeAmount) > 0 ? <span className="text-red-500">+{changeAmount}</span> : <span className="text-green-500">{changeAmount}</span>}
         </sup>
       )}
     </span>
