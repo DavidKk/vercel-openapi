@@ -5,6 +5,7 @@ junit.xml
 *.tsbuildinfo
 tsconfig.build.json
 test-results
+playwright-report
 
 # Husky
 .husky
