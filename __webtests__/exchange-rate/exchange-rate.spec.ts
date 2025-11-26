@@ -17,7 +17,6 @@ test.describe('Exchange Rate Page', () => {
 
     // Check default values
     const topInput = page.getByPlaceholder('Enter amount')
-    const bottomInput = page.getByPlaceholder('Converted amount')
 
     // Check that default amount is set
     await expect(topInput).toHaveValue('100')

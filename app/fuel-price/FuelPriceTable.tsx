@@ -20,7 +20,7 @@ export interface FuelPriceTableProps {
  * Highlights the user's location and shows price changes over time
  */
 export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
-  const { province: userProvince, loading: loadingLocation, error: locationError } = useUserLocation()
+  const { province: userProvince } = useUserLocation()
 
   // State for sorting - now includes 'none' for default order
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' | 'none' } | null>(null)
@@ -42,7 +42,6 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
 
   // Format timestamps for display
   const latestUpdated = new Date(fuelPrices.latestUpdated).toLocaleString()
-  const previousUpdated = fuelPrices.previousUpdated ? new Date(fuelPrices.previousUpdated).toLocaleString() : null
 
   // Separate user's province from the rest of the data
   let userProvinceData = null

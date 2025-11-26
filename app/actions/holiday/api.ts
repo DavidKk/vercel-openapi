@@ -1,7 +1,6 @@
 import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
 
 import { fetchAndParseHolidayData } from './timor'
-import type { HolidayApiResponse } from './type'
 
 export interface Holiday {
   date: string
