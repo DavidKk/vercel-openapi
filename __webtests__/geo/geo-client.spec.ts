@@ -25,12 +25,22 @@ test.describe('GeoClient Component', () => {
     // Click the "Query Location" button
     await page.getByRole('button', { name: 'Query Location' }).click()
 
-    // Wait for the location information to be displayed
-    await expect(page.getByRole('heading', { name: 'Location Information' })).toBeVisible({ timeout: 10000 })
+    // Wait for loading to complete (button text changes back from "Querying...")
+    await page.waitForFunction(
+      () => {
+        const button = document.querySelector('button[type="submit"]')
+        return button && !button.textContent?.includes('Querying...')
+      },
+      { timeout: 15000 }
+    )
+
+    // Wait for the location information to be displayed - use heading role to avoid ambiguity
+    // The heading is inside the green background container that appears after data loads
+    await expect(page.locator('.bg-green-50').getByRole('heading', { name: 'Location Information' })).toBeVisible({ timeout: 15000 })
 
     // Check that the location information is displayed correctly
-    await expect(page.getByText('Country:')).toBeVisible()
-    await expect(page.getByText('Province:')).toBeVisible()
+    await expect(page.getByText('Country:')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Province:')).toBeVisible({ timeout: 5000 })
 
     // Verify that we get some location data (not empty)
     const provinceText = await page.getByText('Province:').textContent()
@@ -46,12 +56,22 @@ test.describe('GeoClient Component', () => {
     // Click the "Query Location" button
     await page.getByRole('button', { name: 'Query Location' }).click()
 
-    // Wait for the error message to be displayed
-    await expect(page.getByText('Error')).toBeVisible({ timeout: 10000 })
+    // Wait for loading to complete (button text changes back from "Querying...")
+    await page.waitForFunction(
+      () => {
+        const button = document.querySelector('button[type="submit"]')
+        return button && !button.textContent?.includes('Querying...')
+      },
+      { timeout: 15000 }
+    )
 
-    // Check that an error message is displayed
-    // The error message might be the one from the API or a general geocoding error
-    await expect(page.locator('.text-red-700')).toBeVisible()
+    // Wait for the error message to be displayed
+    // The error is displayed in a div with bg-red-50 class containing an "Error" heading
+    // First wait for the error container to appear
+    await expect(page.locator('.bg-red-50')).toBeVisible({ timeout: 15000 })
+
+    // Then check for the Error heading inside the container
+    await expect(page.locator('.bg-red-50').getByRole('heading', { name: 'Error' })).toBeVisible({ timeout: 5000 })
   })
 
   // Removed API usage instructions test as this section was removed from the component

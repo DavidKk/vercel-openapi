@@ -61,10 +61,10 @@ export default defineConfig({
   /* Run local development server - E2E Demo */
   webServer: {
     command: 'pnpm dev:e2e',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    url: 'http://127.0.0.1:3000',
+    reuseExistingServer: false,
     timeout: 120 * 1000,
-    stdout: 'ignore',
+    stdout: 'pipe',
     stderr: 'pipe',
   },
 })

@@ -27,6 +27,9 @@ test.describe('Exchange Rate Page', () => {
   })
 
   test('should convert currencies when entering amount in top input', async ({ page }) => {
+    // Wait for the page to be fully loaded
+    await expect(page.getByPlaceholder('Enter amount')).toBeVisible({ timeout: 10000 })
+
     // Fill in amount
     await page.getByPlaceholder('Enter amount').fill('50')
 
