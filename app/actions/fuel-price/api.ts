@@ -5,13 +5,13 @@ import type { FuelPrice, FuelPriceList, ProvinceFuelPrice } from './types'
 import { isFuelPrice } from './types'
 
 interface MemoryCache {
-  data: FuelPrice | null
+  list: FuelPriceList | null
   timestamp: number
 }
 
 /** Memory cache storage */
 const MEMORY_CACHE: MemoryCache = {
-  data: null,
+  list: null,
   timestamp: 0,
 }
 
@@ -23,7 +23,7 @@ const PREVIOUS_FUEL_PRICE_FILE = 'previous-fuel-price.json'
  * Clear the in-memory cache
  */
 export function clearFuelPriceCache() {
-  MEMORY_CACHE.data = null
+  MEMORY_CACHE.list = null
   MEMORY_CACHE.timestamp = 0
 }
 
@@ -124,13 +124,8 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
   const now = Date.now()
 
   // Check memory cache
-  if (MEMORY_CACHE.data && now - MEMORY_CACHE.timestamp < CACHE_DURATION) {
-    return {
-      previous: [],
-      current: MEMORY_CACHE.data.data,
-      latestUpdated: now,
-      previousUpdated: 0,
-    }
+  if (MEMORY_CACHE.list && now - MEMORY_CACHE.timestamp < CACHE_DURATION) {
+    return MEMORY_CACHE.list
   }
 
   // Read data from Gist
@@ -139,53 +134,71 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
 
   // Check if data in Gist is expired
   if (currentData && now - new Date(currentData.lastUpdated).getTime() < CACHE_DURATION) {
-    // Update memory cache
-    MEMORY_CACHE.data = currentData
-    MEMORY_CACHE.timestamp = now
-
-    return {
+    const list: FuelPriceList = {
       previous: previousData ? previousData.data : [],
       current: currentData.data,
       latestUpdated: new Date(currentData.lastUpdated).getTime(),
       previousUpdated: previousData ? new Date(previousData.lastUpdated).getTime() : 0,
     }
+
+    // Update memory cache
+    MEMORY_CACHE.list = list
+    MEMORY_CACHE.timestamp = now
+
+    return list
   }
 
   // Get fresh data
   try {
     const freshData = await getFuelPrice()
 
-    // Only update Gist when data has changed
+    let list: FuelPriceList
+
+    // Only update Gist and logical lastUpdated when data has actually changed
     if (hasFuelPriceChanged(freshData, currentData)) {
       if (currentData) {
         await writeFuelPriceToGist(PREVIOUS_FUEL_PRICE_FILE, currentData)
       }
       await writeFuelPriceToGist(CURRENT_FUEL_PRICE_FILE, freshData)
+
+      list = {
+        // For UI diff: compare fresh current vs previous current snapshot
+        previous: currentData ? currentData.data : [],
+        current: freshData.data,
+        latestUpdated: new Date(freshData.lastUpdated).getTime(),
+        previousUpdated: currentData ? new Date(currentData.lastUpdated).getTime() : 0,
+      }
+    } else {
+      // Data unchanged: do NOT bump logical lastUpdated,沿用当前缓存时间戳
+      // previous: 仍然使用 previousData（如果存在），保持真正的“上一次变更快照”
+      list = {
+        previous: previousData ? previousData.data : [],
+        current: (currentData ?? freshData).data,
+        latestUpdated: currentData ? new Date(currentData.lastUpdated).getTime() : new Date(freshData.lastUpdated).getTime(),
+        previousUpdated: previousData ? new Date(previousData.lastUpdated).getTime() : 0,
+      }
     }
 
     // Update memory cache
-    MEMORY_CACHE.data = freshData
+    MEMORY_CACHE.list = list
     MEMORY_CACHE.timestamp = now
 
-    return {
-      previous: currentData ? currentData.data : [],
-      current: freshData.data,
-      latestUpdated: new Date(freshData.lastUpdated).getTime(),
-      previousUpdated: currentData ? new Date(currentData.lastUpdated).getTime() : 0,
-    }
+    return list
   } catch (error) {
     // If fetching new data fails but we have cached data, use cached data
     if (currentData) {
-      // Update memory cache
-      MEMORY_CACHE.data = currentData
-      MEMORY_CACHE.timestamp = now
-
-      return {
+      const list: FuelPriceList = {
         previous: previousData ? previousData.data : [],
         current: currentData.data,
         latestUpdated: new Date(currentData.lastUpdated).getTime(),
         previousUpdated: previousData ? new Date(previousData.lastUpdated).getTime() : 0,
       }
+
+      // Update memory cache
+      MEMORY_CACHE.list = list
+      MEMORY_CACHE.timestamp = now
+
+      return list
     }
 
     // If no cached data and fetching new data fails, throw error

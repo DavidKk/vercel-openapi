@@ -1,15 +1,15 @@
 # Holiday 日历模块改造 TODO
 
-> 设计参考：macOS 系统日历应用。目标为单页全屏月历，无页头页脚，左侧退出返回首页，整块区域为日历并支持节日下拉搜索与跳转。
+> 设计参考：macOS 系统日历应用。目标为单页全屏月历，无页头，左侧退出返回首页，整块区域为日历并支持节日下拉搜索与跳转。
 
 ---
 
 ## 一、布局与壳子
 
-- [x] **移除页头页尾**
+- [x] **移除页头**
 
-  - 在 `app/Nav/constants.ts` 的 `HIDDEN_ROUTES` 中加入 `'/holiday'`，使 Nav 与 Footer 在 holiday 页不渲染（已有 `useLayoutVisibility` 逻辑）。
-  - 验收：访问 `/holiday` 时顶部导航栏与底部均不可见。
+  - 在 `app/Nav/constants.ts` 的 `HIDDEN_ROUTES` 中加入 `'/holiday'`，使 Nav 在 holiday 页不渲染（已有 `useLayoutVisibility` 逻辑）。
+  - 验收：访问 `/holiday` 时顶部导航栏不可见。
 
 - [x] **左侧退出按钮**
 
@@ -103,7 +103,7 @@
 
 | 步骤 | 内容                                               | 主要文件                                                |
 | ---- | -------------------------------------------------- | ------------------------------------------------------- |
-| 1    | 隐藏 Nav/Footer、左侧退出、全屏壳子                | `Nav/constants.ts`, `app/holiday/page.tsx`              |
+| 1    | 隐藏 Nav、左侧退出、全屏壳子                       | `Nav/constants.ts`, `app/holiday/page.tsx`              |
 | 2    | 月视图：年月 + 左右 + 今天 + 星期行 + 日期网格全屏 | `components/Calendar.tsx`                               |
 | 3    | 节日下拉（含搜索 + 选中跳转）                      | `components/Calendar.tsx`（或独立 `HolidayPicker.tsx`） |
 | 4    | 跨年数据加载、macOS 风格与 a11y                    | `Calendar.tsx`, `app/holiday/page.tsx`                  |

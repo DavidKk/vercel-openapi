@@ -6,8 +6,8 @@ import { useMemo } from 'react'
 import { HIDDEN_ROUTES } from '@/app/Nav/constants'
 
 /**
- * Hook to determine if the layout (Nav/Footer) should be hidden based on the current route
- * @returns {boolean} true if the layout should be hidden, false otherwise
+ * Hook to determine if the global Nav should be hidden based on the current route
+ * @returns {boolean} true if the Nav should be hidden, false otherwise
  */
 export function useLayoutVisibility(): boolean {
   const pathname = usePathname()

@@ -1,6 +1,6 @@
 import { checkUnAccess } from '@/services/auth/access'
 
-import LoginForm from './Form'
+import { LoginForm } from './components'
 
 interface LoginPageProps {
   searchParams: Promise<{ redirectUrl: string }>

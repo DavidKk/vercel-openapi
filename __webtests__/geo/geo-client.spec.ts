@@ -7,8 +7,8 @@ test.describe('GeoClient Component', () => {
   })
 
   test('should display the page title', async ({ page }) => {
-    // Check that the page title is displayed
-    await expect(page.getByText('Geocoding Service')).toBeVisible()
+    // Geo overview page shows the geocode form; check for the main action button
+    await expect(page.getByRole('button', { name: 'Query location' })).toBeVisible()
   })
 
   test('should allow manual input of coordinates and display location information', async ({ page }) => {
@@ -22,30 +22,24 @@ test.describe('GeoClient Component', () => {
     // Fill in the longitude input
     await page.getByLabel('Longitude').fill('113.11020894852696')
 
-    // Click the "Query Location" button
-    await page.getByRole('button', { name: 'Query Location' }).click()
+    // Click the "Query location" button
+    await page.getByRole('button', { name: 'Query location' }).click()
 
-    // Wait for loading to complete (button text changes back from "Querying...")
+    // Wait for loading to complete (button text changes back from "Querying…")
     await page.waitForFunction(
       () => {
         const button = document.querySelector('button[type="submit"]')
-        return button && !button.textContent?.includes('Querying...')
+        return button && !button.textContent?.includes('Querying')
       },
       { timeout: 15000 }
     )
 
-    // Wait for the location information to be displayed - use heading role to avoid ambiguity
-    // The heading is inside the green background container that appears after data loads
-    await expect(page.locator('.bg-green-50').getByRole('heading', { name: 'Location Information' })).toBeVisible({ timeout: 15000 })
+    // Wait for the location information (GeoClient uses .bg-gray-50 and label "Location")
+    await expect(page.locator('.bg-gray-50').getByText('Location')).toBeVisible({ timeout: 15000 })
 
-    // Check that the location information is displayed correctly
-    await expect(page.getByText('Country:')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText('Province:')).toBeVisible({ timeout: 5000 })
-
-    // Verify that we get some location data (not empty)
-    const provinceText = await page.getByText('Province:').textContent()
-    expect(provinceText).not.toBeNull()
-    expect(provinceText).toContain('Province:')
+    // Check that the location information is displayed correctly (dt labels: Country, Province)
+    await expect(page.getByText('Country', { exact: true }).first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Province', { exact: true }).first()).toBeVisible({ timeout: 5000 })
   })
 
   test('should display error message for invalid coordinates', async ({ page }) => {
@@ -53,24 +47,22 @@ test.describe('GeoClient Component', () => {
     await page.getByLabel('Latitude').fill('999')
     await page.getByLabel('Longitude').fill('999')
 
-    // Click the "Query Location" button
-    await page.getByRole('button', { name: 'Query Location' }).click()
+    // Click the "Query location" button
+    await page.getByRole('button', { name: 'Query location' }).click()
 
-    // Wait for loading to complete (button text changes back from "Querying...")
+    // Wait for loading to complete (button text changes back from "Querying…")
     await page.waitForFunction(
       () => {
         const button = document.querySelector('button[type="submit"]')
-        return button && !button.textContent?.includes('Querying...')
+        return button && !button.textContent?.includes('Querying')
       },
       { timeout: 15000 }
     )
 
-    // Wait for the error message to be displayed (use data-testid for stable cross-browser selector)
+    // Wait for the error message (GeoClient uses data-testid="geocode-error" and "Error: " prefix)
     const errorContainer = page.getByTestId('geocode-error')
     await expect(errorContainer).toBeVisible({ timeout: 15000 })
-
-    // Verify the Error heading and message are shown
-    await expect(errorContainer.getByRole('heading', { name: 'Error' })).toBeVisible({ timeout: 5000 })
+    await expect(errorContainer.getByText(/Error/)).toBeVisible({ timeout: 5000 })
   })
 
   // Removed API usage instructions test as this section was removed from the component

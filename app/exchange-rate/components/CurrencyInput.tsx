@@ -1,5 +1,7 @@
 'use client'
 
+import { FormSelect } from '@/components/FormSelect'
+
 interface CurrencyInputProps {
   value: string
   currencies: string[]
@@ -10,26 +12,27 @@ interface CurrencyInputProps {
   onFocus?: () => void
 }
 
+/**
+ * Combined amount input + currency select. Styling matches fuel-price form controls (h-8, border-gray-300).
+ */
 export function CurrencyInput({ value, currencies, selectedCurrency, onValueChange, onCurrencyChange, placeholder = 'Enter amount', onFocus }: CurrencyInputProps) {
+  const options = currencies.map((c) => ({ value: c, label: c }))
+
   return (
-    <div className="flex border border-gray-300 rounded-md shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+    <div className="flex overflow-hidden rounded-md border border-gray-300 bg-white focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500">
       <input
         type="number"
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
         onFocus={onFocus}
         placeholder={placeholder}
-        className="flex-1 px-3 py-2 border-0 rounded-l-md focus:outline-none focus:ring-0"
-        min="0"
-        step="0.01"
+        className="h-8 min-w-0 flex-1 border-0 bg-transparent px-2.5 text-sm text-gray-900 outline-none focus:ring-0"
+        min={0}
+        step={0.01}
       />
-      <select value={selectedCurrency} onChange={(e) => onCurrencyChange(e.target.value)} className="px-2 py-2 border-0 rounded-r-md focus:outline-none focus:ring-0 bg-white">
-        {currencies.map((currency) => (
-          <option key={currency} value={currency}>
-            {currency}
-          </option>
-        ))}
-      </select>
+      <div className="min-w-[5rem] border-l border-gray-300">
+        <FormSelect value={selectedCurrency} onChange={onCurrencyChange} options={options} className="rounded-none border-0 bg-transparent focus:ring-0" />
+      </div>
     </div>
   )
 }

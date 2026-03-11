@@ -7,8 +7,7 @@ test.describe('Exchange Rate Page', () => {
   })
 
   test('should display the page title', async ({ page }) => {
-    // Check that the page title is displayed
-    await expect(page.getByRole('heading', { name: 'Exchange Rates' })).toBeVisible()
+    await expect(page.getByText('Exchange rates', { exact: true })).toBeVisible()
   })
 
   test('should display currency converter with default values', async ({ page }) => {
@@ -42,8 +41,8 @@ test.describe('Exchange Rate Page', () => {
     const bottomInput = page.getByPlaceholder('Converted amount')
     await expect(bottomInput).not.toBeEmpty()
 
-    // Check that conversion information is displayed
-    await expect(page.locator('.bg-blue-50')).toBeVisible()
+    // Check that conversion information is displayed (result card)
+    await expect(page.getByText('Result', { exact: true })).toBeVisible()
   })
 
   test('should convert currencies when entering amount in bottom input', async ({ page }) => {
@@ -56,7 +55,7 @@ test.describe('Exchange Rate Page', () => {
     await expect(topInput).not.toBeEmpty()
 
     // Check that conversion information is displayed
-    await expect(page.locator('.bg-blue-50')).toBeVisible()
+    await expect(page.getByText('Result', { exact: true })).toBeVisible()
   })
 
   test('should switch currencies and convert correctly', async ({ page }) => {
@@ -72,7 +71,7 @@ test.describe('Exchange Rate Page', () => {
     await expect(bottomInput).not.toBeEmpty()
 
     // Check that conversion information is displayed
-    await expect(page.locator('.bg-blue-50')).toBeVisible()
+    await expect(page.getByText('Result', { exact: true })).toBeVisible()
   })
 
   test('should handle same currency conversion', async ({ page }) => {
@@ -97,7 +96,7 @@ test.describe('Exchange Rate Page', () => {
     await expect(bottomInput).not.toBeEmpty()
 
     // Check that conversion information is displayed
-    await expect(page.locator('.bg-blue-50')).toBeVisible()
+    await expect(page.getByText('Result', { exact: true })).toBeVisible()
   })
 
   test('should handle zero input correctly', async ({ page }) => {
@@ -109,7 +108,7 @@ test.describe('Exchange Rate Page', () => {
     await expect(bottomInput).not.toBeEmpty()
 
     // Check that conversion information is displayed
-    await expect(page.locator('.bg-blue-50')).toBeVisible()
+    await expect(page.getByText('Result', { exact: true })).toBeVisible()
   })
 
   test('should handle empty input correctly', async ({ page }) => {
@@ -134,7 +133,7 @@ test.describe('Exchange Rate Page', () => {
     await expect(bottomInput).not.toBeEmpty()
 
     // Check that conversion information is displayed
-    await expect(page.locator('.bg-blue-50')).toBeVisible()
+    await expect(page.getByText('Result', { exact: true })).toBeVisible()
   })
 
   test('should update conversion when changing to currency', async ({ page }) => {
@@ -149,6 +148,6 @@ test.describe('Exchange Rate Page', () => {
     await expect(bottomInput).not.toBeEmpty()
 
     // Check that conversion information is displayed
-    await expect(page.locator('.bg-blue-50')).toBeVisible()
+    await expect(page.getByText('Result', { exact: true })).toBeVisible()
   })
 })

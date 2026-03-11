@@ -1,54 +1,49 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { TbMapPin } from 'react-icons/tb'
+import classNames from 'classnames'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { TbChevronDown, TbMapPin, TbSearch } from 'react-icons/tb'
 
 import type { FuelPriceData, FuelPriceList } from '@/app/actions/fuel-price/types'
+import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
 import { Spinner } from '@/components/Spinner'
 import { useUserLocation } from '@/hooks/useUserLocation'
 
-/**
- * Props for the FuelPriceTable component
- */
 export interface FuelPriceTableProps {
   /** Fuel price data to display */
   fuelPrices: FuelPriceList | null
 }
 
 /**
- * Fuel price table component that displays fuel prices for Chinese provinces
- * Highlights the user's location and shows price changes over time
+ * Fuel price table component that displays fuel prices for Chinese provinces.
+ * Highlights the user's location and shows price changes over time.
  */
 export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
   const { province: userProvince } = useUserLocation()
 
-  // State for sorting - now includes 'none' for default order
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' | 'none' } | null>(null)
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const pickerRef = useRef<HTMLDivElement | null>(null)
 
-  // If no data, show loading spinner
   if (!fuelPrices) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex h-full w-full items-center justify-center">
         <Spinner />
       </div>
     )
   }
 
-  // Create a map of previous prices for quick lookup
   const previousPricesMap = new Map()
   fuelPrices.previous.forEach((item) => {
     previousPricesMap.set(item.province, item)
   })
 
-  // Format timestamps for display
   const latestUpdated = new Date(fuelPrices.latestUpdated).toLocaleString()
 
-  // Separate user's province from the rest of the data
   let userProvinceData = null
   let otherProvincesData = [...fuelPrices.current]
-
-  // Compatibility handling: Geocoding returns "广东省", while fuel price data uses "广东"
-  // Remove "省" from both sides for comparison to ensure accurate matching
   const normalizedUserProvince = userProvince ? userProvince.replace(/省$/, '') : null
 
   if (normalizedUserProvince) {
@@ -63,22 +58,17 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
     }
   }
 
-  // Combine user province data with other provinces data
   const allProvincesData = userProvinceData ? [userProvinceData, ...otherProvincesData] : otherProvincesData
 
-  // Sort data based on sort configuration
   const sortedData = useMemo(() => {
-    // If no sort config or direction is 'none', return original order with user province first
     if (!sortConfig || sortConfig.direction === 'none') {
       return allProvincesData
     }
 
     return [...allProvincesData].sort((a, b) => {
-      // Extract numeric values for comparison
       const aValue = parseFloat(a[sortConfig.key as keyof FuelPriceData].replace(/[^\d.]/g, ''))
       const bValue = parseFloat(b[sortConfig.key as keyof FuelPriceData].replace(/[^\d.]/g, ''))
 
-      // Handle invalid numbers
       if (isNaN(aValue) && isNaN(bValue)) return 0
       if (isNaN(aValue)) return 1
       if (isNaN(bValue)) return -1
@@ -91,31 +81,24 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
     })
   }, [allProvincesData, sortConfig])
 
-  // Handle sorting request - cycle through none -> ascending -> descending -> none
   const requestSort = (key: string) => {
     let direction: 'none' | 'ascending' | 'descending' = 'none'
 
     if (!sortConfig || sortConfig.key !== key) {
-      // First click on a column - start with ascending
       direction = 'ascending'
     } else if (sortConfig.direction === 'none') {
-      // Second click - ascending
       direction = 'ascending'
     } else if (sortConfig.direction === 'ascending') {
-      // Third click - descending
       direction = 'descending'
     }
-    // Fourth click would go back to 'none' (default)
 
     setSortConfig({ key, direction })
   }
 
-  // Get sort indicator for column
   const getSortIndicator = (key: string) => {
     if (!sortConfig || sortConfig.key !== key) {
       return null
     }
-
     switch (sortConfig.direction) {
       case 'ascending':
         return '↑'
@@ -126,16 +109,106 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
     }
   }
 
+  const provinceOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const all = allProvincesData
+      .map((item) => item.province)
+      .filter((name) => {
+        if (!name) return false
+        if (seen.has(name)) return false
+        seen.add(name)
+        return true
+      })
+
+    if (!searchQuery.trim()) {
+      return all
+    }
+    const lower = searchQuery.toLowerCase()
+    return all.filter((name) => name.toLowerCase().includes(lower))
+  }, [allProvincesData, searchQuery])
+
+  const handleSelectProvince = (provinceName: string) => {
+    setPickerOpen(false)
+    setSearchQuery('')
+    setSelectedProvince(provinceName)
+  }
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    if (!selectedProvince) return
+
+    const row = document.querySelector<HTMLElement>(`tr[data-province-row="${selectedProvince}"]`)
+    row?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+
+    const timer = window.setTimeout(() => {
+      setSelectedProvince(null)
+    }, 3000)
+
+    return () => window.clearTimeout(timer)
+  }, [selectedProvince])
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">China Fuel Prices</h1>
-        <p className="text-gray-600">Latest gasoline and diesel prices across Chinese cities</p>
-        <p className="text-sm text-gray-500 mt-2">Last updated: {latestUpdated}</p>
+    <div className="flex h-full min-h-0 w-full flex-col bg-white">
+      <div className={`${CONTENT_HEADER_CLASS} text-sm text-gray-600`}>
+        <div className="relative ml-auto" ref={pickerRef}>
+          <button
+            type="button"
+            onClick={() => setPickerOpen((open) => !open)}
+            className={FILTER_BUTTON_CLASS}
+            aria-label="选择地区"
+            aria-expanded={pickerOpen}
+            aria-haspopup="listbox"
+          >
+            <TbSearch className="h-4 w-4 text-gray-500" />
+            地区
+            <TbChevronDown className="h-4 w-4 text-gray-500" />
+          </button>
+          {pickerOpen && (
+            <div className="absolute right-0 top-full z-10 mt-1 w-56 rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
+              <div className="border-b border-gray-100 px-2 pb-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索地区…"
+                  className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs outline-none focus:border-gray-400"
+                  aria-label="搜索地区"
+                />
+              </div>
+              <ul className="max-h-56 overflow-auto">
+                {provinceOptions.length === 0 ? (
+                  <li className="px-3 py-2 text-xs text-gray-500">无匹配地区</li>
+                ) : (
+                  provinceOptions.map((name) => (
+                    <li key={name}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectProvince(name)}
+                        className="w-full px-3 py-1.5 text-left text-xs text-gray-800 hover:bg-gray-100"
+                        role="option"
+                      >
+                        {name}
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="h-full w-full">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -178,14 +251,17 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
               {sortedData.map((item, index) => {
                 const previousItem = previousPricesMap.get(item.province)
                 const isUserProvince = userProvinceData && item.province === userProvinceData.province
+                const isSelected = selectedProvince === item.province
 
                 return (
                   <tr
                     key={index}
-                    className={`
-                      ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                      ${isUserProvince ? 'bg-blue-50 font-bold' : ''}
-                    `}
+                    data-province-row={item.province}
+                    className={classNames(
+                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50',
+                      isUserProvince && 'bg-blue-50 font-bold',
+                      isSelected && 'bg-indigo-50 ring-1 ring-indigo-300'
+                    )}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <div className="flex items-center">
@@ -204,45 +280,32 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
           </table>
         </div>
       </div>
+
+      <div className="flex shrink-0 items-center justify-end border-t border-gray-200 px-4 py-1.5 text-xs text-gray-500">
+        <span>Last updated: {latestUpdated}</span>
+      </div>
     </div>
   )
 }
 
-/**
- * Helper function to calculate price change amount
- * @param currentPrice Current price string
- * @param previousPrice Previous price string
- * @returns Price change amount or null
- */
 function getPriceChangeAmount(currentPrice: string, previousPrice: string | undefined): string | null {
   if (!previousPrice) {
     return null
   }
-
-  // Remove any non-numeric characters except decimal point
   const current = parseFloat(currentPrice.replace(/[^\d.]/g, ''))
   const previous = parseFloat(previousPrice.replace(/[^\d.]/g, ''))
 
   if (isNaN(current) || isNaN(previous)) {
     return null
   }
-
   const change = current - previous
   return change.toFixed(2)
 }
 
-/**
- * Helper function to format price with change indicator
- * @param currentPrice Current price string
- * @param previousPrice Previous price string
- * @returns React element with formatted price and change indicator
- */
 function formatPriceWithChange(currentPrice: string, previousPrice?: string) {
-  // Check if price is valid (not zero or empty)
   const cleanPrice = currentPrice.replace(/[^\d.]/g, '')
   const price = parseFloat(cleanPrice)
 
-  // If price is invalid or zero, show "-"
   if (isNaN(price) || price === 0) {
     return <span>-</span>
   }

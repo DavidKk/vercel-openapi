@@ -6,7 +6,7 @@ import { getCachedExchangeRate } from '@/app/actions/exchange-rate/api'
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
 import { Spinner } from '@/components/Spinner'
 
-import { CurrencyInput } from './components/CurrencyInput'
+import { CurrencyInput } from './CurrencyInput'
 
 export interface CurrencyConverterProps {
   /** Available currencies for conversion */
@@ -25,9 +25,7 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
   const [exchangeRates, setExchangeRates] = useState<ExchangeRateData | null>(initialExchangeRates || null)
   const [activeInput, setActiveInput] = useState<'top' | 'bottom' | null>(null)
 
-  // Fetch exchange rates when fromCurrency changes
   useEffect(() => {
-    // Only fetch when top input is active or no input is active (initial load)
     if (activeInput === 'bottom') return
 
     const fetchExchangeRates = async () => {
@@ -50,11 +48,8 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
     fetchExchangeRates()
   }, [fromCurrency, activeInput])
 
-  // Calculate result when amount, fromCurrency, toCurrency, or exchangeRates change
-  // But only when top input is active or no input is active
   useEffect(() => {
     if (activeInput === 'bottom' || !exchangeRates || !amount || isNaN(parseFloat(amount))) {
-      // If bottom input is active, we don't want to update result from top input changes
       return
     }
 
@@ -75,12 +70,10 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
     }
   }, [amount, fromCurrency, toCurrency, exchangeRates, activeInput])
 
-  // Handle amount change for the top input (forward conversion)
   const handleTopAmountChange = (value: string) => {
     setActiveInput('top')
     setAmount(value)
 
-    // Immediately calculate result when top input changes
     if (!value || isNaN(parseFloat(value)) || !exchangeRates) {
       setResult(null)
       return
@@ -104,12 +97,10 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
     }
   }
 
-  // Handle amount change for the bottom input (reverse conversion using existing rates)
   const handleBottomAmountChange = (value: string) => {
     setActiveInput('bottom')
     setResult(value ? parseFloat(value) : null)
 
-    // Immediately calculate amount when bottom input changes
     if (!value || isNaN(parseFloat(value)) || !exchangeRates) {
       return
     }
@@ -119,31 +110,24 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
       return
     }
 
-    // Use existing exchange rates for reverse calculation
     if (fromCurrency === toCurrency) {
       setAmount(reverseAmountValue.toString())
     } else if (exchangeRates.rates[toCurrency]) {
-      // Reverse calculation: if 1 USD = X CNY, then 1 CNY = 1/X USD
       const rate = exchangeRates.rates[toCurrency]
       const converted = parseFloat((reverseAmountValue / rate).toFixed(2))
       setAmount(converted.toString())
     }
   }
 
-  // Handle currency change for the top input
   const handleFromCurrencyChange = (currency: string) => {
-    // When changing currency in top input, we want to fetch new rates
-    setActiveInput('top') // Set active input to top
+    setActiveInput('top')
     setFromCurrency(currency)
   }
 
-  // Handle currency change for the bottom input
   const handleToCurrencyChange = (currency: string) => {
-    // When changing currency in bottom input, we still want to update the calculation
-    setActiveInput('bottom') // Set active input to bottom
+    setActiveInput('bottom')
     setToCurrency(currency)
 
-    // Immediately recalculate when toCurrency changes
     if (!amount || isNaN(parseFloat(amount)) || !exchangeRates) {
       setResult(null)
       return
@@ -167,17 +151,9 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
     }
   }
 
-  // Reset active input when user focuses on top input
-  const handleTopInputFocus = () => {
-    setActiveInput('top')
-  }
+  const handleTopInputFocus = () => setActiveInput('top')
+  const handleBottomInputFocus = () => setActiveInput('bottom')
 
-  // Reset active input when user focuses on bottom input
-  const handleBottomInputFocus = () => {
-    setActiveInput('bottom')
-  }
-
-  // Calculate initial result when component mounts and we have exchange rates
   useEffect(() => {
     if (!exchangeRates || activeInput === 'bottom') return
 
@@ -199,11 +175,14 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
   }, [exchangeRates, activeInput])
 
   return (
-    <div className="mb-8">
-      {error && <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">Error: {error}</div>}
+    <div>
+      {error && (
+        <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          {error}
+        </div>
+      )}
 
-      <div className="space-y-4 mb-4">
-        {/* Top Currency Input - From Currency */}
+      <div className="space-y-4">
         <div>
           <CurrencyInput
             value={amount}
@@ -215,8 +194,6 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
             onFocus={handleTopInputFocus}
           />
         </div>
-
-        {/* Bottom Currency Input - To Currency */}
         <div>
           <CurrencyInput
             value={result?.toString() || ''}
@@ -231,22 +208,30 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
       </div>
 
       {loading && (
-        <div className="flex justify-center my-4">
+        <div className="mt-4 flex items-center justify-center text-xs text-gray-500">
           <Spinner />
           <span className="ml-2">Loading exchange rates...</span>
         </div>
       )}
 
       {result !== null && !loading && (
-        <div className="bg-blue-50 rounded-lg p-4 mt-4">
-          <div className="text-lg font-bold text-center">
-            {parseFloat(amount || '0').toFixed(2)} {fromCurrency} = {result.toFixed(2)} {toCurrency}
-          </div>
-          {exchangeRates && (
-            <div className="text-sm text-center text-gray-500 mt-1">
-              1 {fromCurrency} = {exchangeRates.rates[toCurrency]?.toFixed(4) || 'N/A'} {toCurrency}
+        <div className="mt-4 rounded-md border border-gray-200 bg-white px-4 py-3">
+          <dl className="space-y-1 text-sm text-gray-700">
+            <div className="flex justify-between gap-4">
+              <dt className="text-gray-500">Result</dt>
+              <dd className="font-medium">
+                {parseFloat(amount || '0').toFixed(2)} {fromCurrency} = {result.toFixed(2)} {toCurrency}
+              </dd>
             </div>
-          )}
+            {exchangeRates?.rates[toCurrency] != null && (
+              <div className="flex justify-between gap-4 border-t border-gray-100 pt-2 text-xs text-gray-500">
+                <dt>Rate</dt>
+                <dd>
+                  1 {fromCurrency} = {exchangeRates.rates[toCurrency]?.toFixed(4)} {toCurrency}
+                </dd>
+              </div>
+            )}
+          </dl>
         </div>
       )}
     </div>

@@ -1,14 +1,19 @@
 import { getCachedFuelPrice } from '@/app/actions/fuel-price/api'
 
-import { FuelPriceTable } from './FuelPriceTable'
+import { FuelPriceTable } from './components'
 
 /**
- * Fuel price page component
- * Displays current fuel prices for all provinces with user location highlighting
+ * Fuel price page content: used inside /fuel-price layout.
+ * Layout is responsible for header and sidebar; this page only renders content sections.
  */
 export default async function FuelPricePage() {
   const fuelPrices = await getCachedFuelPrice()
-  return <FuelPriceTable fuelPrices={fuelPrices} />
+
+  return (
+    <section id="fuel-overview" className="flex h-full flex-col">
+      <FuelPriceTable fuelPrices={fuelPrices} />
+    </section>
+  )
 }
 
 // Revalidation time in seconds

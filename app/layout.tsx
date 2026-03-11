@@ -5,8 +5,6 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
-import Footer from './Footer'
-import FooterWrapper from './Footer/FooterWrapper'
 import { Nav } from './Nav'
 
 const geistSans = Geist({
@@ -36,12 +34,9 @@ export default function RootLayout(props: Readonly<RootLayoutProps>) {
     <html lang="en">
       <Analytics />
       <SpeedInsights />
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex flex-col overflow-hidden`}>
         <Nav />
-        {children}
-        <FooterWrapper>
-          <Footer />
-        </FooterWrapper>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </body>
     </html>
   )

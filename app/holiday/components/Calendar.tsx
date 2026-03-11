@@ -6,17 +6,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { TbChevronDown, TbChevronLeft, TbChevronRight, TbSearch } from 'react-icons/tb'
 
 import type { Holiday } from '@/app/actions/holiday/api'
+import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
 
 /** Server action type: fetch holidays for a given year */
 type FetchHolidaysForYear = (year?: number) => Promise<Holiday[]>
 
-/**
- * Props for the Calendar component
- */
 interface CalendarProps {
-  /** Initial holiday data (e.g. current year) to avoid loading state on first paint */
   initialHolidays: Holiday[]
-  /** Callback to fetch holidays for a given year when switching years */
   fetchHolidaysForYear: FetchHolidaysForYear
 }
 
@@ -32,13 +28,11 @@ export function Calendar(props: CalendarProps) {
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [holidays, setHolidays] = useState<Holiday[]>(initialHolidays)
-  /** Year for which `holidays` is loaded; when user switches year we refetch */
   const [holidayYear, setHolidayYear] = useState(currentYear)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const pickerRef = useRef<HTMLDivElement>(null)
 
-  /** Load holidays for the displayed year when it changes (e.g. after switching year via arrows) */
   useEffect(() => {
     if (currentYear === holidayYear) return
     setHolidayYear(currentYear)
@@ -74,7 +68,6 @@ export function Calendar(props: CalendarProps) {
     setCurrentMonth(today.getMonth())
   }, [])
 
-  /** Holidays that have a name (for picker list); filter by search */
   const pickerOptions = holidays.filter((h) => {
     if (!h.name?.trim()) return false
     if (!searchQuery.trim()) return true
@@ -89,7 +82,6 @@ export function Calendar(props: CalendarProps) {
     setSearchQuery('')
   }, [])
 
-  /** Close picker on click outside */
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
@@ -102,8 +94,7 @@ export function Calendar(props: CalendarProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      {/* Toolbar: year-month, arrows, today, holiday picker */}
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-gray-200 px-4 py-3">
+      <div className={`${CONTENT_HEADER_CLASS} flex-wrap gap-3`}>
         <div className="flex items-center gap-1">
           <button type="button" onClick={handlePrevMonth} className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100" aria-label="Previous month">
             <TbChevronLeft className="h-5 w-5" />
@@ -119,12 +110,11 @@ export function Calendar(props: CalendarProps) {
           今天
         </button>
 
-        {/* Holiday dropdown with search */}
         <div className="relative ml-auto" ref={pickerRef}>
           <button
             type="button"
             onClick={() => setPickerOpen((o) => !o)}
-            className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+            className={FILTER_BUTTON_CLASS}
             aria-label="Choose a holiday"
             aria-expanded={pickerOpen}
             aria-haspopup="listbox"
@@ -164,7 +154,6 @@ export function Calendar(props: CalendarProps) {
         </div>
       </div>
 
-      {/* Weekday headers */}
       <div className="grid shrink-0 grid-cols-7 border-b border-gray-100 bg-gray-50/80">
         {WEEKDAY_LABELS.map((label) => (
           <div key={label} className="py-2 text-center text-xs font-medium text-gray-500">
@@ -173,7 +162,6 @@ export function Calendar(props: CalendarProps) {
         ))}
       </div>
 
-      {/* Date grid: fill remaining height */}
       <div className="min-h-0 flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 p-px">
         {days.map((day, index) => {
           const holiday = holidays.find((h) => isSameDay(new Date(h.date), day))
