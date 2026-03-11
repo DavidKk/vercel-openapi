@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { TbCalendarSearch, TbCurrencyDollar, TbGasStation, TbMapPin } from 'react-icons/tb'
@@ -21,11 +22,10 @@ export function Nav() {
 
   return (
     <header className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
-      <Tooltip content="Open APIs">
-        <Link href="/" className="text-sm font-semibold text-gray-900 hover:text-gray-700">
-          Open APIs
-        </Link>
-      </Tooltip>
+      <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-gray-900 hover:text-gray-700">
+        <Image src="/logo-32.png" alt="Unbnd logo" width={24} height={24} className="h-6 w-6 shrink-0" />
+        <span>Unbnd</span>
+      </Link>
       <nav className="flex items-center gap-1" aria-label="Modules">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname?.startsWith(item.href) ?? false

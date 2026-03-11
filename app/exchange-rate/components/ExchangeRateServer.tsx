@@ -37,21 +37,19 @@ export default async function ExchangeRateServer({ initialBaseCurrency = 'USD' }
         <span>Exchange rates</span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
         {initialError ? (
-          <div className="mx-auto max-w-2xl p-4">
+          <div className="w-full max-w-md">
             <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
               {initialError}
             </div>
           </div>
         ) : initialExchangeRates ? (
-          <div className="mx-auto max-w-2xl p-4">
+          <div className="w-full max-w-md">
             <CurrencyConverter currencies={currencyOptions} initialExchangeRates={initialExchangeRates} />
           </div>
         ) : (
-          <div className="flex h-48 items-center justify-center">
-            <Spinner />
-          </div>
+          <Spinner />
         )}
       </div>
 
