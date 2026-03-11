@@ -286,3 +286,9 @@ it('merge', () => {
 3. ❌ **Do not omit JSDoc comments**: All exported functions must have complete JSDoc comments
 4. ❌ **Do not use deeply nested return values**: Hook and utility function return values should maintain a flat structure
 5. ❌ **Do not over-export**: Only export functions that truly need to be used by other modules
+
+## Project-specific Files
+
+- `next-env.d.ts` is required by Next.js for TypeScript support and typed routes.
+- This file is auto-managed by Next.js; do not delete it.
+- You should not manually edit its contents. If Next.js regenerates this file and changes are reasonable, commit the updated version.
