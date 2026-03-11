@@ -1,12 +1,116 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { TbArrowsExchange, TbChevronDown } from 'react-icons/tb'
 
 import { getCachedExchangeRate } from '@/app/actions/exchange-rate/api'
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
 import { Spinner } from '@/components/Spinner'
+import { fuzzySearch } from '@/utils/find'
 
-import { CurrencyInput } from './CurrencyInput'
+/** Allow only digits and one decimal point */
+function formatAmountInput(value: string): string {
+  const hasDot = value.includes('.')
+  const filtered = value.replace(/[^\d.]/g, '')
+  if (hasDot) {
+    const [head, ...tail] = filtered.split('.')
+    return tail.length > 0 ? `${head}.${tail.join('')}` : head || ''
+  }
+  return filtered
+}
+
+/**
+ * Private: one row combining amount input (text, no number spinner) + currency dropdown with search.
+ */
+interface AmountCurrencyRowProps {
+  amountValue: string
+  currencyValue: string
+  currencyOptions: { value: string; label: string }[]
+  onAmountChange: (value: string) => void
+  onCurrencyChange: (value: string) => void
+  onAmountFocus?: () => void
+  placeholder?: string
+}
+
+function AmountCurrencyRow({ amountValue, currencyValue, currencyOptions, onAmountChange, onCurrencyChange, onAmountFocus, placeholder = '0' }: AmountCurrencyRowProps) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) setSearch('')
+  }, [open])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const filtered = search.trim() === '' ? currencyOptions : currencyOptions.filter((opt) => fuzzySearch(search.trim(), opt.label))
+  const selectedLabel = currencyOptions.find((o) => o.value === currencyValue)?.label ?? currencyValue
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onAmountChange(formatAmountInput(e.target.value))
+  }
+
+  return (
+    <div className="flex items-center gap-3 overflow-visible rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+      <input
+        type="text"
+        inputMode="decimal"
+        value={amountValue}
+        onChange={handleAmountChange}
+        onFocus={onAmountFocus}
+        placeholder={placeholder}
+        className="min-w-0 flex-1 border-0 bg-transparent text-2xl font-light tabular-nums text-gray-900 outline-none placeholder:text-gray-300"
+      />
+      <div ref={containerRef} className="relative shrink-0">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex h-9 min-w-[5rem] items-center justify-between gap-1.5 border-0 bg-transparent px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+        >
+          <span>{selectedLabel}</span>
+          <TbChevronDown className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+        {open && (
+          <div className="absolute top-full right-0 z-10 mt-1 max-h-56 w-56 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search currency..."
+              className="w-full border-0 border-b border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400"
+            />
+            <ul className="max-h-44 overflow-y-auto py-1">
+              {filtered.length === 0 ? (
+                <li className="px-3 py-2 text-xs text-gray-500">No match</li>
+              ) : (
+                filtered.map((opt) => (
+                  <li key={opt.value}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onCurrencyChange(opt.value)
+                        setOpen(false)
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${opt.value === currencyValue ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-700'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export interface CurrencyConverterProps {
   /** Available currencies for conversion */
@@ -154,6 +258,12 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
   const handleTopInputFocus = () => setActiveInput('top')
   const handleBottomInputFocus = () => setActiveInput('bottom')
 
+  const handleSwap = useCallback(() => {
+    setFromCurrency(() => toCurrency)
+    setToCurrency(() => fromCurrency)
+    setActiveInput('top')
+  }, [fromCurrency, toCurrency])
+
   useEffect(() => {
     if (!exchangeRates || activeInput === 'bottom') return
 
@@ -174,66 +284,62 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
     }
   }, [exchangeRates, activeInput])
 
+  const currencyOptions = currencies.map((c) => ({ value: c, label: c }))
+  const rate = exchangeRates?.rates[toCurrency]
+  const rateText = rate != null && fromCurrency !== toCurrency ? `1 ${fromCurrency} = ${Number(rate).toFixed(4)} ${toCurrency}` : null
+
   return (
-    <div>
+    <div className="mx-auto max-w-md">
       {error && (
-        <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           {error}
         </div>
       )}
 
-      <div className="space-y-4">
-        <div>
-          <CurrencyInput
-            value={amount}
-            currencies={currencies}
-            selectedCurrency={fromCurrency}
-            onValueChange={handleTopAmountChange}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="space-y-3">
+          <AmountCurrencyRow
+            amountValue={amount}
+            currencyValue={fromCurrency}
+            currencyOptions={currencyOptions}
+            onAmountChange={handleTopAmountChange}
             onCurrencyChange={handleFromCurrencyChange}
-            placeholder="Enter amount"
-            onFocus={handleTopInputFocus}
+            onAmountFocus={handleTopInputFocus}
+            placeholder="0"
           />
-        </div>
-        <div>
-          <CurrencyInput
-            value={result?.toString() || ''}
-            currencies={currencies}
-            selectedCurrency={toCurrency}
-            onValueChange={handleBottomAmountChange}
+
+          <div className="flex items-center justify-center gap-3 py-1">
+            {loading ? (
+              <span className="flex items-center gap-2 text-xs text-gray-500">
+                <Spinner />
+                Loading…
+              </span>
+            ) : rateText ? (
+              <span className="text-xs text-gray-500">{rateText}</span>
+            ) : (
+              <span className="text-xs text-gray-400">—</span>
+            )}
+            <button
+              type="button"
+              onClick={handleSwap}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-700"
+              aria-label="Swap currencies"
+            >
+              <TbArrowsExchange className="h-5 w-5" />
+            </button>
+          </div>
+
+          <AmountCurrencyRow
+            amountValue={result != null ? result.toString() : ''}
+            currencyValue={toCurrency}
+            currencyOptions={currencyOptions}
+            onAmountChange={(v) => handleBottomAmountChange(v)}
             onCurrencyChange={handleToCurrencyChange}
-            placeholder="Converted amount"
-            onFocus={handleBottomInputFocus}
+            onAmountFocus={handleBottomInputFocus}
+            placeholder="0"
           />
         </div>
       </div>
-
-      {loading && (
-        <div className="mt-4 flex items-center justify-center text-xs text-gray-500">
-          <Spinner />
-          <span className="ml-2">Loading exchange rates...</span>
-        </div>
-      )}
-
-      {result !== null && !loading && (
-        <div className="mt-4 rounded-md border border-gray-200 bg-white px-4 py-3">
-          <dl className="space-y-1 text-sm text-gray-700">
-            <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">Result</dt>
-              <dd className="font-medium">
-                {parseFloat(amount || '0').toFixed(2)} {fromCurrency} = {result.toFixed(2)} {toCurrency}
-              </dd>
-            </div>
-            {exchangeRates?.rates[toCurrency] != null && (
-              <div className="flex justify-between gap-4 border-t border-gray-100 pt-2 text-xs text-gray-500">
-                <dt>Rate</dt>
-                <dd>
-                  1 {fromCurrency} = {exchangeRates.rates[toCurrency]?.toFixed(4)} {toCurrency}
-                </dd>
-              </div>
-            )}
-          </dl>
-        </div>
-      )}
     </div>
   )
 }
