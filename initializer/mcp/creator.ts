@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import type { ContextWithParams } from '@/initializer/controller'
 import { api } from '@/initializer/controller'
 
-import { mcpErrorinvalidArguments, mcpErrorMethodNotAllowed, mcpErrorToolNotFound, mcpResponse } from './response'
+import { JSONRPC, jsonRpcError, jsonRpcSuccess, mcpErrorinvalidArguments, mcpErrorMethodNotAllowed, mcpErrorToolNotFound, mcpResponse } from './response'
 import type { Tool } from './tool'
 
 /** MCP Tool interface */
@@ -100,16 +100,99 @@ function createManifestHandler(name: string, version: string, description: strin
 }
 
 /**
- * Create tool execution handler
- * @param tools Available tools
- * @returns Wrapped tool execution handler function
+ * Build MCP tools array for JSON-RPC tools/list (name, description, inputSchema)
  */
-function createToolExecutionHandler(tools: Map<string, Tool>) {
+function buildMCPToolsList(tools: Map<string, Tool>): { name: string; description?: string; inputSchema: any }[] {
+  return Array.from(tools.entries()).map(([, t]) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: t.manifest.parameters,
+  }))
+}
+
+/**
+ * Handle a single JSON-RPC 2.0 request (initialize, tools/list, tools/call)
+ */
+async function handleJsonRpcRequest(
+  body: { id?: string | number | null; method?: string; params?: any },
+  tools: Map<string, Tool>,
+  service: { name: string; version: string; description?: string }
+): Promise<NextResponse> {
+  const id = body.id ?? null
+
+  if (body.method === 'initialize') {
+    const protocolVersion = (body.params && body.params.protocolVersion) || '2025-06-18'
+    return jsonRpcSuccess(id, {
+      protocolVersion,
+      capabilities: {
+        tools: {
+          listChanged: false,
+        },
+      },
+      serverInfo: {
+        name: service.name,
+        version: service.version,
+        description: service.description,
+      },
+    })
+  }
+
+  if (body.method === 'tools/list') {
+    const toolsList = buildMCPToolsList(tools)
+    return jsonRpcSuccess(id, { tools: toolsList })
+  }
+
+  if (body.method === 'tools/call') {
+    const { name, arguments: args = {} } = body.params ?? {}
+    if (!name || typeof name !== 'string') {
+      return jsonRpcError(id, JSONRPC.INVALID_PARAMS, 'Missing or invalid "params.name"')
+    }
+
+    const tool = tools.get(name)
+    if (!tool) {
+      return jsonRpcError(id, JSONRPC.INVALID_PARAMS, `Unknown tool: ${name}`)
+    }
+
+    const validation = tool.validateParameters(args)
+    if (validation !== true) {
+      return jsonRpcError(id, JSONRPC.INVALID_PARAMS, String(validation))
+    }
+
+    try {
+      const result = await tool.call(args)
+      const content = [{ type: 'text' as const, text: JSON.stringify(result) }]
+      return jsonRpcSuccess(id, { content, isError: false })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return jsonRpcSuccess(id, {
+        content: [{ type: 'text' as const, text: message }],
+        isError: true,
+      })
+    }
+  }
+
+  return jsonRpcError(id, JSONRPC.METHOD_NOT_FOUND, `Method not found: ${body.method ?? 'undefined'}`)
+}
+
+/**
+ * Create tool execution handler. POST body can be:
+ * - JSON-RPC 2.0: { jsonrpc: "2.0", id, method: "tools/list" | "tools/call", params? } -> JSON-RPC response
+ * - Legacy REST: { tool: string, params?: object } -> { type: "result", result }
+ */
+function createToolExecutionHandler(name: string, version: string, description: string, tools: Map<string, Tool>) {
   return withMCPHandler(
     async (req: NextRequest) => {
-      const body = await req.json()
-      const { tool: toolName, params = {} } = body
+      const body = await req.json().catch(() => null)
+      if (body == null || typeof body !== 'object') {
+        return mcpErrorinvalidArguments('Invalid JSON body')
+      }
 
+      const isJsonRpc = body.jsonrpc === '2.0' && typeof body.method === 'string'
+      if (isJsonRpc) {
+        return handleJsonRpcRequest(body, tools, { name, version, description })
+      }
+
+      const { tool: toolName, params = {} } = body
       if (!toolName) {
         return mcpErrorinvalidArguments('Missing tool name')
       }
@@ -142,6 +225,6 @@ function createToolExecutionHandler(tools: Map<string, Tool>) {
 export function createMCPHttpServer(name: string, version: string, description: string, tools: Record<string, Tool> | Map<string, Tool>) {
   const toolsMap = tools instanceof Map ? tools : new Map(Object.entries(tools))
   const manifest = createManifestHandler(name, version, description, toolsMap)
-  const execute = createToolExecutionHandler(toolsMap)
+  const execute = createToolExecutionHandler(name, version, description, toolsMap)
   return { manifest, execute }
 }

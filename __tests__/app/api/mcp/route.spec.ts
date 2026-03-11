@@ -98,4 +98,78 @@ describe('MCP API /api/mcp', () => {
       expect(data.error.code).toBe('INVALID_ARGUMENT')
     })
   })
+
+  describe('POST (JSON-RPC 2.0)', () => {
+    it('should return tools list for method tools/list', async () => {
+      const req = new NextRequest(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/list',
+          params: {},
+        }),
+      })
+      const res = await POST(req, context)
+
+      expect(res.status).toBe(200)
+
+      const data = await res.json()
+      expect(data.jsonrpc).toBe('2.0')
+      expect(data.id).toBe(1)
+      expect(data.result).toBeDefined()
+      expect(Array.isArray(data.result.tools)).toBe(true)
+      expect(data.result.tools.some((t: { name: string }) => t.name === 'get_today_holiday')).toBe(true)
+    })
+
+    it('should execute tool for method tools/call and return content + isError', async () => {
+      const req = new NextRequest(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: { name: 'get_today_holiday', arguments: {} },
+        }),
+      })
+      const res = await POST(req, context)
+
+      expect(res.status).toBe(200)
+
+      const data = await res.json()
+      expect(data.jsonrpc).toBe('2.0')
+      expect(data.id).toBe(2)
+      expect(data.result).toBeDefined()
+      expect(data.result.content).toBeDefined()
+      expect(data.result.content[0].type).toBe('text')
+      expect(data.result.isError).toBe(false)
+      const parsed = JSON.parse(data.result.content[0].text)
+      expect(parsed.isHoliday).toBe(false)
+      expect(parsed.name).toBe('星期一')
+    })
+
+    it('should return JSON-RPC error for unknown method', async () => {
+      const req = new NextRequest(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 3,
+          method: 'unknown/method',
+          params: {},
+        }),
+      })
+      const res = await POST(req, context)
+
+      expect(res.status).toBe(200)
+
+      const data = await res.json()
+      expect(data.jsonrpc).toBe('2.0')
+      expect(data.error).toBeDefined()
+      expect(data.error.code).toBe(-32601)
+      expect(data.error.message).toContain('Method not found')
+    })
+  })
 })
