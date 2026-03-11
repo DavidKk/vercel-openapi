@@ -85,7 +85,7 @@ function AmountCurrencyRow({ amountValue, currencyValue, currencyOptions, onAmou
               placeholder="Search currency..."
               className="w-full border-0 border-b border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400"
             />
-            <ul className="max-h-44 overflow-y-auto py-1">
+            <ul className="max-h-44 overflow-y-auto py-1" data-testid="currency-options-list">
               {filtered.length === 0 ? (
                 <li className="px-3 py-2 text-xs text-gray-500">No match</li>
               ) : (
@@ -298,15 +298,17 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="space-y-3">
-          <AmountCurrencyRow
-            amountValue={amount}
-            currencyValue={fromCurrency}
-            currencyOptions={currencyOptions}
-            onAmountChange={handleTopAmountChange}
-            onCurrencyChange={handleFromCurrencyChange}
-            onAmountFocus={handleTopInputFocus}
-            placeholder="0"
-          />
+          <div data-testid="converter-row-from">
+            <AmountCurrencyRow
+              amountValue={amount}
+              currencyValue={fromCurrency}
+              currencyOptions={currencyOptions}
+              onAmountChange={handleTopAmountChange}
+              onCurrencyChange={handleFromCurrencyChange}
+              onAmountFocus={handleTopInputFocus}
+              placeholder="0"
+            />
+          </div>
 
           <div className="flex items-center justify-center gap-3 py-1">
             {loading ? (
@@ -329,15 +331,17 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
             </button>
           </div>
 
-          <AmountCurrencyRow
-            amountValue={result != null ? result.toString() : ''}
-            currencyValue={toCurrency}
-            currencyOptions={currencyOptions}
-            onAmountChange={(v) => handleBottomAmountChange(v)}
-            onCurrencyChange={handleToCurrencyChange}
-            onAmountFocus={handleBottomInputFocus}
-            placeholder="0"
-          />
+          <div data-testid="converter-row-to">
+            <AmountCurrencyRow
+              amountValue={result != null ? result.toString() : ''}
+              currencyValue={toCurrency}
+              currencyOptions={currencyOptions}
+              onAmountChange={(v) => handleBottomAmountChange(v)}
+              onCurrencyChange={handleToCurrencyChange}
+              onAmountFocus={handleBottomInputFocus}
+              placeholder="0"
+            />
+          </div>
         </div>
       </div>
     </div>
