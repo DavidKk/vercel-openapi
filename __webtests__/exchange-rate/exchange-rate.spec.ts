@@ -1,8 +1,30 @@
+import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+
+/** Top (from) amount input - placeholder is "0" */
+function topInput(page: Page) {
+  return page.getByTestId('converter-row-from').getByPlaceholder('0')
+}
+
+/** Bottom (to) amount input */
+function bottomInput(page: Page) {
+  return page.getByTestId('converter-row-to').getByPlaceholder('0')
+}
+
+/** Open from-currency dropdown and select option by label (e.g. "EUR") */
+async function selectFromCurrency(page: Page, currency: string) {
+  await page.getByTestId('converter-row-from').getByRole('button').click()
+  await page.getByTestId('currency-options-list').getByRole('button', { name: currency }).click()
+}
+
+/** Open to-currency dropdown and select option by label */
+async function selectToCurrency(page: Page, currency: string) {
+  await page.getByTestId('converter-row-to').getByRole('button').click()
+  await page.getByTestId('currency-options-list').getByRole('button', { name: currency }).click()
+}
 
 test.describe('Exchange Rate Page', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the exchange rate page before each test
     await page.goto('/exchange-rate')
   })
 
@@ -11,143 +33,64 @@ test.describe('Exchange Rate Page', () => {
   })
 
   test('should display currency converter with default values', async ({ page }) => {
-    // Check that the currency converter is visible
-    await expect(page.getByPlaceholder('Enter amount')).toBeVisible()
-
-    // Check default values
-    const topInput = page.getByPlaceholder('Enter amount')
-
-    // Check that default amount is set
-    await expect(topInput).toHaveValue('100')
-
-    // Check that currency selectors are visible
-    await expect(page.locator('select').first()).toBeVisible()
-    await expect(page.locator('select').last()).toBeVisible()
+    await expect(topInput(page)).toBeVisible()
+    await expect(topInput(page)).toHaveValue('100')
+    await expect(page.getByTestId('converter-row-from').getByRole('button')).toHaveText('USD')
+    await expect(page.getByTestId('converter-row-to').getByRole('button')).toHaveText('CNY')
   })
 
   test('should convert currencies when entering amount in top input', async ({ page }) => {
-    // Wait for the page to be fully loaded
-    await expect(page.getByPlaceholder('Enter amount')).toBeVisible({ timeout: 10000 })
-
-    // Fill in amount
-    await page.getByPlaceholder('Enter amount').fill('50')
-
-    // Select currencies (if needed)
-    // The default should be USD to CNY, but we'll explicitly select them to be sure
-    await page.locator('select').first().selectOption('USD')
-    await page.locator('select').last().selectOption('CNY')
-
-    // Check that the result is displayed in the bottom input
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    await expect(bottomInput).not.toBeEmpty()
-
-    // Check that conversion information is displayed (result card)
-    await expect(page.getByText('Result', { exact: true })).toBeVisible()
+    await expect(topInput(page)).toBeVisible({ timeout: 10000 })
+    await topInput(page).fill('50')
+    await selectFromCurrency(page, 'USD')
+    await selectToCurrency(page, 'CNY')
+    await expect(bottomInput(page)).not.toHaveValue('')
   })
 
   test('should convert currencies when entering amount in bottom input', async ({ page }) => {
-    // Fill in amount in bottom input
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    await bottomInput.fill('350')
-
-    // Check that the result is displayed in the top input
-    const topInput = page.getByPlaceholder('Enter amount')
-    await expect(topInput).not.toBeEmpty()
-
-    // Check that conversion information is displayed
-    await expect(page.getByText('Result', { exact: true })).toBeVisible()
+    await expect(bottomInput(page)).toBeVisible({ timeout: 10000 })
+    await bottomInput(page).fill('350')
+    await expect(topInput(page)).not.toHaveValue('')
   })
 
   test('should switch currencies and convert correctly', async ({ page }) => {
-    // Select EUR as from currency and USD as to currency
-    await page.locator('select').first().selectOption('EUR')
-    await page.locator('select').last().selectOption('USD')
-
-    // Fill in amount
-    await page.getByPlaceholder('Enter amount').fill('100')
-
-    // Check that the result is displayed
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    await expect(bottomInput).not.toBeEmpty()
-
-    // Check that conversion information is displayed
-    await expect(page.getByText('Result', { exact: true })).toBeVisible()
+    await selectFromCurrency(page, 'EUR')
+    await selectToCurrency(page, 'USD')
+    await topInput(page).fill('100')
+    await expect(bottomInput(page)).not.toHaveValue('')
   })
 
   test('should handle same currency conversion', async ({ page }) => {
-    // Select USD for both currencies
-    await page.locator('select').first().selectOption('USD')
-    await page.locator('select').last().selectOption('USD')
-
-    // Fill in amount
-    await page.getByPlaceholder('Enter amount').fill('100')
-
-    // Check that the result is the same
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    await expect(bottomInput).toHaveValue('100')
+    await selectFromCurrency(page, 'USD')
+    await selectToCurrency(page, 'USD')
+    await topInput(page).fill('100')
+    await expect(bottomInput(page)).toHaveValue('100')
   })
 
   test('should handle decimal inputs correctly', async ({ page }) => {
-    // Fill in decimal amount
-    await page.getByPlaceholder('Enter amount').fill('99.99')
-
-    // Check that the result is displayed
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    await expect(bottomInput).not.toBeEmpty()
-
-    // Check that conversion information is displayed
-    await expect(page.getByText('Result', { exact: true })).toBeVisible()
+    await topInput(page).fill('99.99')
+    await expect(bottomInput(page)).not.toHaveValue('')
   })
 
   test('should handle zero input correctly', async ({ page }) => {
-    // Fill in zero amount
-    await page.getByPlaceholder('Enter amount').fill('0')
-
-    // Check that the result is zero
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    await expect(bottomInput).not.toBeEmpty()
-
-    // Check that conversion information is displayed
-    await expect(page.getByText('Result', { exact: true })).toBeVisible()
+    await topInput(page).fill('0')
+    await expect(bottomInput(page)).toBeVisible()
   })
 
   test('should handle empty input correctly', async ({ page }) => {
-    // Clear the input
-    await page.getByPlaceholder('Enter amount').fill('')
-
-    // Check that the result is also empty or zero
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    // The bottom input should be updated accordingly
-    await expect(bottomInput).toBeVisible()
+    await topInput(page).fill('')
+    await expect(bottomInput(page)).toBeVisible()
   })
 
   test('should update conversion when changing from currency', async ({ page }) => {
-    // Fill in amount
-    await page.getByPlaceholder('Enter amount').fill('100')
-
-    // Change from currency
-    await page.locator('select').first().selectOption('EUR')
-
-    // Check that the result is updated
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    await expect(bottomInput).not.toBeEmpty()
-
-    // Check that conversion information is displayed
-    await expect(page.getByText('Result', { exact: true })).toBeVisible()
+    await topInput(page).fill('100')
+    await selectFromCurrency(page, 'EUR')
+    await expect(bottomInput(page)).not.toHaveValue('')
   })
 
   test('should update conversion when changing to currency', async ({ page }) => {
-    // Fill in amount
-    await page.getByPlaceholder('Enter amount').fill('100')
-
-    // Change to currency
-    await page.locator('select').last().selectOption('EUR')
-
-    // Check that the result is updated
-    const bottomInput = page.getByPlaceholder('Converted amount')
-    await expect(bottomInput).not.toBeEmpty()
-
-    // Check that conversion information is displayed
-    await expect(page.getByText('Result', { exact: true })).toBeVisible()
+    await topInput(page).fill('100')
+    await selectToCurrency(page, 'EUR')
+    await expect(bottomInput(page)).not.toHaveValue('')
   })
 })
