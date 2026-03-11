@@ -40,27 +40,10 @@ export function Calendar(props: CalendarProps) {
   const monthStart = startOfMonth(new Date(currentYear, currentMonth))
   const monthEnd = endOfMonth(new Date(currentYear, currentMonth))
 
-  // Get days from previous month to fill the first week
-  const prevMonthEnd = new Date(currentYear, currentMonth, 0)
-  const prevMonthDays = eachDayOfInterval({
-    start: new Date(currentYear, currentMonth - 1, prevMonthEnd.getDate() - monthStart.getDay() + 1),
-    end: prevMonthEnd,
-  })
-
-  // Get days from current month
-  const currentMonthDays = eachDayOfInterval({
-    start: monthStart,
-    end: monthEnd,
-  })
-
-  // Get days from next month to fill the last week
-  const nextMonthStart = new Date(currentYear, currentMonth + 1, 1)
-  const nextMonthDays = eachDayOfInterval({
-    start: nextMonthStart,
-    end: new Date(currentYear, currentMonth + 1, 6 - monthEnd.getDay()),
-  })
-
-  const days = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays]
+  // Single interval: from Sunday of week containing 1st to Saturday of week containing last day
+  const gridStart = new Date(currentYear, currentMonth, 1 - monthStart.getDay())
+  const gridEnd = new Date(currentYear, currentMonth, monthEnd.getDate() + (6 - monthEnd.getDay()))
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd })
 
   return (
     <div className="w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
@@ -89,7 +72,7 @@ export function Calendar(props: CalendarProps) {
           </div>
         ))}
 
-        {days.map((day) => {
+        {days.map((day, index) => {
           const holiday = holidays.find((h) => isSameDay(new Date(h.date), day))
           const isToday = isSameDay(day, today)
           const isWeekend = day.getDay() === 0 || day.getDay() === 6
@@ -101,7 +84,7 @@ export function Calendar(props: CalendarProps) {
 
           return (
             <div
-              key={day.toString()}
+              key={`${format(day, 'yyyy-MM-dd')}-${index}`}
               className={classNames(
                 'flex h-16 items-center justify-center rounded-md text-base font-semibold',
                 isPrevMonth || isNextMonth

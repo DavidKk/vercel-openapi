@@ -131,17 +131,23 @@ describe('Exchange Rate Module', () => {
     })
 
     test('should handle fetch errors', async () => {
-      // Mock fetchWithCache to throw an error
-      ;(fetchWithCache as jest.Mock).mockRejectedValue(new Error('HTTP error! Status: 500'))
-
-      await expect(getExchangeRate('USD')).rejects.toThrow('HTTP error! Status: 500')
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+      try {
+        ;(fetchWithCache as jest.Mock).mockRejectedValue(new Error('HTTP error! Status: 500'))
+        await expect(getExchangeRate('USD')).rejects.toThrow('HTTP error! Status: 500')
+      } finally {
+        consoleSpy.mockRestore()
+      }
     })
 
     test('should handle invalid response data', async () => {
-      // Mock fetchWithCache to return invalid data
-      ;(fetchWithCache as jest.Mock).mockResolvedValue(new TextEncoder().encode(JSON.stringify({ invalid: 'data' })).buffer)
-
-      await expect(getExchangeRate('USD')).rejects.toThrow('Invalid exchange rate data format')
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+      try {
+        ;(fetchWithCache as jest.Mock).mockResolvedValue(new TextEncoder().encode(JSON.stringify({ invalid: 'data' })).buffer)
+        await expect(getExchangeRate('USD')).rejects.toThrow('Invalid exchange rate data format')
+      } finally {
+        consoleSpy.mockRestore()
+      }
     })
 
     test('should cache exchange rates', async () => {
