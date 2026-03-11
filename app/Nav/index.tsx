@@ -1,7 +1,7 @@
 'use client'
 
-import FeatherIcon from 'feather-icons-react'
 import Link from 'next/link'
+import { TbBrandGithub } from 'react-icons/tb'
 
 import { useLayoutVisibility } from '@/hooks/useLayoutVisibility'
 import { name, repository } from '@/package.json'
@@ -63,7 +63,7 @@ export function Nav(props: NavProps) {
 
         {GITHUB_URL && (
           <a className="ml-auto absolute top-4 right-4 md:static" href={GITHUB_URL} target="_blank" rel="noreferrer">
-            <FeatherIcon icon="github" />
+            <TbBrandGithub size={24} />
           </a>
         )}
       </div>

@@ -2,7 +2,8 @@
  * Route prefixes that should hide global Nav and Footer
  * If the current path starts with these prefixes, Nav and Footer will not be displayed
  */
-export const HIDDEN_ROUTES: string[] = []
+/** Route prefixes that hide global Nav and Footer (e.g. full-screen calendar) */
+export const HIDDEN_ROUTES: string[] = ['/holiday']
 
 export const DEFAULT_NAV = {
   $private: [

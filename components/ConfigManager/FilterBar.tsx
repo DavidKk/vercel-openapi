@@ -1,5 +1,5 @@
-import { BackspaceIcon } from '@heroicons/react/24/solid'
 import { useState } from 'react'
+import { TbBackspace } from 'react-icons/tb'
 
 import type { Config, ConfigSchema, ConfigSchemaFC } from './types'
 
@@ -37,7 +37,7 @@ export function FilterBar<T extends Omit<Config, 'id'>>(props: FilterBarProps<T>
       })}
 
       <button onClick={clearFilter} className="h-8 flex items-center justify-center text-sm border-gray-300 border rounded-sm box-border px-3" type="button">
-        <BackspaceIcon className="h-4 w-4 text-grxay-500" />
+        <TbBackspace className="h-4 w-4 text-gray-500" />
       </button>
     </div>
   )

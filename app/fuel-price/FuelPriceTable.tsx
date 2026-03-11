@@ -1,7 +1,7 @@
 'use client'
 
-import { MapPinIcon } from '@heroicons/react/24/solid'
 import { useMemo, useState } from 'react'
+import { TbMapPin } from 'react-icons/tb'
 
 import type { FuelPriceData, FuelPriceList } from '@/app/actions/fuel-price/types'
 import { Spinner } from '@/components/Spinner'
@@ -190,7 +190,7 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <div className="flex items-center">
                         {item.province}
-                        {isUserProvince && <MapPinIcon className="h-4 w-4 ml-2 text-red-500" />}
+                        {isUserProvince && <TbMapPin className="h-4 w-4 ml-2 text-red-500" />}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b92, previousItem?.b92)}</td>
