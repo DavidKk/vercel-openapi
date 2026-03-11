@@ -134,7 +134,7 @@ export default function GeoClient({ initialLatitude = '', initialLongitude = '' 
       </form>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg">
+        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg" data-testid="geocode-error">
           <h2 className="font-bold text-lg mb-2">Error</h2>
           <p>{error}</p>
         </div>

@@ -65,13 +65,12 @@ test.describe('GeoClient Component', () => {
       { timeout: 15000 }
     )
 
-    // Wait for the error message to be displayed
-    // The error is displayed in a div with bg-red-50 class containing an "Error" heading
-    // First wait for the error container to appear
-    await expect(page.locator('.bg-red-50')).toBeVisible({ timeout: 15000 })
+    // Wait for the error message to be displayed (use data-testid for stable cross-browser selector)
+    const errorContainer = page.getByTestId('geocode-error')
+    await expect(errorContainer).toBeVisible({ timeout: 15000 })
 
-    // Then check for the Error heading inside the container
-    await expect(page.locator('.bg-red-50').getByRole('heading', { name: 'Error' })).toBeVisible({ timeout: 5000 })
+    // Verify the Error heading and message are shown
+    await expect(errorContainer.getByRole('heading', { name: 'Error' })).toBeVisible({ timeout: 5000 })
   })
 
   // Removed API usage instructions test as this section was removed from the component

@@ -36,3 +36,17 @@ Refer to the [`.env.example`](./.env.example) file to set required environment v
 1. Set the above environment variables in Vercel
 2. After deployment, obtain an access token via `/api/auth/login`
 3. Use the token to access the holiday data interface at `/api/holiday`
+
+## E2E Tests (Playwright)
+
+Before running E2E tests, install Playwright browsers once (required after clone or Playwright update):
+
+```bash
+pnpm playwright:install
+```
+
+Then run E2E tests (this will start the dev server automatically):
+
+```bash
+pnpm test:e2e
+```
