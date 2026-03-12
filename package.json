@@ -12,7 +12,6 @@
     "ci:coverage": "pnpm test",
     "postinstall": "node --experimental-modules ./scripts/postinstall.mjs",
     "preinstall": "node --experimental-modules ./scripts/preinstall.mjs",
-    "clear": "rimraf --glob ./libs",
     "format": "prettier --config .prettierrc.js --write \"**/*.{js,jsx,ts,tsx,d.ts,vue,md,json,yml,yaml}\"",
     "lint": "pnpm lint:ts",
     "lint:ts": "eslint -c eslint.config.mjs --fix .",
@@ -26,13 +25,10 @@
     "test:e2e": "playwright test --reporter=list",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:auto": "playwright test",
-    "ok": "pnpm format && pnpm lint && pnpm build && pnpm test && pnpm test:e2e",
+    "ok": "pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e",
     "dev:e2e": "next dev --hostname 127.0.0.1 --port 3000"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "@playwright/test": "^1.56.0",
     "@turf/turf": "^7.2.0",
     "@types/react": "^19.2.14",
