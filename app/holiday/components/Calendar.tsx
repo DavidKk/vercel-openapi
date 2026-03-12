@@ -179,15 +179,13 @@ export function Calendar(props: CalendarProps) {
                 'flex flex-col items-center justify-center rounded-sm bg-white text-sm',
                 isPrevMonth || isNextMonth
                   ? 'text-gray-400'
-                  : isToday
-                    ? 'bg-red-50 font-semibold text-red-600'
-                    : isWorkDay
-                      ? 'bg-green-50 text-green-800'
-                      : isHoliday
-                        ? 'bg-red-100 text-red-800'
-                        : isWeekend
-                          ? 'bg-red-50/70 text-red-700'
-                          : 'text-gray-800'
+                  : isWorkDay
+                    ? 'bg-green-50 text-green-800'
+                    : isHoliday
+                      ? 'bg-red-100 text-red-800'
+                      : isWeekend
+                        ? 'bg-red-50/70 text-red-700'
+                        : 'text-gray-800'
               )}
             >
               <span className="text-base font-bold">{format(day, 'd')}</span>
@@ -197,7 +195,7 @@ export function Calendar(props: CalendarProps) {
                   const label = isToday ? '今日' : holiday?.isRestDay ? '调休' : (holiday?.name ?? '')
                   if (!label) return null
                   const badgeClass = isToday
-                    ? 'bg-red-200/90 text-red-800'
+                    ? 'bg-sky-100 text-sky-800'
                     : holiday?.isRestDay
                       ? 'bg-amber-200/90 text-amber-900'
                       : isWorkDay

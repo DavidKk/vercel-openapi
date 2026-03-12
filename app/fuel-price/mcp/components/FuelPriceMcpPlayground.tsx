@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 
+import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
 import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
@@ -102,11 +103,14 @@ export function FuelPriceMcpPlayground() {
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <PlaygroundPanelHeader badge="POST /api/mcp" />
+      <PlaygroundPanelHeader />
 
       <form className="flex min-h-0 flex-1 flex-col gap-px bg-gray-100" onSubmit={handleSendRequest}>
         <div className="flex flex-col bg-white">
-          <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium text-gray-800">Request</div>
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
+            <span className="font-medium text-gray-800">Request</span>
+            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>POST /api/mcp</span>
+          </div>
           <div className="space-y-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1 text-[11px]">
               <span className="text-[11px] text-gray-700">Tool name</span>

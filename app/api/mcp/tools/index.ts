@@ -24,10 +24,42 @@ const ALL_TOOLS: Tool[] = [
 
 const TOOLS_MAP = new Map<string, Tool>(ALL_TOOLS.map((t) => [t.name, t]))
 
+/** Category names for /api/function-calling/[category]/tools (use only tools for one domain) */
+export const FUNCTION_CALLING_CATEGORIES = ['holiday', 'fuel-price', 'exchange-rate'] as const
+
+export type FunctionCallingCategory = (typeof FUNCTION_CALLING_CATEGORIES)[number]
+
+/** Tool names per category so callers can request a subset of tools */
+const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
+  holiday: ['get_today_holiday', 'list_holiday', 'is_workday', 'is_holiday'],
+  'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'calc_fuel_recharge_promo'],
+  'exchange-rate': ['get_exchange_rate', 'convert_currency'],
+}
+
 /**
  * Get all registered MCP tools for use with createMCPHttpServer
  * @returns Map of tool name to Tool instance
  */
 export function getMCPTools(): Map<string, Tool> {
   return TOOLS_MAP
+}
+
+/**
+ * Get MCP tools for a single category (for /api/function-calling/[category]/tools).
+ * @param category One of holiday, fuel-price, exchange-rate
+ * @returns Map of tool name to Tool, or null if category is unknown
+ */
+export function getMCPToolsByCategory(category: string): Map<string, Tool> | null {
+  const names = CATEGORY_TOOL_NAMES[category as FunctionCallingCategory]
+  if (!names) {
+    return null
+  }
+  const out = new Map<string, Tool>()
+  for (const name of names) {
+    const tool = TOOLS_MAP.get(name)
+    if (tool) {
+      out.set(name, tool)
+    }
+  }
+  return out
 }

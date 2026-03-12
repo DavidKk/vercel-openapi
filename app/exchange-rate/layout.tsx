@@ -1,4 +1,4 @@
-import { TbApi, TbCurrencyDollar, TbFileText, TbRobot } from 'react-icons/tb'
+import { TbApi, TbCode, TbCurrencyDollar, TbFileText, TbRobot } from 'react-icons/tb'
 
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 
@@ -10,6 +10,7 @@ const EXCHANGE_RATE_SIDEBAR_ITEMS = [
   { href: '/exchange-rate', title: 'Overview', ariaLabel: 'Overview', icon: <TbCurrencyDollar className="h-5 w-5" /> },
   { href: '/exchange-rate/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/exchange-rate/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
+  { href: '/exchange-rate/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },
   { href: '/exchange-rate/skill', title: 'Skill', ariaLabel: 'Skill', icon: <TbFileText className="h-5 w-5" /> },
 ]
 
