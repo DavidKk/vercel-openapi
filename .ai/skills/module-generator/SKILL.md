@@ -23,7 +23,7 @@ The generator produces the **module shell** from a schema so layout and pages st
 ### How to use it
 
 1. **Create or edit** `.ai/schemas/<module-id>.yaml` (e.g. `.ai/schemas/my-feature.yaml`).  
-   Follow **`.ai/schemas/README.md`** and **`.ai/rules/module-layout.md`**.  
+   Follow **`.ai/schemas/README.md`** and **`.ai/rules/layout/module-layout.md`**.  
    Copy an existing schema (e.g. `.ai/schemas/holiday.yaml`) and change `id`, `name`, `routePrefix`, `overview`, `apiPage`, `mcpPage`, and optional `sidebarItems` (including `iconName` for the first item if needed).
 
 2. **Run the generator** (from repo root):
@@ -47,14 +47,15 @@ The generator does **not** create the following. Implement them by hand followin
 ### Overview component
 
 - **Where**: `app/<id>/components/` with an `index.ts` (or `index.tsx`) that re-exports.  
-  See **`.ai/rules/component-structure.md`** (page-private components at segment level).
+  See **`.ai/rules/layout/component-structure.md`** (page-private components at segment level).
 - **What**: The main UI for the overview tab (e.g. `Calendar`, `FuelPriceTable`, `GeoClient`).  
   The generated `app/<id>/page.tsx` imports this component from the path given in the schema (`overview.importPath`). If the overview needs server data, the page can be async and fetch before rendering the component (see existing `app/holiday/page.tsx` or `app/fuel-price/page.tsx`).
 
 ### API route handler
 
 - **Where**: `app/api/<id>/route.ts` (and optional dynamic segments, e.g. `app/api/fuel-price/[province]/route.ts`).
-- **Rules** (from **`.ai/rules/module-layout.md`**):
+- **Semantics first:** Read **`.ai/specs/api-semantics.md`**. Public APIs are **read-only** and return **latest credit/data** only; do not add history or write behavior unless a separate spec exists and uses a distinct path.
+- **Rules** (from **`.ai/rules/layout/module-layout.md`**):
   - `export const runtime = 'edge'`
   - Use the shared wrapper: `export const GET/POST = api(async (req) => { ... })`
   - Return with `jsonSuccess(...)` (and optional headers).
@@ -72,7 +73,7 @@ The generator does **not** create the following. Implement them by hand followin
 - **Where**:
   - API Playground: `app/<id>/api/components/` + `index.ts` re-export.
   - MCP Playground: `app/<id>/mcp/components/` + `index.ts` re-export.  
-    See **`.ai/rules/component-structure.md`** (shared by children → parent segment's `components/`).
+    See **`.ai/rules/layout/component-structure.md`** (shared by children → parent segment's `components/`).
 - **What**: Client components that call `/api/<id>` or `POST /api/mcp` and display results.  
   Naming and import paths must match the schema (`apiPage.playgroundComponentName` / `playgroundImportPath` and `mcpPage.*`).
 

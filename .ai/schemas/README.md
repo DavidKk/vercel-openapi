@@ -6,7 +6,7 @@ One YAML per module. Only **variable** content; layout and sidebar order come fr
 
 ## Contract (for accurate generation)
 
-**Fixed (do not change in schema):** Sidebar has 5 entries in order: overview, api, mcp, functionCalling, skill. See `.ai/rules/module-layout.md`.
+**Fixed (do not change in schema):** Sidebar has 5 entries in order: overview, api, mcp, functionCalling, skill. See `.ai/rules/layout/module-layout.md`.
 
 **You supply:** Fields below. Then call `createModuleFromSchema('.ai/schemas/<id>.yaml')` or run `pnpm run generate:module .ai/schemas/<id>.yaml`.
 
