@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
+import { ensureCronAuthorized } from '@/services/auth/cron'
 import { getHeaders, runWithContext } from '@/services/context'
 
 import { isStandardResponse, standardResponseError, stringifyUnknownError } from './response'
@@ -99,4 +100,17 @@ export function buffer<P>(handle: (req: NextRequest, context: ContextWithParams<
       }
     })
   }
+}
+
+/**
+ * Cron job handler wrapper. Uses CRON_SECRET (Bearer or ?secret=); delegates to api().
+ *
+ * @param handle Handler that returns a JSON-serializable result
+ * @returns Next.js route handler
+ */
+export function cron<P>(handle: (req: NextRequest, context: ContextWithParams<P>) => Promise<Record<string, any>>) {
+  return api(async (req: NextRequest, context: ContextWithParams<P>) => {
+    await ensureCronAuthorized(req)
+    return handle(req, context)
+  })
 }

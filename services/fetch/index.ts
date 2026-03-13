@@ -80,3 +80,15 @@ export async function fetchWithCache(url: string, options?: FetchOptions) {
   inProgress.set(cacheKey, requestPromise)
   return requestPromise
 }
+
+/**
+ * Fetch JSON from URL with caching. Uses fetchWithCache and parses response as JSON.
+ * @param url URL to fetch
+ * @param options Fetch options (cacheDuration, headers, etc.)
+ * @returns Parsed JSON data
+ */
+export async function fetchJsonWithCache<T = unknown>(url: string, options?: FetchOptions): Promise<T> {
+  const buffer = await fetchWithCache(url, options)
+  const text = new TextDecoder('utf-8').decode(buffer)
+  return JSON.parse(text) as T
+}

@@ -1,0 +1,56 @@
+# Geolocation module schema
+
+id: geo
+name: Geolocation
+routePrefix: /geo
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+    iconName: TbMapPin
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+overview:
+  componentName: GeoClient
+  importPath: '@/app/geo/components'
+
+apiPage:
+  title: Geolocation API
+  subtitle: Reverse geocode latitude/longitude to get province (mainland China only).
+  endpoints:
+    - method: POST
+      path: /geo
+      description: Body { latitude, longitude } (numbers). Returns country, province, city, district, latitude, longitude.
+      exampleResponse: |
+        {
+          "country": "中国",
+          "province": "北京市",
+          "city": "",
+          "district": "",
+          "latitude": 39.9042,
+          "longitude": 116.4074
+        }
+  playgroundComponentName: GeoApiPlayground
+  playgroundImportPath: '@/app/geo/api/components'
+
+mcpPage:
+  title: Geolocation MCP tools
+  subtitle: Tools for reverse geocoding via the MCP server.
+  tools:
+    - name: reverse_geocode
+      description: Reverse geocode latitude and longitude to location info.
+      paramsDescription: 'latitude: number, longitude: number.'
+  playgroundComponentName: GeoMcpPlayground
+  playgroundImportPath: '@/app/geo/mcp/components'

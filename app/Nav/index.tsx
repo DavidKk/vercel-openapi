@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { TbCalendarSearch, TbCurrencyDollar, TbGasStation, TbMapPin } from 'react-icons/tb'
+import { TbCalendarSearch, TbCurrencyDollar, TbGasStation, TbMapPin, TbMovie } from 'react-icons/tb'
 
 import { Tooltip } from '@/components/Tooltip'
 
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/fuel-price', title: 'Fuel Price', icon: <TbGasStation className="h-5 w-5" /> },
   { href: '/exchange-rate', title: 'Exchange Rate', icon: <TbCurrencyDollar className="h-5 w-5" /> },
   { href: '/geo', title: 'Geolocation', icon: <TbMapPin className="h-5 w-5" /> },
+  { href: '/movies', title: 'Movies', icon: <TbMovie className="h-5 w-5" /> },
 ]
 
 export function Nav() {

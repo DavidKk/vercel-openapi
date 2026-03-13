@@ -1,0 +1,28 @@
+# Module layout rules (machine-readable)
+# Read by .ai/generators. Human-readable: module-layout.md
+
+sidebarItemsInOrder:
+  - key: overview
+    defaultTitle: Overview
+    pathSuffix: ''
+    iconName: TbCalendarSearch
+  - key: api
+    defaultTitle: API
+    pathSuffix: /api
+    iconName: TbApi
+  - key: mcp
+    defaultTitle: MCP tools
+    pathSuffix: /mcp
+    iconName: TbRobot
+  - key: functionCalling
+    defaultTitle: Function Calling
+    pathSuffix: /function-calling
+    iconName: TbCode
+  - key: skill
+    defaultTitle: Skill
+    pathSuffix: /skill
+    iconName: TbFileText
+
+outerWrapperClassName: 'flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-100'
+innerWrapperClassName: 'flex min-h-0 flex-1 overflow-hidden'
+mainContentClassName: 'min-h-0 flex-1 overflow-y-auto overflow-x-hidden'

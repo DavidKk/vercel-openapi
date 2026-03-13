@@ -137,11 +137,11 @@ export function Calendar(props: CalendarProps) {
               </div>
               <ul className="max-h-56 overflow-auto">
                 {pickerOptions.length === 0 ? (
-                  <li className="px-3 py-2 text-sm text-gray-500">无匹配节日</li>
+                  <li className="px-3 py-2.5 text-sm text-gray-500">无匹配节日</li>
                 ) : (
                   pickerOptions.map((h) => (
                     <li key={h.date}>
-                      <button type="button" onClick={() => selectHoliday(h)} className="w-full px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-100" role="option">
+                      <button type="button" onClick={() => selectHoliday(h)} className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100" role="option">
                         <span className="font-medium">{h.name}</span>
                         <span className="ml-2 text-gray-500">{h.date}</span>
                       </button>
