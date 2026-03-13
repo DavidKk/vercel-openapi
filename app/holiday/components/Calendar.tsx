@@ -23,20 +23,20 @@ const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周�
  * optional holiday dropdown with search; selecting a holiday jumps to that date.
  */
 export function Calendar(props: CalendarProps) {
-  const { initialHolidays, fetchHolidaysForYear } = props
+  const { initialHolidays = [], fetchHolidaysForYear } = props
   const today = new Date()
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
-  const [holidays, setHolidays] = useState<Holiday[]>(initialHolidays)
-  const [holidayYear, setHolidayYear] = useState(currentYear)
+  const [holidays, setHolidays] = useState<Holiday[]>(Array.isArray(initialHolidays) ? initialHolidays : [])
+  const [holidayYear, setHolidayYear] = useState(today.getFullYear())
   const [pickerOpen, setPickerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const pickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (currentYear === holidayYear) return
+    if (currentYear === holidayYear || typeof fetchHolidaysForYear !== 'function') return
     setHolidayYear(currentYear)
-    fetchHolidaysForYear(currentYear).then(setHolidays)
+    fetchHolidaysForYear(currentYear).then((list) => setHolidays(Array.isArray(list) ? list : []))
   }, [currentYear, holidayYear, fetchHolidaysForYear])
 
   const monthStart = startOfMonth(new Date(currentYear, currentMonth))
