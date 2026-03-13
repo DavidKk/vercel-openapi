@@ -1,14 +1,11 @@
----
-description: Component placement and folder structure for app segments
-globs: app/**/*.tsx, app/**/*.ts
----
+# Component structure
 
-# Component Structure
+组件按作用域放置，所有模块与页面需遵守；与 `module-layout.md` 同为项目统一规范。
 
 ## Placement by scope
 
 - **Page-private components**: Put in a `components/` folder **at that segment level** (e.g. `app/exchange-rate/components/`). Only that page/segment imports them.
-- **Shared by children only**: Put in the **parent segment’s** `components/` (e.g. shared by `app/fuel-price/api` and `app/fuel-price/mcp` → `app/fuel-price/components/`).
+- **Shared by children only**: Put in the **parent segment's** `components/` (e.g. shared by `app/fuel-price/api` and `app/fuel-price/mcp` → `app/fuel-price/components/`).
 - **Global / app-wide**: Keep at the **root** `components/` (project root), e.g. `JsonViewer`, `Alert`, `Spinner`.
 
 ## Folder and entry

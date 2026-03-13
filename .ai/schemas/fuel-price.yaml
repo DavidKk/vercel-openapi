@@ -1,0 +1,71 @@
+# Fuel price module schema
+
+id: fuel-price
+name: Fuel Price
+routePrefix: /fuel-price
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+    iconName: TbGasStation
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+overview:
+  componentName: FuelPriceTable
+  importPath: '@/app/fuel-price/components'
+
+apiPage:
+  title: Fuel price REST API
+  subtitle: All endpoints below. Responses are cached on the edge when possible.
+  endpoints:
+    - method: GET
+      path: /fuel-price
+      description: All provinces. Returns current, previous, latestUpdated, previousUpdated.
+      exampleResponse: |
+        {
+          "current": [
+            {
+              "province": "Beijing",
+              "b92": 8.12,
+              "b95": 8.71,
+              "b98": 9.39,
+              "b0": 7.34
+            }
+          ],
+          "previous": [],
+          "latestUpdated": 1700000000000,
+          "previousUpdated": 0
+        }
+    - method: GET
+      path: /fuel-price/:province
+      description: Single province (path param, e.g. 北京). Same shape with one province in current/previous.
+    - method: GET
+      path: /fuel-price/:province/promo
+      description: Query fuelType (b92|b95|b98|b0), amount, bonus. Returns recharge promo result.
+  playgroundComponentName: FuelPriceApiPlayground
+  playgroundImportPath: '@/app/fuel-price/api/components'
+
+mcpPage:
+  title: Fuel price MCP tools
+  subtitle: Tools exposed through the MCP server for querying fuel prices and calculating recharge promotions.
+  tools:
+    - name: get_fuel_price
+      description: Get full fuel price list.
+    - name: get_fuel_price_by_province
+      description: Query a single province.
+    - name: calc_fuel_recharge_promo
+      description: Calculate recharge promotion suggestions.
+  playgroundComponentName: FuelPriceMcpPlayground
+  playgroundImportPath: '@/app/fuel-price/mcp/components'

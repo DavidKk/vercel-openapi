@@ -21,6 +21,10 @@ const PRESET_PROMPTS_BY_CATEGORY: Record<string, { label: string; value: string 
     { label: '北京92号油价', value: '北京92号汽油价格？' },
     { label: '充值优惠', value: '北京充值200块有什么优惠？' },
   ],
+  movies: [
+    { label: '最近有什么热门电影？', value: '最近上映或者快上映的热门电影有哪些？' },
+    { label: '今年的新片列表', value: '今年有哪些评分比较高的新片？' },
+  ],
   '': [
     { label: '今天是不是节假日？', value: '今天是不是节假日？' },
     { label: '100 美元换人民币多少？', value: '100 美元换人民币大概多少？' },
@@ -36,6 +40,7 @@ const TOOL_NAMES_BY_CATEGORY: Record<string, string[]> = {
   holiday: ['get_today_holiday', 'list_holiday', 'is_workday', 'is_holiday'],
   'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'calc_fuel_recharge_promo'],
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
+  movies: ['list_latest_movies'],
 }
 
 /** Province names for fuel-price tool param extraction (match order for .at(0)) */

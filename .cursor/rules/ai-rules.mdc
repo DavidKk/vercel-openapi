@@ -1,0 +1,14 @@
+---
+description: All project rules live in .ai/rules; read global.md first (minimal), then others as needed
+globs:
+---
+
+# Rules: .ai/rules (single source of truth)
+
+**Always read first:** **`.ai/rules/global.md`** — minimal global rules (code style, structure, where to look). Keep under ~1000 tokens so AI can load it every time.
+
+Then, when touching layout or components:
+- **`.ai/rules/module-layout.md`** – Module layout, sidebar, API/MCP pages, styling.
+- **`.ai/rules/component-structure.md`** – Component placement, folder layout, imports.
+
+Do not rely on IDE-specific rule files; **`.ai/rules/`** is the authority. New rules go under `.ai/rules/` and are referenced here if needed.

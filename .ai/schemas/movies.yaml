@@ -1,0 +1,53 @@
+# Movies module schema – latest movies list with GIST cache
+
+id: movies
+name: Movies
+routePrefix: /movies
+
+sidebarItems:
+  - key: overview
+    title: Latest
+    ariaLabel: Latest movies
+    iconName: TbMovie
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+overview:
+  componentName: MovieList
+  importPath: '@/app/movies/components'
+
+apiPage:
+  title: Movies API
+  subtitle: Get latest movies list (cached; read-only for public).
+  endpoints:
+    - method: GET
+      path: /movies
+      description: Returns latest movies list from cache (GIST). No auth required.
+      exampleResponse: |
+        {
+          "code": 0,
+          "message": "ok",
+          "data": { "movies": [], "cachedAt": 1234567890 }
+        }
+  playgroundComponentName: MoviesApiPlayground
+  playgroundImportPath: '@/app/movies/api/components'
+
+mcpPage:
+  title: Movies MCP tools
+  subtitle: Tools for querying latest movies via MCP.
+  tools:
+    - name: list_latest_movies
+      description: List latest movies from cache.
+      paramsDescription: 'Optional year filter (e.g. 2025).'
+  playgroundComponentName: MoviesMcpPlayground
+  playgroundImportPath: '@/app/movies/mcp/components'

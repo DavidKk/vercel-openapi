@@ -186,14 +186,14 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
               </div>
               <ul className="max-h-56 overflow-auto">
                 {provinceOptions.length === 0 ? (
-                  <li className="px-3 py-2 text-xs text-gray-500">无匹配地区</li>
+                  <li className="px-3 py-2.5 text-xs text-gray-500">无匹配地区</li>
                 ) : (
                   provinceOptions.map((name) => (
                     <li key={name}>
                       <button
                         type="button"
                         onClick={() => handleSelectProvince(name)}
-                        className="w-full px-3 py-1.5 text-left text-xs text-gray-800 hover:bg-gray-100"
+                        className="w-full px-3 py-2.5 text-left text-xs text-gray-800 hover:bg-gray-100"
                         role="option"
                       >
                         {name}

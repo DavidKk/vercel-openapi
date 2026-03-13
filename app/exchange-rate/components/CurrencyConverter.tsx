@@ -87,7 +87,7 @@ function AmountCurrencyRow({ amountValue, currencyValue, currencyOptions, onAmou
             />
             <ul className="max-h-44 overflow-y-auto py-1" data-testid="currency-options-list">
               {filtered.length === 0 ? (
-                <li className="px-3 py-2 text-xs text-gray-500">No match</li>
+                <li className="px-3 py-2.5 text-xs text-gray-500">No match</li>
               ) : (
                 filtered.map((opt) => (
                   <li key={opt.value}>
@@ -97,7 +97,7 @@ function AmountCurrencyRow({ amountValue, currencyValue, currencyOptions, onAmou
                         onCurrencyChange(opt.value)
                         setOpen(false)
                       }}
-                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${opt.value === currencyValue ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-700'}`}
+                      className={`w-full px-3 py-2.5 text-left text-sm hover:bg-gray-100 ${opt.value === currencyValue ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-700'}`}
                     >
                       {opt.label}
                     </button>

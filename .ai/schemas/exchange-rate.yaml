@@ -1,0 +1,57 @@
+# Exchange rate module schema
+
+id: exchange-rate
+name: Exchange Rate
+routePrefix: /exchange-rate
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+    iconName: TbCurrencyDollar
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+overview:
+  componentName: ExchangeRateServer
+  importPath: '@/app/exchange-rate/components'
+
+apiPage:
+  title: Exchange rate REST API
+  subtitle: Get rates for a base currency or convert an amount.
+  endpoints:
+    - method: GET
+      path: /exchange-rate
+      description: Query base (default USD). Returns base, date, rates.
+      exampleResponse: |
+        {
+          "base": "USD",
+          "date": "2025-01-15",
+          "rates": { "CNY": 7.24, "EUR": 0.92 }
+        }
+    - method: POST
+      path: /exchange-rate
+      description: Body { from, to, amount }. Returns from, to, amount, result, rate, date.
+  playgroundComponentName: ExchangeRateApiPlayground
+  playgroundImportPath: '@/app/exchange-rate/api/components'
+
+mcpPage:
+  title: Exchange rate MCP tools
+  subtitle: Tools exposed via MCP for fetching rates and converting currency.
+  tools:
+    - name: get_exchange_rate
+      description: 'Get rates for a base currency (params: base optional, default USD).'
+    - name: convert_currency
+      description: 'Convert amount (params: from, to, amount).'
+  playgroundComponentName: ExchangeRateMcpPlayground
+  playgroundImportPath: '@/app/exchange-rate/mcp/components'

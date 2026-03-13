@@ -9,6 +9,7 @@ import { get_today_holiday } from './holiday/get_today_holiday'
 import { is_holiday } from './holiday/is_holiday'
 import { is_workday } from './holiday/is_workday'
 import { list_holiday } from './holiday/list_holiday'
+import { list_latest_movies } from './movies/list_latest_movies'
 
 const ALL_TOOLS: Tool[] = [
   get_exchange_rate,
@@ -20,12 +21,13 @@ const ALL_TOOLS: Tool[] = [
   list_holiday,
   is_workday,
   is_holiday,
+  list_latest_movies,
 ]
 
 const TOOLS_MAP = new Map<string, Tool>(ALL_TOOLS.map((t) => [t.name, t]))
 
 /** Category names for /api/function-calling/[category]/tools (use only tools for one domain) */
-export const FUNCTION_CALLING_CATEGORIES = ['holiday', 'fuel-price', 'exchange-rate'] as const
+export const FUNCTION_CALLING_CATEGORIES = ['holiday', 'fuel-price', 'exchange-rate', 'movies'] as const
 
 export type FunctionCallingCategory = (typeof FUNCTION_CALLING_CATEGORIES)[number]
 
@@ -34,6 +36,7 @@ const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
   holiday: ['get_today_holiday', 'list_holiday', 'is_workday', 'is_holiday'],
   'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'calc_fuel_recharge_promo'],
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
+  movies: ['list_latest_movies'],
 }
 
 /**

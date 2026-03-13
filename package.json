@@ -1,5 +1,5 @@
 {
-  "name": "vercel-openapi",
+  "name": "unbnd",
   "version": "0.1.0",
   "private": true,
   "description": "This service collects and caches commonly used public OPENAPIs to facilitate developer access. It provides caching and forwarding services for commonly used public APIs, making it easier for developers to quickly access them.",
@@ -12,6 +12,8 @@
     "ci:coverage": "pnpm test",
     "postinstall": "node --experimental-modules ./scripts/postinstall.mjs",
     "preinstall": "node --experimental-modules ./scripts/preinstall.mjs",
+    "generate:module": "ts-node --project .ai/generators/tsconfig.json .ai/generators/cli.ts",
+    "validate:ai": "ts-node --project .ai/generators/tsconfig.json .ai/generators/validate.ts",
     "format": "prettier --config .prettierrc.js --write \"**/*.{js,jsx,ts,tsx,d.ts,vue,md,json,yml,yaml}\"",
     "lint": "pnpm lint:ts",
     "lint:ts": "eslint -c eslint.config.mjs --fix .",
@@ -46,6 +48,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-icons": "^5.4.0",
+    "yaml": "^2.7.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {

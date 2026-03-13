@@ -1,0 +1,59 @@
+# Holiday module schema
+
+id: holiday
+name: Holiday
+routePrefix: /holiday
+
+sidebarItems:
+  - key: overview
+    title: Calendar
+    ariaLabel: Calendar
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+overview:
+  componentName: Calendar
+  importPath: '@/app/holiday/components'
+
+apiPage:
+  title: Holiday API
+  subtitle: Check whether today is a holiday and get the holiday name.
+  endpoints:
+    - method: GET
+      path: /holiday
+      description: Returns a JSON object with isHoliday and name fields.
+      exampleResponse: |
+        {
+          "isHoliday": true,
+          "name": "National Day"
+        }
+  playgroundComponentName: HolidayApiPlayground
+  playgroundImportPath: '@/app/holiday/api/components'
+
+mcpPage:
+  title: Holiday MCP tools
+  subtitle: Tools for checking holidays, workdays, and listing holiday data through the MCP server.
+  tools:
+    - name: get_today_holiday
+      description: Get today's holiday information.
+    - name: list_holiday
+      description: List holidays for a given year.
+      paramsDescription: 'year: number (required) – year to query, e.g. 2025.'
+    - name: is_workday
+      description: Check if a date is a workday.
+      paramsDescription: 'date: string (YYYY-MM-DD).'
+    - name: is_holiday
+      description: Check if a date is a holiday.
+      paramsDescription: 'date: string (YYYY-MM-DD).'
+  playgroundComponentName: HolidayMcpPlayground
+  playgroundImportPath: '@/app/holiday/mcp/components'
