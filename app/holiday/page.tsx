@@ -12,7 +12,7 @@ export default async function HolidayPage() {
 
   return (
     <section className="flex h-full flex-col">
-      <Calendar initialHolidays={holidays} fetchHolidaysForYear={listHoliday} />
+      <Calendar initialHolidays={holidays} />
     </section>
   )
 }

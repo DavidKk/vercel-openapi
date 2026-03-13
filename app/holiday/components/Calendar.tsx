@@ -8,12 +8,8 @@ import { TbChevronDown, TbChevronLeft, TbChevronRight, TbSearch } from 'react-ic
 import type { Holiday } from '@/app/actions/holiday/api'
 import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
 
-/** Server action type: fetch holidays for a given year */
-type FetchHolidaysForYear = (year?: number) => Promise<Holiday[]>
-
 interface CalendarProps {
   initialHolidays: Holiday[]
-  fetchHolidaysForYear: FetchHolidaysForYear
 }
 
 const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -23,7 +19,7 @@ const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周�
  * optional holiday dropdown with search; selecting a holiday jumps to that date.
  */
 export function Calendar(props: CalendarProps) {
-  const { initialHolidays = [], fetchHolidaysForYear } = props
+  const { initialHolidays = [] } = props
   const today = new Date()
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
@@ -33,8 +29,30 @@ export function Calendar(props: CalendarProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const pickerRef = useRef<HTMLDivElement>(null)
 
+  const fetchHolidaysForYear = useCallback(async (year: number): Promise<Holiday[]> => {
+    try {
+      const res = await fetch(`/api/holiday/list?year=${year}`)
+      if (!res.ok) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load holidays for year', year, res.status)
+        return []
+      }
+
+      const body = (await res.json()) as { code: number; data: Holiday[] }
+      if (body.code !== 0 || !Array.isArray(body.data)) {
+        return []
+      }
+
+      return body.data
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error fetching holidays for year', year, error)
+      return []
+    }
+  }, [])
+
   useEffect(() => {
-    if (currentYear === holidayYear || typeof fetchHolidaysForYear !== 'function') return
+    if (currentYear === holidayYear) return
     setHolidayYear(currentYear)
     fetchHolidaysForYear(currentYear).then((list) => setHolidays(Array.isArray(list) ? list : []))
   }, [currentYear, holidayYear, fetchHolidaysForYear])
