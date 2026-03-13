@@ -100,7 +100,7 @@ export function Tooltip(props: TooltipProps) {
       >
         {children}
       </span>
-      {typeof document !== 'undefined' && tooltipEl ? createPortal(tooltipEl, document.body) : null}
+      {typeof document !== 'undefined' && document.body && tooltipEl ? createPortal(tooltipEl, document.body) : null}
     </>
   )
 }

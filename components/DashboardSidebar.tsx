@@ -27,7 +27,7 @@ const linkInactive = 'text-gray-500'
  * @returns Nav element with icon links and active state
  */
 export function DashboardSidebar(props: Readonly<DashboardSidebarProps>) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ''
   const { items } = props
 
   return (
