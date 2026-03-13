@@ -1,0 +1,77 @@
+# Module layout rules
+
+Single source for layout, sidebar, and page structure for all modules (Holiday, Fuel Price, Exchange Rate, Geolocation, Movies, and future modules). Both humans and AI must follow this; the generator also complies.
+
+---
+
+## Global shell
+
+- **Header**
+  - Use the global `Nav` component, fixed at the top. No per-module header.
+- **Body**
+  - `body` uses Tailwind: `antialiased h-screen flex flex-col overflow-hidden`.
+  - Content area is a flexible `flex-1` container for each module's layout.
+- **Footer**
+  - Global `NotificationStack` is fixed at the bottom. Module code must not remove or replace it.
+
+---
+
+## Module layout (DOM structure)
+
+Every module layout must use this structure:
+
+- **Outer container:** `<div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-100">`
+- **Inner container (two columns):** `<div className="flex min-h-0 flex-1 overflow-hidden">`
+- **Main content (right):** `<main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">`
+- **Sidebar + content:** Left = `DashboardSidebar`; right = `main` renders the current route's `children`. Do not change the above classNames or structure; only configure the items passed to `DashboardSidebar`.
+
+---
+
+## Sidebar structure
+
+Exactly **5 entries** in this order; only `title` / `ariaLabel` / `iconName` may be overridden per module:
+
+1. **Overview / Calendar** — Route: `/<module>`. Main view (e.g. calendar, table, converter).
+2. **API** — Route: `/<module>/api`. REST API doc + Playground.
+3. **MCP tools** — Route: `/<module>/mcp`. MCP tools doc + Playground for this module.
+4. **Function Calling** — Route: `/<module>/function-calling`. Function-calling examples and UI.
+5. **Skill** — Route: `/<module>/skill`. Skill definition, install instructions, examples.
+
+Constraint: Generator and AI may only supply `title` / `ariaLabel` / `iconName` in the schema; do not add, remove, or reorder entries.
+
+---
+
+## Icons and styling
+
+- Sidebar entries use `react-icons/tb` icons with `className="h-5 w-5"`.
+- Allowed icon names (extend in rules when needed): `TbCalendarSearch`, `TbGasStation`, `TbCurrencyDollar`, `TbMapPin`, `TbApi`, `TbRobot`, `TbCode`, `TbFileText`. Do not introduce new icon sets without updating this rule.
+
+---
+
+## Overview page
+
+- Path: `app/<module>/page.tsx`.
+- Export: `export default function <ModuleName>Page() { ... }`.
+- DOM: Outer `<section className="flex h-full flex-col">`; inside, a single main component (e.g. `Calendar`, `GeoClient`, `FuelPriceTable`). Do not add header/sidebar; that is handled by the shell and layout.
+
+---
+
+## API / MCP doc + Playground layout
+
+Two-column layout: left = documentation, right = Playground.
+
+- Outer: `<div className="flex h-full">`
+- **Left (doc):** `section` with `className="flex min-h-0 w-1/2 min-w-[320px] flex-1 flex-col border-r border-gray-200 bg-white"`. Use `DocPanelHeader` with `title` and `subtitle`. Content area: `className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800"`. Use constants from `app/Nav/constants.ts`: `DOC_SECTION_TITLE_CLASS`, `DOC_ENDPOINT_BOX_CLASS`, `DOC_ENDPOINT_DESC_CLASS`. REST API page: document `/api/<module>...` endpoints. MCP page: show `POST /api/mcp` and list this module's MCP tools.
+- **Right (Playground):** `section` with `className="flex min-h-0 w-1/2 min-w-[320px] flex-1 flex-col bg-gray-50"`. Render the module's Playground component (e.g. `HolidayApiPlayground`, `HolidayMcpPlayground`).
+
+Constraint: Do not add a third column or change the left/right layout.
+
+---
+
+## API handler pattern (backend)
+
+- Route: `app/api/<module>/route.ts`.
+- Use: `export const runtime = 'edge'`; `export const GET/POST = api(async (req) => { ... })`; return with `jsonSuccess(...)` and headers.
+- Semantics: Public APIs are **read-only** and return **latest credit/data** only. See `.ai/specs/api-semantics.md`. History or write operations require a separate spec and path.
+
+Constraint: New module REST endpoints must follow the above pattern and semantics for consistent caching and response shape.
