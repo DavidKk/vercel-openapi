@@ -6,12 +6,12 @@ One place for rules, schemas, generators, skills. Goal: accurate generation. Hum
 
 ## Dirs
 
-| Dir | Read first / use |
-|-----|------------------|
-| **rules/** | `rules/global.md` (index: do X → read Y). Then `module-layout.md`, `component-structure.md`. Generator uses `module-layout.yaml`. |
-| **schemas/** | One YAML per module. Field contract: `schemas/README.md`. Copy existing YAML, edit, then run generator. |
-| **generators/** | Commands and entry: `generators/README.md`. Produces `app/<id>/layout.tsx`, `page.tsx`, `api/page.tsx`, `mcp/page.tsx`. |
-| **skills/** | `skills/<name>/SKILL.md`. New module → `skills/module-generator/SKILL.md`. |
+| Dir             | Read first / use                                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **rules/**      | `rules/global.md` (index: do X → read Y). Then `module-layout.md`, `component-structure.md`. Generator uses `module-layout.yaml`. |
+| **schemas/**    | One YAML per module. Field contract: `schemas/README.md`. Copy existing YAML, edit, then run generator.                           |
+| **generators/** | Commands and entry: `generators/README.md`. Produces `app/<id>/layout.tsx`, `page.tsx`, `api/page.tsx`, `mcp/page.tsx`.           |
+| **skills/**     | `skills/<name>/SKILL.md`. New module → `skills/module-generator/SKILL.md`.                                                        |
 
 ---
 
