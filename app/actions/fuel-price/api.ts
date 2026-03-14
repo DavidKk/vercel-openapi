@@ -1,4 +1,5 @@
 import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
+import { createLogger } from '@/services/logger'
 
 import { fetchAndParseFuelPriceData } from './autohome'
 import type { FuelPrice, FuelPriceList, ProvinceFuelPrice } from './types'
@@ -14,6 +15,8 @@ const MEMORY_CACHE: MemoryCache = {
   list: null,
   timestamp: 0,
 }
+
+const logger = createLogger('fuel-price')
 
 const CACHE_DURATION = 60 * 60 * 1000 // 1 hour cache
 const CURRENT_FUEL_PRICE_FILE = 'current-fuel-price.json'
@@ -76,8 +79,7 @@ async function writeFuelPriceToGist(fileName: string, fuelPriceData: FuelPrice) 
     const content = JSON.stringify(fuelPriceData, null, 2)
     await writeGistFile({ gistId, gistToken, fileName, content })
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(`Failed to write fuel price data to Gist file ${fileName}:`, error)
+    logger.fail(`Failed to write fuel price data to Gist file ${fileName}:`, error)
   }
 }
 

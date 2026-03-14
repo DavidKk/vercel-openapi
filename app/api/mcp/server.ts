@@ -3,7 +3,7 @@ import { createMCPHttpServer } from '@/initializer/mcp'
 import { getMCPTools } from './tools'
 
 /** MCP service name */
-const MCP_NAME = 'vercel-openapi'
+const MCP_NAME = 'unbnd'
 /** MCP service version (aligned with package.json) */
 const MCP_VERSION = '0.1.0'
 /** MCP service description for manifest */

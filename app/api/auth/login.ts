@@ -4,7 +4,10 @@ import { serialize } from 'cookie'
 
 import { verify2fa } from '@/services/2fa'
 import { AUTH_TOKEN_NAME } from '@/services/auth/constants'
+import { createLogger } from '@/services/logger'
 import { generateToken } from '@/utils/jwt'
+
+const logger = createLogger('auth-login')
 
 export async function login(username: string, password: string, token: string) {
   if (!username) {
@@ -21,8 +24,7 @@ export async function login(username: string, password: string, token: string) {
 
   const secret = process.env.ACCESS_2FA_SECRET
   if (secret && !(token && (await verify2fa({ token, secret })))) {
-    // eslint-disable-next-line no-console
-    console.warn('Invalid 2FA token')
+    logger.warn('Invalid 2FA token')
     throw new Error('Invalid username or password')
   }
 

@@ -1,154 +1,135 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { TbMapPin } from 'react-icons/tb'
 
+import { useDebugPanel } from '@/components/DebugPanel'
 import { useGeocode } from '@/hooks/useGeocode'
 
-export interface GeoData {
-  country: string
-  province: string
-  city: string
-  district: string
-  latitude: number
-  longitude: number
-}
+import { RegionBoundary } from './RegionBoundary'
 
-interface GeoClientProps {
-  initialLatitude?: string
-  initialLongitude?: string
-}
+/** Text-based ellipsis cycle: "." → ".." → "..." . Memoized so parent re-renders do not reset the animation. */
+const AnimatedEllipsis = memo(function AnimatedEllipsis() {
+  const [dots, setDots] = useState(1)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-export default function GeoClient({ initialLatitude = '', initialLongitude = '' }: GeoClientProps) {
-  const [latitude, setLatitude] = useState(initialLatitude)
-  const [longitude, setLongitude] = useState(initialLongitude)
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setDots((d) => (d >= 3 ? 1 : d + 1))
+    }, 400)
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
+
+  return (
+    <span className="inline-block min-w-[1.25em] text-left" aria-hidden>
+      {'.'.repeat(dots)}
+    </span>
+  )
+})
+
+const PERMISSION_DENIED_MESSAGE =
+  'Location access was denied. This page only uses your device location to show the district (address cannot be entered manually). Please enable location in your browser or device settings to continue.'
+
+const MAP_HEIGHT = 240
+
+export default function GeoClient() {
   const [getLocationError, setGetLocationError] = useState('')
   const { data, loading, error, geocode } = useGeocode()
+  const debug = useDebugPanel()
+  const hasTriggeredRef = useRef(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const lat = parseFloat(latitude)
-    const lng = parseFloat(longitude)
-    if (!isNaN(lat) && !isNaN(lng)) {
-      geocode(lat, lng)
-    }
-  }
+  const forceLoading = debug?.forceLoading ?? false
+  const forceError = debug?.forceError ?? null
+  const barError = forceError ?? (getLocationError || null)
+  const showLoading = forceLoading || loading
 
-  const getCurrentLocation = () => {
+  const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setGetLocationError('Geolocation is not supported by your browser')
+      setGetLocationError('Geolocation is not supported by your browser.')
       return
     }
-
     setGetLocationError('')
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords
-        setLatitude(latitude.toString())
-        setLongitude(longitude.toString())
         geocode(latitude, longitude)
       },
-      (error) => {
-        let errorMessage = ''
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied by user'
+      (err) => {
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            setGetLocationError(PERMISSION_DENIED_MESSAGE)
             break
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information is unavailable'
+          case err.POSITION_UNAVAILABLE:
+            setGetLocationError('Location information is unavailable. Please check your device.')
             break
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out'
+          case err.TIMEOUT:
+            setGetLocationError('Location request timed out. Please try again.')
             break
           default:
-            errorMessage = 'An unknown error occurred while getting location'
-            break
+            setGetLocationError('An unknown error occurred while getting location.')
         }
-        setGetLocationError(errorMessage)
       },
-      {
-        timeout: 10000,
-        enableHighAccuracy: true,
-      }
+      { timeout: 10000, enableHighAccuracy: true }
     )
-  }
+  }, [geocode])
+
+  useEffect(() => {
+    if (hasTriggeredRef.current) return
+    hasTriggeredRef.current = true
+    requestLocation()
+  }, [requestLocation])
 
   return (
     <div className="flex h-full w-full flex-col bg-white">
-      <form id="geocode-form" onSubmit={handleSubmit} className="flex shrink-0 flex-wrap items-end gap-2 border-b border-gray-200 bg-white px-3 py-2">
-        <label htmlFor="latitude" className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-gray-500">Latitude</span>
-          <input
-            type="number"
-            id="latitude"
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            step="any"
-            placeholder="39.9042"
-            className="h-7 min-w-[14rem] rounded border border-gray-300 bg-white px-2 font-mono text-[11px] text-gray-900"
-            required
-          />
-        </label>
-        <label htmlFor="longitude" className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-gray-500">Longitude</span>
-          <input
-            type="number"
-            id="longitude"
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            step="any"
-            placeholder="116.4074"
-            className="h-7 min-w-[14rem] rounded border border-gray-300 bg-white px-2 font-mono text-[11px] text-gray-900"
-            required
-          />
-        </label>
-        <button
-          type="button"
-          onClick={getCurrentLocation}
-          disabled={loading}
-          className="inline-flex h-7 items-center justify-center rounded border border-gray-300 bg-gray-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Getting…' : 'Get current location'}
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex h-7 items-center justify-center rounded border border-gray-300 bg-gray-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? 'Querying…' : 'Query location'}
-        </button>
-        {getLocationError && <span className="text-[11px] text-red-500">{getLocationError}</span>}
-      </form>
-
-      <div className="min-h-0 flex-1 overflow-auto px-3 py-3">
-        {error && (
-          <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-700" data-testid="geocode-error">
-            <span className="font-medium">Error: </span>
-            <span>{error}</span>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-3">
+        {!forceError && !forceLoading && data?.polygon ? (
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <RegionBoundary
+              polygon={data.polygon}
+              queryPoint={{ lat: data.latitude, lng: data.longitude }}
+              districtName={data.district || undefined}
+              locationIcon={<TbMapPin className="h-full w-full text-red-500" />}
+              regionLabel={[data.province, data.city || '—', data.district || '—'].join(' · ')}
+              coordsLabel={`${data.latitude.toFixed(5)}, ${data.longitude.toFixed(5)}`}
+              width={400}
+              height={MAP_HEIGHT}
+              aria-label="Region boundary with query point"
+            />
           </div>
-        )}
-
-        {data && (
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-3 text-[11px]">
-            <div className="mb-2 font-medium text-gray-900">Location</div>
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
-              <div className="flex gap-2">
-                <dt className="shrink-0 text-gray-500">Country</dt>
-                <dd className="font-mono text-gray-900">{data.country}</dd>
+        ) : (
+          <div
+            className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 text-center text-[11px] text-gray-500"
+            data-testid={barError ? 'geocode-error' : error ? 'geocode-api-error' : undefined}
+          >
+            {barError ? (
+              <>
+                <span>This area is not supported for this service.</span>
+                <button type="button" onClick={requestLocation} disabled={showLoading} className="text-gray-700 underline hover:no-underline disabled:opacity-50">
+                  Retry
+                </button>
+              </>
+            ) : !forceError && error ? (
+              error.includes('not supported for this service') ? (
+                <span className="text-amber-800">{error}</span>
+              ) : (
+                <span className="text-amber-800">
+                  <span className="font-medium">Error: </span>
+                  {error}
+                </span>
+              )
+            ) : showLoading ? (
+              <div className="flex min-h-[72px] flex-col items-center justify-center gap-1 text-center">
+                <p className="flex items-center justify-center gap-0.5 text-[13px] font-medium text-gray-600">
+                  <span>Getting location</span>
+                  <AnimatedEllipsis />
+                </p>
+                <p className="text-[11px] text-gray-400">Allow location access to show the map</p>
               </div>
-              <div className="flex gap-2">
-                <dt className="shrink-0 text-gray-500">Province</dt>
-                <dd className="font-mono text-gray-900">{data.province}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="shrink-0 text-gray-500">Latitude</dt>
-                <dd className="font-mono text-gray-900">{data.latitude}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="shrink-0 text-gray-500">Longitude</dt>
-                <dd className="font-mono text-gray-900">{data.longitude}</dd>
-              </div>
-            </dl>
+            ) : (
+              <span>Map will appear after location is available</span>
+            )}
           </div>
         )}
       </div>

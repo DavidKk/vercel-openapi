@@ -31,8 +31,9 @@
     "dev:e2e": "next dev --hostname 127.0.0.1 --port 3000"
   },
   "dependencies": {
+    "@libsql/client": "^0.14.0",
     "@playwright/test": "^1.56.0",
-    "@turf/turf": "^7.2.0",
+    "@supabase/supabase-js": "^2.49.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vercel/analytics": "^2.0.0",

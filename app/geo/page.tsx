@@ -1,8 +1,8 @@
 import { GeoClient } from './components'
 
 /**
- * Geolocation overview page content. Used inside /geo layout.
- * Renders the geocoding form and result panel.
+ * China GEO overview page content. Used inside /geo layout.
+ * Read-only: user can only trigger "Use my location"; address cannot be entered. Debug panel is registered here.
  */
 export default function GeoPage() {
   return (

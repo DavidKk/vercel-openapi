@@ -1,9 +1,11 @@
 import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
-import { info, warn } from '@/services/logger'
+import { createLogger } from '@/services/logger'
 import type { MergedMovie } from '@/services/maoyan/types'
 
 import { DATA_VALIDITY_DURATION, GIST_FILE_NAME, RESULT_CACHE_KEY, UPDATE_WINDOW_DURATION, UPDATE_WINDOWS } from './constants'
 import type { MoviesCacheData } from './types'
+
+const logger = createLogger('movies-cache')
 
 function getUtcDateString(date: Date = new Date()): string {
   const y = date.getUTCFullYear()
@@ -45,14 +47,14 @@ export async function getMoviesFromGist(): Promise<MoviesCacheData | null> {
     const content = await readGistFile({ gistId, gistToken, fileName: GIST_FILE_NAME })
     const data = JSON.parse(content) as MoviesCacheData
     if (!data.data) {
-      warn('Invalid movies cache data structure')
+      logger.warn('Invalid movies cache data structure')
       return null
     }
-    info('Movies cache loaded from GIST')
+    logger.info('Movies cache loaded from GIST')
     return data
   } catch (err) {
     if (err instanceof Error && err.message.includes('not found')) {
-      info('Movies cache file not found in GIST')
+      logger.info('Movies cache file not found in GIST')
       return null
     }
     throw err
@@ -67,11 +69,11 @@ export async function saveMoviesToGist(data: MoviesCacheData): Promise<void> {
   const content = JSON.stringify(data, null, 2)
   const size = new Blob([content]).size
   if (size > 1024 * 1024) {
-    warn(`Movies cache size ${(size / 1024).toFixed(2)}KB exceeds 1MB`)
+    logger.warn(`Movies cache size ${(size / 1024).toFixed(2)}KB exceeds 1MB`)
     throw new Error('Movies cache content too large')
   }
   await writeGistFile({ gistId, gistToken, fileName: GIST_FILE_NAME, content })
-  info('Movies cache saved to GIST')
+  logger.info('Movies cache saved to GIST')
 }
 
 /** In-memory result cache (per-instance) */

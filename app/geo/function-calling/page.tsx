@@ -1,7 +1,7 @@
 import { FunctionCallingPanel } from '@/components/FunctionCallingPanel'
 
 /**
- * Geolocation Function Calling page.
+ * China GEO Function Calling page.
  * Documents GET /api/function-calling/tools and POST /api/function-calling/chat; playground to fetch tools list.
  */
 export default function GeoFunctionCallingPage() {

@@ -10,10 +10,7 @@ export const runtime = 'edge'
  * Returns only the tools for the given category in OpenAI-compatible format.
  * Categories: holiday, fuel-price, exchange-rate.
  * Use when the caller only needs a subset of tools (e.g. holiday-only or exchange-rate-only).
- *
- * @param request Not used
- * @param context.params.category One of: holiday, fuel-price, exchange-rate
- * @returns { tools: OpenAITool[] } or 404 if category is unknown
+ * Responds with { tools } or 404 if category is unknown.
  */
 export async function GET(_request: Request, context: { params: Promise<{ category: string }> }) {
   const { category } = await context.params

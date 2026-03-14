@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
+import { DebugPanel, DebugPanelProvider } from '@/components/DebugPanel'
 import { NotificationProvider, NotificationStack } from '@/components/Notification'
 
 import { Nav } from './Nav'
@@ -45,9 +46,12 @@ export default function RootLayout(props: Readonly<RootLayoutProps>) {
       <SpeedInsights />
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex flex-col overflow-hidden`}>
         <NotificationProvider>
-          <Nav />
-          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-          <NotificationStack />
+          <DebugPanelProvider>
+            <Nav />
+            <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+            <NotificationStack />
+            <DebugPanel />
+          </DebugPanelProvider>
         </NotificationProvider>
       </body>
     </html>

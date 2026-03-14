@@ -1,12 +1,22 @@
 'use client'
 
+import { useRequest } from 'ahooks'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { TbArrowsExchange, TbChevronDown } from 'react-icons/tb'
 
-import { getCachedExchangeRate } from '@/app/actions/exchange-rate/api'
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
 import { Spinner } from '@/components/Spinner'
 import { fuzzySearch } from '@/utils/find'
+
+async function fetchExchangeRates(base: string): Promise<ExchangeRateData> {
+  const url = `/api/exchange-rate?base=${encodeURIComponent(base)}`
+  const res = await fetch(url, { method: 'GET', cache: 'default' })
+  const body = (await res.json()) as { code: number; message: string; data?: ExchangeRateData }
+  if (!res.ok || body.code !== 0 || !body.data) {
+    throw new Error((body as { data?: { error?: string } }).data?.error ?? body.message ?? 'Failed to fetch exchange rates')
+  }
+  return body.data
+}
 
 /** Allow only digits and one decimal point */
 function formatAmountInput(value: string): string {
@@ -124,36 +134,20 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
   const [toCurrency, setToCurrency] = useState('CNY')
   const [amount, setAmount] = useState('100')
   const [result, setResult] = useState<number | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRateData | null>(initialExchangeRates || null)
   const [activeInput, setActiveInput] = useState<'top' | 'bottom' | null>(null)
 
-  useEffect(() => {
-    if (activeInput === 'bottom') return
-
-    const fetchExchangeRates = async () => {
-      if (!fromCurrency) return
-
-      setLoading(true)
-      setError(null)
-
-      try {
-        const rates = await getCachedExchangeRate(fromCurrency)
-        setExchangeRates(rates)
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch exchange rates'
-        setError(errorMessage)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchExchangeRates()
-  }, [fromCurrency, activeInput])
+  const {
+    data: exchangeRates,
+    loading,
+    error,
+  } = useRequest(() => fetchExchangeRates(fromCurrency), {
+    ready: !!fromCurrency && activeInput !== 'bottom',
+    refreshDeps: [fromCurrency],
+  })
+  const exchangeRatesOrInitial = exchangeRates ?? initialExchangeRates ?? null
 
   useEffect(() => {
-    if (activeInput === 'bottom' || !exchangeRates || !amount || isNaN(parseFloat(amount))) {
+    if (activeInput === 'bottom' || !exchangeRatesOrInitial || !amount || isNaN(parseFloat(amount))) {
       return
     }
 
@@ -167,18 +161,18 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
       return
     }
 
-    if (exchangeRates.rates[toCurrency]) {
-      const rate = exchangeRates.rates[toCurrency]
+    if (exchangeRatesOrInitial.rates[toCurrency]) {
+      const rate = exchangeRatesOrInitial.rates[toCurrency]
       const converted = parseFloat((amountValue * rate).toFixed(2))
       setResult(converted)
     }
-  }, [amount, fromCurrency, toCurrency, exchangeRates, activeInput])
+  }, [amount, fromCurrency, toCurrency, exchangeRatesOrInitial, activeInput])
 
   const handleTopAmountChange = (value: string) => {
     setActiveInput('top')
     setAmount(value)
 
-    if (!value || isNaN(parseFloat(value)) || !exchangeRates) {
+    if (!value || isNaN(parseFloat(value)) || !exchangeRatesOrInitial) {
       setResult(null)
       return
     }
@@ -194,8 +188,8 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
       return
     }
 
-    if (exchangeRates.rates[toCurrency]) {
-      const rate = exchangeRates.rates[toCurrency]
+    if (exchangeRatesOrInitial.rates[toCurrency]) {
+      const rate = exchangeRatesOrInitial.rates[toCurrency]
       const converted = parseFloat((amountValue * rate).toFixed(2))
       setResult(converted)
     }
@@ -205,7 +199,7 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
     setActiveInput('bottom')
     setResult(value ? parseFloat(value) : null)
 
-    if (!value || isNaN(parseFloat(value)) || !exchangeRates) {
+    if (!value || isNaN(parseFloat(value)) || !exchangeRatesOrInitial) {
       return
     }
 
@@ -216,8 +210,8 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
 
     if (fromCurrency === toCurrency) {
       setAmount(reverseAmountValue.toString())
-    } else if (exchangeRates.rates[toCurrency]) {
-      const rate = exchangeRates.rates[toCurrency]
+    } else if (exchangeRatesOrInitial.rates[toCurrency]) {
+      const rate = exchangeRatesOrInitial.rates[toCurrency]
       const converted = parseFloat((reverseAmountValue / rate).toFixed(2))
       setAmount(converted.toString())
     }
@@ -232,7 +226,7 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
     setActiveInput('bottom')
     setToCurrency(currency)
 
-    if (!amount || isNaN(parseFloat(amount)) || !exchangeRates) {
+    if (!amount || isNaN(parseFloat(amount)) || !exchangeRatesOrInitial) {
       setResult(null)
       return
     }
@@ -248,8 +242,8 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
       return
     }
 
-    if (exchangeRates.rates[currency]) {
-      const rate = exchangeRates.rates[currency]
+    if (exchangeRatesOrInitial.rates[currency]) {
+      const rate = exchangeRatesOrInitial.rates[currency]
       const converted = parseFloat((amountValue * rate).toFixed(2))
       setResult(converted)
     }
@@ -265,7 +259,7 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
   }, [fromCurrency, toCurrency])
 
   useEffect(() => {
-    if (!exchangeRates || activeInput === 'bottom') return
+    if (!exchangeRatesOrInitial || activeInput === 'bottom') return
 
     const amountValue = parseFloat(amount)
     if (isNaN(amountValue)) {
@@ -277,22 +271,22 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
       return
     }
 
-    if (exchangeRates.rates[toCurrency]) {
-      const rate = exchangeRates.rates[toCurrency]
+    if (exchangeRatesOrInitial.rates[toCurrency]) {
+      const rate = exchangeRatesOrInitial.rates[toCurrency]
       const converted = parseFloat((amountValue * rate).toFixed(2))
       setResult(converted)
     }
-  }, [exchangeRates, activeInput])
+  }, [exchangeRatesOrInitial, activeInput])
 
   const currencyOptions = currencies.map((c) => ({ value: c, label: c }))
-  const rate = exchangeRates?.rates[toCurrency]
+  const rate = exchangeRatesOrInitial?.rates[toCurrency]
   const rateText = rate != null && fromCurrency !== toCurrency ? `1 ${fromCurrency} = ${Number(rate).toFixed(4)} ${toCurrency}` : null
 
   return (
     <div className="mx-auto max-w-md">
-      {error && (
+      {error != null && (
         <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          {error}
+          {error instanceof Error ? error.message : String(error)}
         </div>
       )}
 
