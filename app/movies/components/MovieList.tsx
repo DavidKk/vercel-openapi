@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbChevronDown, TbSearch } from 'react-icons/tb'
 
 import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
+import { LazyImage } from '@/components/LazyImage'
 import type { MergedMovie } from '@/services/maoyan/types'
 import { isHot } from '@/services/movies/popularity'
 
@@ -83,7 +84,8 @@ export function MovieList(props: MovieListProps) {
   const filteredMovies = useMemo(() => {
     let list = hotTab === 'popular' ? movies.filter(isHot) : movies
     if (selectedGenre !== 'all') list = list.filter((m) => m.genres?.includes(selectedGenre))
-    return list
+    const hasMaoyan = (m: MergedMovie) => m.sources?.some((s) => s === 'topRated' || s === 'mostExpected')
+    return [...list].sort((a, b) => (hasMaoyan(a) === hasMaoyan(b) ? 0 : hasMaoyan(a) ? -1 : 1))
   }, [movies, hotTab, selectedGenre])
 
   const genreOptions = useMemo(() => {
@@ -207,7 +209,7 @@ export function MovieList(props: MovieListProps) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto border-b border-gray-200 bg-gray-50 px-3 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto border-b border-gray-200 bg-gray-50 px-3 py-3 transform-gpu">
         {filteredMovies.length === 0 ? (
           <div className="flex h-full items-center justify-center rounded-md border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
             No movies match the current filters. They will appear here after the next successful refresh.
@@ -222,7 +224,15 @@ export function MovieList(props: MovieListProps) {
                 <article key={key} className="group flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200 transition-shadow hover:shadow-md">
                   <div className="relative aspect-[2/3] w-full overflow-hidden bg-gray-200">
                     {poster && (
-                      <img src={poster} alt={movie.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" width={320} height={480} />
+                      <LazyImage
+                        src={poster}
+                        alt={movie.name}
+                        width={320}
+                        height={480}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-[opacity_0.2s_ease-out,transform_0.3s_ease-out] group-hover:scale-105"
+                      />
                     )}
                     <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-2 text-[10px]">
                       <div className="flex flex-wrap items-start gap-1">
@@ -232,7 +242,8 @@ export function MovieList(props: MovieListProps) {
                             href={movie.tmdbUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="pointer-events-auto rounded-full bg-white/85 px-2 py-0.5 font-medium text-gray-700 shadow-sm hover:bg-white"
+                            className="pointer-events-auto rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-800 shadow-sm hover:bg-blue-100"
+                            title="The Movie Database"
                           >
                             TMDB
                           </a>
@@ -242,9 +253,10 @@ export function MovieList(props: MovieListProps) {
                             href={movie.maoyanUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="pointer-events-auto rounded-full bg-white/85 px-2 py-0.5 font-medium text-gray-700 shadow-sm hover:bg-white"
+                            className="pointer-events-auto rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-800 shadow-sm hover:bg-amber-100"
+                            title="猫眼"
                           >
-                            Maoyan
+                            猫眼
                           </a>
                         )}
                       </div>
@@ -275,8 +287,8 @@ export function MovieList(props: MovieListProps) {
 
                     {(movie.wish != null || movie.tmdbVoteCount != null || movie.popularity != null) && (
                       <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
-                        {movie.wish != null && <span>Maoyan wish: {movie.wish}</span>}
-                        {movie.tmdbVoteCount != null && <span>TMDB votes: {movie.tmdbVoteCount}</span>}
+                        {movie.wish != null && <span>猫眼想看: {movie.wish.toLocaleString()}</span>}
+                        {movie.tmdbVoteCount != null && <span>TMDB 评分人数: {movie.tmdbVoteCount.toLocaleString()}</span>}
                         {movie.popularity != null && <span>Popularity: {movie.popularity.toFixed(1)}</span>}
                       </div>
                     )}

@@ -3,7 +3,8 @@ import { jsonSuccess } from '@/initializer/response'
 import { createLogger } from '@/services/logger'
 import { getMoviesListWithTimestamp } from '@/services/movies'
 
-export const runtime = 'edge'
+/** Use Node runtime so in-memory cache is shared with cron (movies-gist); Edge would have a separate cache and could serve stale count after GIST update. */
+export const runtime = 'nodejs'
 
 const logger = createLogger('api-movies')
 
