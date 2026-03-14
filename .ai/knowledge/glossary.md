@@ -28,6 +28,18 @@ Tools exposed via the project's MCP server (`/api/mcp`), callable by AI or other
 
 ---
 
+## Cache layers (L0, L1, L2)
+
+When we say **L0**, **L1**, or **L2** we mean these cache tiers (client → server):
+
+- **L0** — **Browser IndexedDB** (local, client-only). Used by client components that call the API; keyed by request (e.g. base currency, year, URL path). Reduces repeat requests and works offline within TTL. Do not import L0 modules from server or API routes.
+- **L1** — **Server in-memory** (e.g. LRU with TTL). Per-process; lost on restart. First server-side lookup before L2 or upstream.
+- **L2** — **Server persistent** (e.g. Turso). Shared across processes/instances; survives restarts. Used when L1 misses.
+
+Flow: **L0 → (request) → L1 → L2 → upstream**; on success write back L2 then L1 (and from client, L0).
+
+---
+
 ## Function Calling / Skill
 
 - **Function Calling:** API and UI for invoking tools (e.g. holiday check, fuel price) in a chat or automation flow.

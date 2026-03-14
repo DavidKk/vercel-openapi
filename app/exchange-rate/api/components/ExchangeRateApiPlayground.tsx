@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 
+import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
 import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
+import { getExchangeRateFromIdb, setExchangeRateInIdb } from '@/services/freecurrencyapi/browser'
 
 type ExchangeRateMethod = 'GET' | 'POST'
 
@@ -43,9 +45,18 @@ export function ExchangeRateApiPlayground() {
       try {
         setState((prev) => ({ ...prev, loading: true, error: undefined }))
         const startedAt = performance.now()
+        const fromIdb = await getExchangeRateFromIdb(state.base)
+        if (fromIdb) {
+          const durationMs = performance.now() - startedAt
+          const text = JSON.stringify({ code: 0, message: 'ok', data: fromIdb }, null, 2)
+          setState((prev) => ({ ...prev, loading: false, status: 200, durationMs, error: undefined, responseBody: text }))
+          return
+        }
         const response = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } })
         const durationMs = performance.now() - startedAt
         const text = await response.text()
+        const body = JSON.parse(text) as { code: number; message: string; data?: ExchangeRateData }
+        if (response.ok && body.data) await setExchangeRateInIdb(state.base, body.data)
         setState((prev) => ({
           ...prev,
           loading: false,
