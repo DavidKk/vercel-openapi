@@ -1,13 +1,17 @@
 import { api } from '@/initializer/controller'
 import { CACHE_CONTROL_LONG_LIVED, jsonSuccess } from '@/initializer/response'
 import { reverseGeocodeWithMeta } from '@/services/china-geo'
+import { createLogger } from '@/services/logger'
 
 export const runtime = 'edge'
+
+const logger = createLogger('api-geo')
 
 /** Response header indicating which backend cache layer served the result (L1, L2, …). Omitted when not from cache. */
 const HEADER_CACHE_HIT = 'X-Cache-Hit'
 
 async function handleGeocode(latitude: number, longitude: number) {
+  logger.info('request', { latitude, longitude })
   const { location: result, cacheLayer } = await reverseGeocodeWithMeta(latitude, longitude)
   if (!result) {
     return jsonSuccess({ error: 'This area is not supported for this service.' }, { status: 404 })

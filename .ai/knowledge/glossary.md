@@ -12,7 +12,7 @@ Stable, developer-facing HTTP endpoints under `/api/<module>/...` (e.g. `/api/ho
 
 ## Latest credit / latest data (资信)
 
-The **current** trustworthy state of data the system exposes: e.g. today's holiday status, latest fuel prices, current exchange rates, current administrative region for given coordinates. "Latest" means no implicit historical or as-of-date query unless explicitly specified in a spec and exposed via a distinct path.
+Here **"credit"** means 资信 (trustworthy/current state), not payment or quota. The **current** trustworthy state of data the system exposes: e.g. today's holiday status, latest fuel prices, current exchange rates, current administrative region for given coordinates. "Latest" means no implicit historical or as-of-date query unless explicitly specified in a spec and exposed via a distinct path.
 
 ---
 

@@ -1,6 +1,6 @@
 # Public API semantics (Spec)
 
-**Authority for “what public APIs do”.** All public API design and implementation must follow this. For product scope, see `docs/specs/overview.md`.
+**Authority for “what public APIs do”.** All public API design and implementation must follow this. For product scope, see `docs/specs/overview.md` (if present) or `.ai/specs/README.md` and module specs.
 
 ---
 
@@ -70,7 +70,7 @@ Each **module** (holiday, fuel-price, exchange-rate, china-geo, movies, …) sho
 
 ## References
 
-- ADR: `docs/adr/0001-public-api-latest-only.md` (decision: public API = latest credit/data only)
+- ADR: `docs/adr/0001-public-api-latest-only.md` (if present; decision: public API = latest credit/data only)
 - Module specs index: `.ai/specs/README.md`
 - Implementation rules: `.ai/rules/global.md`, `.ai/rules/layout/module-layout.md`
 - Code style: project `.cursorrules`

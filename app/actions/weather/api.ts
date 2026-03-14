@@ -1,7 +1,6 @@
-'use server'
-
 /**
  * Weather API: scope is deployment-specific (e.g. a region or country). Unsupported locations return an error.
+ * Used by API routes only (no server action); enables route-level caching.
  */
 
 import { type GeoLocation, reverseGeocode } from '@/services/china-geo'

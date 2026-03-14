@@ -2,9 +2,12 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 import { getMCPTools } from '@/app/api/mcp/tools'
+import { createLogger } from '@/services/logger'
 import { mcpToolsToOpenAITools } from '@/utils/function-calling'
 
 export const runtime = 'edge'
+
+const logger = createLogger('api-function-calling-chat')
 
 /** Max rounds of tool calls to prevent infinite loops */
 const MAX_TOOL_ROUNDS = 10
@@ -80,6 +83,7 @@ async function executeTool(name: string, argsJson: string): Promise<string> {
     return JSON.stringify(result)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
+    logger.fail('executeTool failed', { name, message })
     return JSON.stringify({ error: message })
   }
 }
@@ -113,6 +117,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'messages must be a non-empty array' }, { status: 400 })
   }
 
+  logger.info('chat request', { model, messageCount: initialMessages.length })
+
   const toolsMap = getMCPTools()
   const tools = mcpToolsToOpenAITools(toolsMap)
   const messages: ChatMessage[] = [...initialMessages]
@@ -136,6 +142,7 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text()
+      logger.fail('OpenAI API error', { status: res.status, detail: err })
       return NextResponse.json({ error: 'OpenAI API error', status: res.status, detail: err }, { status: 502 })
     }
 

@@ -5,14 +5,12 @@
  */
 
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
-import { createIdbCache } from '@/services/idb-cache'
+import { createIdbCache, IDB_STORES, SHARED_DB_NAME } from '@/services/idb-cache'
 
-const DB_NAME = 'unbnd-exchange-rate'
-const STORE_NAME = 'rates'
 /** TTL 5 minutes (align with server CACHE_DURATION_MS). */
 const TTL_MS = 5 * 60 * 1000
 
-const idbCache = createIdbCache<ExchangeRateData>(DB_NAME, STORE_NAME, TTL_MS)
+const idbCache = createIdbCache<ExchangeRateData>(SHARED_DB_NAME, IDB_STORES.RATES, TTL_MS)
 
 /**
  * Get cached exchange rate from IndexedDB by base currency. Returns null on miss or when past TTL.

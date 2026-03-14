@@ -1,0 +1,55 @@
+# Finance module – equity/index daily (company + market summary). Currently TASI only.
+
+id: finance
+name: Finance
+routePrefix: /finance
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+    iconName: TbCurrencyDollar
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+overview:
+  componentName: TasiOverview
+  importPath: '@/app/finance/components'
+
+apiPage:
+  title: Finance REST API
+  subtitle: Company daily and market summary (currently TASI). Today from feed; history and K-line from Turso.
+  endpoints:
+    - method: GET
+      path: /finance/tasi/company/daily
+      description: 'No params = today all companies. date=YYYY-MM-DD = that day. code=xxx&from=...&to=... = company K-line.'
+      exampleResponse: |
+        [{"code":"1120","name":"SNB","date":"2025-03-14","open":42.5,"high":43,"low":42.2,"lastPrice":42.8,"volume":1000000}]
+    - method: GET
+      path: /finance/tasi/summary/daily
+      description: 'No params = today. date=YYYY-MM-DD = that day. from=...&to=... = market K-line.'
+      exampleResponse: |
+        {"date":"2025-03-14","open":12000,"high":12100,"low":11950,"close":12050,"volumeTraded":100000000}
+  playgroundComponentName: TasiApiPlayground
+  playgroundImportPath: '@/app/finance/api/components'
+
+mcpPage:
+  title: Finance MCP tools
+  subtitle: Tools for company daily and market summary (currently TASI; today, history, K-line).
+  tools:
+    - name: get_tasi_company_daily
+      description: 'Get company daily (TASI). Params: optional date (YYYY-MM-DD), or code+from+to for K-line.'
+    - name: get_tasi_summary_daily
+      description: 'Get market summary (TASI). Params: optional date, or from+to for K-line.'
+  playgroundComponentName: TasiMcpPlayground
+  playgroundImportPath: '@/app/finance/mcp/components'

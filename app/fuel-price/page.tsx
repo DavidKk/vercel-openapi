@@ -1,23 +1,12 @@
-import { getCachedFuelPrice } from '@/app/actions/fuel-price/api'
-
-import { FuelPriceTable } from './components'
+import { FuelPriceOverviewLoader } from './components'
 
 /**
- * Fuel price page content: used inside /fuel-price layout.
- * Layout is responsible for header and sidebar; this page only renders content sections.
+ * Fuel price overview page. Data is loaded client-side (IDB cache then API) to reduce API requests.
  */
-export default async function FuelPricePage() {
-  const fuelPrices = await getCachedFuelPrice()
-
+export default function FuelPricePage() {
   return (
-    <section id="fuel-overview" className="flex h-full flex-col">
-      <FuelPriceTable fuelPrices={fuelPrices} />
+    <section className="flex h-full flex-col">
+      <FuelPriceOverviewLoader />
     </section>
   )
 }
-
-// Revalidation time in seconds
-export const revalidate = 3600 // Revalidate every hour
-
-// Disable static generation, force server-side rendering
-export const dynamic = 'force-dynamic'

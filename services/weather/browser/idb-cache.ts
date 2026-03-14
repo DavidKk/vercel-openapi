@@ -6,14 +6,12 @@
  */
 
 import type { WeatherForecastResponse } from '@/app/actions/weather/types'
-import { createIdbCache } from '@/services/idb-cache'
+import { createIdbCache, IDB_STORES, SHARED_DB_NAME } from '@/services/idb-cache'
 
-const DB_NAME = 'unbnd-weather'
-const STORE_FORECAST = 'forecast'
 /** Forecast TTL 30 minutes (align with server L1/L2). */
 const FORECAST_TTL_MS = 30 * 60 * 1000
 
-const forecastCache = createIdbCache<WeatherForecastResponse>(DB_NAME, STORE_FORECAST, FORECAST_TTL_MS)
+const forecastCache = createIdbCache<WeatherForecastResponse>(SHARED_DB_NAME, IDB_STORES.FORECAST, FORECAST_TTL_MS)
 
 /**
  * Get cached forecast from IndexedDB by request key. Returns null on miss or when past TTL.

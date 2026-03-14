@@ -1,5 +1,6 @@
-'use server'
-
+/**
+ * Holiday helpers. Used by API routes only (no server action); enables route-level caching.
+ */
 import { isWorkday as isWorkdayInHolidays, listHoliday } from './api'
 
 export { listHoliday }

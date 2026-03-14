@@ -1,8 +1,11 @@
 import { api } from '@/initializer/controller'
 import { jsonSuccess } from '@/initializer/response'
 import { resolveDns } from '@/services/dns'
+import { createLogger } from '@/services/logger'
 
 export const runtime = 'edge'
+
+const logger = createLogger('api-dns')
 
 /** L0 cache: 1 minute for DNS results (same URL = cache hit). */
 const CACHE_DNS = 'public, max-age=60, s-maxage=60, stale-while-revalidate=120'
@@ -25,11 +28,13 @@ export const GET = api(async (req) => {
   }
 
   try {
+    logger.info('request', { domain, dns: dns ?? '1.1.1.1' })
     const result = await resolveDns(domain, dns)
     const headers = new Headers({ 'Cache-Control': CACHE_DNS })
     return jsonSuccess(result, { headers })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'DNS lookup failed'
+    logger.fail('DNS lookup failed', { domain, dns: dns ?? '1.1.1.1', message })
     return jsonSuccess({ error: message, records: [], domain, dns: dns ?? '1.1.1.1' }, { status: 502 })
   }
 })

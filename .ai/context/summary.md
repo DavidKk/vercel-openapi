@@ -4,12 +4,12 @@
 
 **Structure:**
 
-- **Specs:** `.ai/specs/` (api-semantics + per-module under `specs/modules/`). Product scope: `docs/specs/overview.md`.
+- **Specs:** `.ai/specs/` (api-semantics + per-module under `specs/modules/`). Product scope: `docs/specs/overview.md` if present, else `.ai/specs/README.md`.
 - **Plans:** `.ai/plans/roadmap.md` (phases 0–3).
 - **Tasks:** `.ai/tasks/active/` (current), `backlog/`, `done/`.
 - **Rules:** `.ai/rules/global.md` (index); layout under `rules/layout/`. Code style: project `.cursorrules`.
-- **Knowledge:** `.ai/knowledge/glossary.md`; ADR in `docs/adr/`.
+- **Knowledge:** `.ai/knowledge/glossary.md`; ADR in `docs/adr/` (optional).
 - **Schemas:** `.ai/schemas/*.yaml` (one per module); generator: `pnpm run generate:module .ai/schemas/<id>.yaml`.
 - **Skills:** `.ai/skills/module-generator/SKILL.md` for new modules.
 
-**Modules (5):** holiday, fuel-price, exchange-rate, geo, movies. Each: Overview, API, MCP, Function Calling, Skill (5 sidebar entries). API pattern: edge, `api()`, `jsonSuccess`.
+**Modules:** See `.ai/specs/README.md` for the full list (e.g. holiday, fuel-price, exchange-rate, geo, movies, weather, dns). Each has 5 sidebar entries (Overview, API, MCP, Function Calling, Skill). API pattern: edge, `api()`, `jsonSuccess`.

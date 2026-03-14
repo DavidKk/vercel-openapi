@@ -1,5 +1,9 @@
 import type { NextRequest } from 'next/server'
 
+import { createLogger } from '@/services/logger'
+
+const logger = createLogger('api-install-skill')
+
 /**
  * Serve a Bash script that installs skill bundles via curl + bash.
  * The script is generated dynamically so that the default BASE_URL matches the current request origin.
@@ -8,6 +12,7 @@ import type { NextRequest } from 'next/server'
  */
 export async function GET(req: NextRequest): Promise<Response> {
   const origin = req.nextUrl.origin
+  logger.info('request', { origin })
 
   const script = `#!/usr/bin/env bash
 set -euo pipefail

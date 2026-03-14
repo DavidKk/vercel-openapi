@@ -4,28 +4,25 @@ import { useRequest } from 'ahooks'
 import classNames from 'classnames'
 import { eachDayOfInterval, endOfMonth, format, isSameDay, startOfMonth } from 'date-fns'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { TbChevronDown, TbChevronLeft, TbChevronRight, TbSearch } from 'react-icons/tb'
+import { TbCalendarSearch,TbChevronDown, TbChevronLeft, TbChevronRight, TbSearch  } from 'react-icons/tb'
 
 import type { Holiday } from '@/app/actions/holiday/api'
+import { getHolidaysForYear } from '@/app/holiday/lib/getHolidaysForYear'
 import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
+import { useDebugPanel } from '@/components/DebugPanel'
+import { EmptyState } from '@/components/EmptyState'
 
 interface CalendarProps {
-  initialHolidays: Holiday[]
+  /** Optional initial data (e.g. from SSR). When omitted, data is loaded client-side via IDB + API. */
+  initialHolidays?: Holiday[]
 }
 
 const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
-async function fetchHolidaysForYear(year: number): Promise<Holiday[]> {
-  const res = await fetch(`/api/holiday/list?year=${year}`)
-  if (!res.ok) return []
-  const body = (await res.json()) as { code: number; data: Holiday[] }
-  if (body.code !== 0 || !Array.isArray(body.data)) return []
-  return body.data
-}
-
 /**
  * Calendar component: month-only, full-height grid, year-month toolbar with arrows and Today,
  * optional holiday dropdown with search; selecting a holiday jumps to that date.
+ * Uses IDB cache (24h TTL) then API for each year to reduce requests.
  */
 export function Calendar(props: CalendarProps) {
   const { initialHolidays = [] } = props
@@ -36,11 +33,14 @@ export function Calendar(props: CalendarProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const pickerRef = useRef<HTMLDivElement>(null)
 
-  const { data: fetchedHolidays } = useRequest(() => fetchHolidaysForYear(currentYear), {
+  const { data: fetchedHolidays, loading } = useRequest(() => getHolidaysForYear(currentYear), {
     refreshDeps: [currentYear],
   })
 
   const holidays = fetchedHolidays ?? initialHolidays
+  const debug = useDebugPanel()
+  const forceLoading = debug?.forceLoading ?? false
+  const forceError = debug?.forceError ?? null
 
   const monthStart = startOfMonth(new Date(currentYear, currentMonth))
   const monthEnd = endOfMonth(new Date(currentYear, currentMonth))
@@ -94,6 +94,52 @@ export function Calendar(props: CalendarProps) {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  if (forceError) {
+    return (
+      <div className="flex h-full min-h-0 flex-col items-center justify-center bg-white p-8">
+        <p className="text-base text-red-600">{debug?.errorMessage ?? forceError}</p>
+      </div>
+    )
+  }
+
+  if (forceLoading || (loading && holidays.length === 0)) {
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-white" aria-busy="true" aria-label="Loading holiday calendar">
+        <div className={`${CONTENT_HEADER_CLASS} min-h-[63px] flex-wrap gap-3`}>
+          <div className="flex items-center gap-1">
+            <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+            <div className="h-6 w-28 animate-pulse rounded bg-gray-200" aria-hidden />
+            <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+          </div>
+          <div className="h-9 w-16 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+          <div className="ml-auto h-9 w-20 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+        </div>
+        <div className="grid shrink-0 grid-cols-7 border-b border-gray-100 bg-gray-50/80">
+          {WEEKDAY_LABELS.map((label) => (
+            <div key={label} className="py-2 text-center text-xs font-medium text-gray-500">
+              {label}
+            </div>
+          ))}
+        </div>
+        <div className="min-h-0 flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 p-px">
+          {Array.from({ length: 42 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center justify-center rounded-sm bg-white">
+              <div className="h-5 w-5 animate-pulse rounded bg-gray-100" aria-hidden />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (holidays.length === 0) {
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-white">
+        <EmptyState icon={<TbCalendarSearch className="h-12 w-12" />} message="No holiday data available for this year." />
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">

@@ -2,8 +2,11 @@ import { convertCurrency, getCachedExchangeRate } from '@/app/actions/exchange-r
 import { isConversionRequest } from '@/app/actions/exchange-rate/types'
 import { api } from '@/initializer/controller'
 import { invalidParameters, jsonSuccess } from '@/initializer/response'
+import { createLogger } from '@/services/logger'
 
 export const runtime = 'edge'
+
+const logger = createLogger('api-exchange-rate')
 
 /**
  * GET handler for exchange rate API endpoint
@@ -20,6 +23,7 @@ export const GET = api(async (req, context) => {
     return invalidParameters('Invalid base currency parameter').toJsonResponse(400)
   }
 
+  logger.info('GET request', { baseCurrency })
   const exchangeRateData = await getCachedExchangeRate(baseCurrency)
 
   return jsonSuccess(exchangeRateData, {
@@ -49,6 +53,7 @@ export const POST = api(async (req) => {
       return invalidParameters('Invalid request body. Expected {from: string, to: string, amount: number}').toJsonResponse(400)
     }
 
+    logger.info('POST convert', { from: body.from, to: body.to, amount: body.amount })
     const conversionResult = await convertCurrency(body)
     return jsonSuccess(conversionResult, {
       headers: new Headers({
@@ -58,6 +63,8 @@ export const POST = api(async (req) => {
       }),
     })
   } catch (error) {
-    return invalidParameters(`Invalid request: ${error instanceof Error ? error.message : 'Unknown error'}`).toJsonResponse(400)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    logger.warn('POST convert invalid request', { message })
+    return invalidParameters(`Invalid request: ${message}`).toJsonResponse(400)
   }
 })

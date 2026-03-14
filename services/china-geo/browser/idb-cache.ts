@@ -1,14 +1,12 @@
 /**
  * Browser-only IndexedDB cache for reverse-geocode results (region key + polygon).
- * Uses split fields (key + bounds from polygon + data) and an index on minLng so lookup uses a cursor
- * instead of loading all entries. Suitable for large datasets (e.g. 150MB); no getAll().
- * Same caching strategy can be extended to other regions/countries.
+ * Uses shared DB; store geo_regions with index on minLng for cursor lookup.
  * Do not import this (or any file under browser/) from API routes or server code (no window).
  */
 
-const DB_NAME = 'unbnd-geo'
-const STORE_NAME = 'geo_regions'
-const DB_VERSION = 2
+import { IDB_STORES, openSharedDb } from '@/services/idb-cache'
+
+const STORE_NAME = IDB_STORES.GEO_REGIONS
 /** Index for cursor range: only scan records where minLng <= lng. */
 const INDEX_MIN_LNG = 'by_min_lng'
 /** TTL 1 year in ms. */
@@ -40,22 +38,7 @@ interface GeoRegionRow {
 }
 
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined' || !window.indexedDB) {
-      reject(new Error('IndexedDB not available'))
-      return
-    }
-    const req = window.indexedDB.open(DB_NAME, DB_VERSION)
-    req.onerror = () => reject(req.error)
-    req.onsuccess = () => resolve(req.result)
-    req.onupgradeneeded = (e) => {
-      const db = (e.target as IDBOpenDBRequest).result
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'key' })
-        store.createIndex(INDEX_MIN_LNG, 'minLng', { unique: false })
-      }
-    }
-  })
+  return openSharedDb(STORE_NAME)
 }
 
 /**

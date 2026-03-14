@@ -1,16 +1,12 @@
-import { getMoviesListWithTimestamp } from '@/services/movies'
-
-import { MovieList } from './components'
+import { MoviesOverviewLoader } from './components'
 
 /**
- * Movies overview page content: used inside /movies layout.
- * Fetches latest movies from cache and renders list.
+ * Movies overview page. Data is loaded client-side (IDB cache then API) to reduce API requests.
  */
-export default async function MoviesPage() {
-  const { movies, cachedAt } = await getMoviesListWithTimestamp()
+export default function MoviesPage() {
   return (
     <section className="flex h-full flex-col">
-      <MovieList movies={movies} cachedAt={cachedAt} />
+      <MoviesOverviewLoader />
     </section>
   )
 }

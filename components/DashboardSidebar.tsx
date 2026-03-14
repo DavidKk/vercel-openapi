@@ -32,11 +32,13 @@ export function DashboardSidebar(props: Readonly<DashboardSidebarProps>) {
 
   return (
     <nav className="flex w-14 flex-col items-center gap-3 border-r border-gray-200 bg-white py-3">
-      {items.map((item) => {
+      {items.map((item, index) => {
         const isActive = pathname === item.href
         const className = [linkBase, isActive ? linkActive : linkInactive].join(' ')
+        /** First item in every module is the Overview entry; tooltip label is always OVERVIEW */
+        const tooltipContent = index === 0 ? 'OVERVIEW' : item.title
         return (
-          <Tooltip key={item.href} content={item.title} placement="right">
+          <Tooltip key={item.href} content={tooltipContent} placement="right">
             <Link href={item.href} className={className} aria-label={item.ariaLabel}>
               {item.icon}
             </Link>

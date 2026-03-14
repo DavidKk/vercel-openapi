@@ -1,3 +1,7 @@
+import { createLogger } from '@/services/logger'
+
+const logger = createLogger('gist')
+
 export interface Gist {
   url: string
   forks_url: string
@@ -29,6 +33,7 @@ export async function fetchGist(params: FetchGistFileParams): Promise<Gist> {
   })
 
   if (!response.ok) {
+    logger.fail('fetchGist failed', { gistId, status: response.status })
     throw new Error('Failed to fetch gist')
   }
 
@@ -45,6 +50,7 @@ export async function readGistFile(params: ReadGistFileParams) {
 
   const file = files[fileName]
   if (!file) {
+    logger.warn('readGistFile: file not found', { fileName, gistId })
     throw new Error(`File ${fileName} not found in gist ${gistId}`)
   }
 
@@ -74,6 +80,7 @@ export async function writeGistFile(params: WriteGistFileParams) {
   })
 
   if (!response.ok) {
+    logger.fail('writeGistFile failed', { gistId, fileName, status: response.status })
     throw new Error('Failed to update gist')
   }
 
@@ -115,6 +122,7 @@ export async function writeGistFiles(params: WriteGistFilesParams) {
   })
 
   if (!response.ok) {
+    logger.fail('writeGistFiles failed', { gistId, status: response.status })
     throw new Error('Failed to update gist')
   }
 

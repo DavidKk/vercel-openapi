@@ -93,7 +93,7 @@ Constraint: Do not add a third column or change the left/right layout.
 
 ## API handler pattern (backend)
 
-- Route: `app/api/<module>/route.ts`.
+- Route: `app/api/<module>/route.ts` (or nested, e.g. `app/api/<module>/<sub>/route.ts`).
 - Use: `export const runtime = 'edge'`; `export const GET/POST = api(async (req) => { ... })`; return with `jsonSuccess(...)` and headers.
 - Semantics: Public APIs are **read-only** and return **latest credit/data** only. See `.ai/specs/api-semantics.md`. History or write operations require a separate spec and path.
 

@@ -3,8 +3,11 @@ import { calcRechargePromo } from '@/app/actions/fuel-price/promo'
 import { type FuelPriceData, isFuelType } from '@/app/actions/fuel-price/types'
 import { api } from '@/initializer/controller'
 import { invalidParameters, jsonSuccess } from '@/initializer/response'
+import { createLogger } from '@/services/logger'
 
 export const runtime = 'edge'
+
+const logger = createLogger('api-fuel-price-promo')
 
 /**
  * Calculate fuel recharge promotion
@@ -17,6 +20,7 @@ export const GET = api<{ province: string }>(async (_, context) => {
   const fuelType = context.searchParams.get('fuelType') || 'b92'
   const amount = context.searchParams.get('amount')
   const bonus = context.searchParams.get('bonus')
+  logger.info('request', { province, fuelType, amount, bonus })
 
   // Validate fuel type parameter
   if (!isFuelType(fuelType)) {
