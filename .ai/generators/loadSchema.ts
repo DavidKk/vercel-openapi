@@ -33,11 +33,6 @@ function normalizeSchema(parsed: unknown): ModuleSchema {
 
   const obj = parsed as Record<string, unknown>
 
-  const overview = obj.overview as Record<string, unknown> | undefined
-  if (!overview || typeof overview.componentName !== 'string' || typeof overview.importPath !== 'string') {
-    throw new Error('schema.overview must have componentName and importPath (strings)')
-  }
-
   const apiPage = obj.apiPage as Record<string, unknown> | undefined
   if (!apiPage || typeof apiPage.title !== 'string' || typeof apiPage.subtitle !== 'string') {
     throw new Error('schema.apiPage must have title and subtitle (strings)')
@@ -76,10 +71,6 @@ function normalizeSchema(parsed: unknown): ModuleSchema {
     name: String(obj.name ?? ''),
     routePrefix: String(obj.routePrefix ?? ''),
     ...(sidebarItems && { sidebarItems: sidebarItems as ModuleSchema['sidebarItems'] }),
-    overview: {
-      componentName: String(overview.componentName),
-      importPath: String(overview.importPath),
-    },
     apiPage: {
       title: String(apiPage.title),
       subtitle: String(apiPage.subtitle),

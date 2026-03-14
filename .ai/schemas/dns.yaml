@@ -22,10 +22,6 @@ sidebarItems:
     title: Skill
     ariaLabel: Skill
 
-overview:
-  componentName: DnsQueryForm
-  importPath: '@/app/dns/components'
-
 apiPage:
   title: DNS Query API
   subtitle: GET /api/dns with optional L0 cache. Query a domain against a configurable DNS server (IP or DoH).

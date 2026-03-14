@@ -22,10 +22,6 @@ sidebarItems:
     title: Skill
     ariaLabel: Skill
 
-overview:
-  componentName: WeatherOverview
-  importPath: '@/app/weather/components'
-
 apiPage:
   title: Weather REST API
   subtitle: Get current weather and short-term forecast for a specific point.
@@ -38,16 +34,16 @@ apiPage:
           "location": {
             "latitude": 23.13,
             "longitude": 113.27,
-            "country": "中国",
-            "province": "广东省",
-            "city": "佛山市",
-            "district": "南海区",
-            "name": "佛山·南海区"
+            "country": "China",
+            "province": "Guangdong",
+            "city": "Foshan",
+            "district": "Nanhai",
+            "name": "Foshan · Nanhai"
           },
           "now": {
             "observedAt": "2025-01-15T08:00:00Z",
             "condition": "rain",
-            "conditionText": "小雨",
+            "conditionText": "light rain",
             "temperature": 18,
             "feelsLike": 17,
             "humidity": 92,
@@ -65,10 +61,10 @@ apiPage:
           "location": {
             "latitude": 23.13,
             "longitude": 113.27,
-            "country": "中国",
-            "province": "广东省",
-            "city": "佛山市",
-            "district": "南海区"
+            "country": "China",
+            "province": "Guangdong",
+            "city": "Foshan",
+            "district": "Nanhai"
           },
           "forecast": {
             "granularity": "hourly",
@@ -77,7 +73,7 @@ apiPage:
                 "time": "2025-01-15T09:00:00Z",
                 "temperature": 18,
                 "condition": "rain",
-                "conditionText": "小雨",
+                "conditionText": "light rain",
                 "precipitation": 1.0,
                 "precipitationProbability": 0.8
               }

@@ -25,7 +25,7 @@ Per-module spec for the China GEO public API. Global convention: [api-semantics.
 
 - **Body:** `{ latitude: number, longitude: number }`.
 - **Response (200):** e.g. `{ country, province, city, district, latitude, longitude }`.  
-  Example: `country: "中国", province: "北京市", city, district`; numbers echoed.
+  Example: `country: "China", province: "Beijing", city, district`; numbers echoed.
 - **Response (404):** Location not found or not in China — body with clear message (e.g. `error: "Location not found or not in China"`).
 
 ---

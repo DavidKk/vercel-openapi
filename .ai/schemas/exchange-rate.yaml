@@ -22,10 +22,6 @@ sidebarItems:
     title: Skill
     ariaLabel: Skill
 
-overview:
-  componentName: ExchangeRateServer
-  importPath: '@/app/exchange-rate/components'
-
 apiPage:
   title: Exchange rate REST API
   subtitle: Get rates for a base currency or convert an amount.

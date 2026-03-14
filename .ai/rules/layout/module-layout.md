@@ -67,7 +67,7 @@ New modules should copy these patterns from existing implementations (e.g. holid
 ## Icons and styling
 
 - Sidebar entries use `react-icons/tb` icons with `className="h-5 w-5"`.
-- Allowed icon names (extend in rules when needed): `TbCalendarSearch`, `TbGasStation`, `TbCurrencyDollar`, `TbMapPin`, `TbApi`, `TbRobot`, `TbCode`, `TbFileText`. Do not introduce new icon sets without updating this rule.
+- Allowed icon names (extend in rules when needed): `TbCalendarSearch`, `TbGasStation`, `TbCurrencyDollar`, `TbMapPin`, `TbApi`, `TbRobot`, `TbCode`, `TbFileText`, `TbMovie`, `TbWorld`, `TbCloudRain`. Use only `react-icons/tb`. Do not introduce new icon sets without updating this rule.
 
 ---
 
@@ -75,17 +75,19 @@ New modules should copy these patterns from existing implementations (e.g. holid
 
 - Path: `app/<module>/page.tsx`.
 - Export: `export default function <ModuleName>Page() { ... }`.
-- DOM: Outer `<section className="flex h-full flex-col">`; inside, a single main component (e.g. `Calendar`, `GeoClient`, `FuelPriceTable`). Do not add header/sidebar; that is handled by the shell and layout.
+- DOM: Outer `<section className="flex h-full flex-col">`; inside, the main view component (or leave empty until the developer specifies).
+- **Content is not from schema.** Overview content is module-specific (calendar, table, form, etc.). When developing a new module, ask the developer how the Overview should be displayed; if they do not specify, leave the section empty. Do not add header/sidebar; that is handled by the shell and layout.
 
 ---
 
 ## API / MCP doc + Playground layout
 
-Two-column layout: left = documentation, right = Playground.
+Two-column layout: left = documentation, right = Playground. **On mobile, the two columns are horizontally scrollable** (left/right swipe); on `md` and up they sit side-by-side.
 
-- Outer: `<div className="flex h-full">`
-- **Left (doc):** `section` with `className="flex min-h-0 w-1/2 min-w-[320px] flex-1 flex-col border-r border-gray-200 bg-white"`. Use `DocPanelHeader` with `title` and `subtitle`. Content area: `className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800"`. Use constants from `app/Nav/constants.ts`: `DOC_SECTION_TITLE_CLASS`, `DOC_ENDPOINT_BOX_CLASS`, `DOC_ENDPOINT_DESC_CLASS`. REST API page: document `/api/<module>...` endpoints. MCP page: show `POST /api/mcp` and list this module's MCP tools.
-- **Right (Playground):** `section` with `className="flex min-h-0 w-1/2 min-w-[320px] flex-1 flex-col bg-gray-50"`. Render the module's Playground component (e.g. `HolidayApiPlayground`, `HolidayMcpPlayground`).
+- Outer: `flex h-full flex-nowrap overflow-x-auto overscroll-x-contain md:overflow-visible` so mobile can scroll horizontally.
+- **Left (doc):** `section` with `className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col border-r border-gray-200 bg-white md:w-1/2 md:min-w-[320px] md:flex-1"`. Use `DocPanelHeader` with `title` and `subtitle`. Content area: `className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800"`. Use constants from `app/Nav/constants.ts`: `DOC_SECTION_TITLE_CLASS`, `DOC_ENDPOINT_BOX_CLASS`, `DOC_ENDPOINT_DESC_CLASS`. REST API page: document `/api/<module>...` endpoints. MCP page: show `POST /api/mcp` and list this module's MCP tools.
+- **Right (Playground):** `section` with `className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col bg-gray-50 md:w-1/2 md:min-w-[320px] md:flex-1"`. Render the module's Playground component (e.g. `HolidayApiPlayground`, `HolidayMcpPlayground`).
+- **Shared component:** For Function Calling, use `DocPlaygroundLayout` from `@/components/DocPlaygroundLayout` with `doc` and `playground` props to get the same mobile scroll behavior.
 
 Constraint: Do not add a third column or change the left/right layout.
 

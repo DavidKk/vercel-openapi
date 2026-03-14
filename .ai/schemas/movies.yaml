@@ -22,10 +22,6 @@ sidebarItems:
     title: Skill
     ariaLabel: Skill
 
-overview:
-  componentName: MovieList
-  importPath: '@/app/movies/components'
-
 apiPage:
   title: Movies API
   subtitle: Get latest movies list (cached; read-only for public).

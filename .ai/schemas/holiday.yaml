@@ -21,10 +21,6 @@ sidebarItems:
     title: Skill
     ariaLabel: Skill
 
-overview:
-  componentName: Calendar
-  importPath: '@/app/holiday/components'
-
 apiPage:
   title: Holiday API
   subtitle: Check whether today is a holiday and get the holiday name.

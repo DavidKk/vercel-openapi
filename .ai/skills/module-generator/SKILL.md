@@ -9,6 +9,24 @@ When adding or extending a **feature module** (e.g. holiday, fuel-price, exchang
 
 ---
 
+## Development workflow (mandatory)
+
+**Before** creating schema or code for a new module, follow the **module development workflow** in order. Do not skip to “generate module” until the previous phase has a clear, confirmed outcome.
+
+| Phase | Name                      | What to do                                                                                       | Done when                                   |
+| ----- | ------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| 1     | Requirements confirmation | Confirm scope & success criteria; present short summary back to developer                        | Summary **confirmed** by developer          |
+| 2     | Customize requirements    | Agree API (paths, shapes), Overview (or empty), MCP (tools, params); confirm list with developer | Concrete list **confirmed**                 |
+| 3     | Requirements breakdown    | Write implementation checklist; list open questions; raise conflicts with rules/specs            | Checklist complete; no unresolved blockers  |
+| 4     | Generate module           | Schema → generator → implement → add tests → run `pnpm ok`                                       | Module works; tests added; `pnpm ok` passes |
+| 5     | Raise issues              | When blocked or ambiguous: stop, state issue, ask developer, wait, then resume                   | Developer answered; resume from same step   |
+
+**Full steps (actions, deliverables, completion criteria, when to escalate):** `.ai/workflow/module-development.md`
+
+When the user says “add a module” or “generate a module”, **start with Phase 1**. Present a short summary for confirmation before Phase 2; get a concrete API/Overview/MCP list confirmed before Phase 3; produce the checklist before Phase 4. Use Phase 5 whenever you would otherwise have to guess.
+
+---
+
 ## 1. Use the generator (preferred when applicable)
 
 The generator produces the **module shell** from a schema so layout and pages stay consistent and token use stays low.
@@ -16,7 +34,7 @@ The generator produces the **module shell** from a schema so layout and pages st
 ### What the generator produces
 
 - `app/<id>/layout.tsx` – sidebar + main area (from `.ai/rules/module-layout.yaml`)
-- `app/<id>/page.tsx` – overview page wrapper (single section + one component)
+- `app/<id>/page.tsx` – overview page placeholder (single section; content not from schema)
 - `app/<id>/api/page.tsx` – doc + playground two-column page
 - `app/<id>/mcp/page.tsx` – MCP doc + playground two-column page
 
@@ -24,7 +42,7 @@ The generator produces the **module shell** from a schema so layout and pages st
 
 1. **Create or edit** `.ai/schemas/<module-id>.yaml` (e.g. `.ai/schemas/my-feature.yaml`).  
    Follow **`.ai/schemas/README.md`** and **`.ai/rules/layout/module-layout.md`**.  
-   Copy an existing schema (e.g. `.ai/schemas/holiday.yaml`) and change `id`, `name`, `routePrefix`, `overview`, `apiPage`, `mcpPage`, and optional `sidebarItems` (including `iconName` for the first item if needed).
+   Copy an existing schema (e.g. `.ai/schemas/holiday.yaml`) and change `id`, `name`, `routePrefix`, `apiPage`, `mcpPage`, and optional `sidebarItems` (including `iconName` for the first item if needed). Do not add `overview` (Overview content is not from schema).
 
 2. **Run the generator** (from repo root):
 
@@ -32,7 +50,7 @@ The generator produces the **module shell** from a schema so layout and pages st
    pnpm run generate:module .ai/schemas/<module-id>.yaml
    ```
 
-   This overwrites the four files above for that module. If the user prefers not to overwrite, generate to a temp path or show the diff first.
+   This overwrites the four files above for that module. **Re-running the generator on an existing module overwrites its overview page** with the empty placeholder; restore or re-add the overview component by hand if needed. If the user prefers not to overwrite, generate to a temp path or show the diff first.
 
 3. **Optional programmatic use**: The agent may call `createModuleFromSchema(schemaPath)` from `.ai/generators/skill.ts` (Node only) to get `GeneratedFile[]` and then write or show the contents. Schema path is relative to project root (e.g. `.ai/schemas/holiday.yaml`).
 
@@ -46,10 +64,10 @@ The generator does **not** create the following. Implement them by hand followin
 
 ### Overview component
 
+- **When**: Ask the developer how the Overview should be displayed. If they do not specify, leave the overview page empty (the generator already produces an empty placeholder).
 - **Where**: `app/<id>/components/` with an `index.ts` (or `index.tsx`) that re-exports.  
   See **`.ai/rules/layout/component-structure.md`** (page-private components at segment level).
-- **What**: The main UI for the overview tab (e.g. `Calendar`, `FuelPriceTable`, `GeoClient`).  
-  The generated `app/<id>/page.tsx` imports this component from the path given in the schema (`overview.importPath`). If the overview needs server data, the page can be async and fetch before rendering the component (see existing `app/holiday/page.tsx` or `app/fuel-price/page.tsx`).
+- **What**: The main UI for the overview tab (e.g. calendar, table, form). Implement by hand and add it to `app/<id>/page.tsx` when the developer has specified the design. If the overview needs server data, the page can be async and fetch before rendering (see existing `app/holiday/page.tsx` or `app/fuel-price/page.tsx`).
 
 ### API route handler
 
@@ -95,11 +113,13 @@ The generator does **not** create the following. Implement them by hand followin
 
 1. **Schema**: Add `.ai/schemas/<new-module>.yaml` (see `.ai/schemas/README.md` and existing YAMLs).
 2. **Generator**: Run `pnpm run generate:module .ai/schemas/<new-module>.yaml` (or call `createModuleFromSchema` and write the four files).
-3. **Overview**: Implement `app/<new-module>/components/<OverviewComponent>.tsx` and re-export from `app/<new-module>/components/index.ts`. Adjust `app/<new-module>/page.tsx` if you need server data (e.g. make it async and pass props).
+3. **Overview**: Ask the developer how the Overview should be displayed. If not specified, leave empty. Otherwise implement `app/<new-module>/components/<OverviewComponent>.tsx`, re-export from `app/<new-module>/components/index.ts`, and use it in `app/<new-module>/page.tsx` (e.g. make page async and pass props if server data is needed).
 4. **API**: Implement `app/api/<new-module>/route.ts` (and any nested routes) with `api()`, `jsonSuccess`, and `runtime = 'edge'`.
 5. **Playgrounds**: Implement API and MCP playground components under `app/<new-module>/api/components/` and `app/<new-module>/mcp/components/` and re-export.
 6. **MCP**: Implement tools under `app/api/mcp/tools/` and register them.
 7. **Nav**: Add the module to `app/Nav/index.tsx` (e.g. `NAV_ITEMS`).
 8. **Optional**: Add `function-calling/page.tsx` and `skill/page.tsx` plus content if needed.
+9. **Tests**: Add test cases for new code. Unit tests: `__tests__/**/*.spec.ts` (mirror source structure); naming: `should [expected behavior] [conditions]` (see `.cursorrules`). E2E: `__webtests__/` or Playwright as needed. Cover API routes, services, and non-trivial components.
+10. **Quality gate**: Run **`pnpm ok`** (format, lint, typecheck, test, test:e2e). Fix any failure until `pnpm ok` passes before considering the module done.
 
-Whenever a step can be driven by the generator (step 2), use it; for the rest, follow **`.ai/rules`** and **`.ai/schemas/README.md`** and implement by description.
+Whenever a step can be driven by the generator (step 2), use it; for the rest, follow **`.ai/rules`** and **`.ai/schemas/README.md`** and implement by description. Do not skip tests or the quality gate (step 9–10).

@@ -32,11 +32,6 @@ export interface McpToolSchema {
   paramsDescription?: string
 }
 
-export interface OverviewSchema {
-  componentName: string
-  importPath: string
-}
-
 export interface ApiPageSchema {
   title: string
   subtitle: string
@@ -65,7 +60,6 @@ export interface ModuleSchema {
   name: string
   routePrefix: string
   sidebarItems?: SidebarItemSchema[]
-  overview: OverviewSchema
   apiPage: ApiPageSchema
   mcpPage: McpPageSchema
 }

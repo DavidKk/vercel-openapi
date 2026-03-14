@@ -42,7 +42,7 @@ The **Overview page** for this module should not be a static description; it sho
     - A “Use current example point” button to reset to the default coordinates.
   - When the user clicks “Check weather”:
     - Call `POST /api/weather` to display the **now** card:
-      - Location (city / district), temperature, condition text (e.g. “小雨”), and observed time.
+      - Location (city / district), temperature, condition text (e.g. "light rain"), and observed time.
     - Optionally call `POST /api/weather/forecast` (e.g. `granularity: "hourly", hours: 6`) to display a compact **next 6 hours** strip (list or chips with time + condition icon + temperature).
   - Layout:
     - Left/top: tiny form for the point (latitude/longitude + button).
@@ -144,7 +144,7 @@ This makes the Weather overview consistent with other modules (each shows a conc
 
 ## Provider and caching notes
 
-This module uses **和风天气 (QWeather)** for both current (“now”) weather and short-term hourly forecast (`QWEATHER_API_KEY`). The public API shape is provider-agnostic; responses normalize QWeather field names.
+This module uses **QWeather** for both current (“now”) weather and short-term hourly forecast (`QWEATHER_API_KEY`). The public API shape is provider-agnostic; responses normalize QWeather field names.
 
 - **Caching:**
   - Implement in-memory caching with TTL per point and granularity:

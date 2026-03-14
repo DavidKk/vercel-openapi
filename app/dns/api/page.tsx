@@ -10,8 +10,8 @@ import { DnsApiPlayground } from './components'
  */
 export default function DnsApiPage() {
   return (
-    <div className="flex h-full">
-      <section className="flex min-h-0 w-1/2 min-w-[320px] flex-1 flex-col border-r border-gray-200 bg-white">
+    <div className="flex h-full flex-nowrap overflow-x-auto overscroll-x-contain md:overflow-visible">
+      <section className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col border-r border-gray-200 bg-white md:w-1/2 md:min-w-[320px] md:flex-1">
         <DocPanelHeader
           title="DNS Query API"
           subtitle="GET /api/dns with optional L0 cache. Query a domain against a configurable DNS server (IP or DoH). Returns latest resolution only (no history)."
@@ -41,7 +41,7 @@ export default function DnsApiPage() {
         </div>
       </section>
 
-      <section className="flex min-h-0 w-1/2 min-w-[320px] flex-1 flex-col bg-gray-50">
+      <section className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col bg-gray-50 md:w-1/2 md:min-w-[320px] md:flex-1">
         <div className="flex min-h-0 flex-1 flex-col">
           <DnsApiPlayground />
         </div>
