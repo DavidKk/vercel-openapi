@@ -131,10 +131,29 @@ export function sortMoviesByInsertTime(movies: MergedMovie[]): MergedMovie[] {
   })
 }
 
+function hasMaoyanSource(movie: MergedMovie): boolean {
+  return movie.sources?.some((s) => s === 'topRated' || s === 'mostExpected') ?? false
+}
+
+/**
+ * Sort movies: Maoyan (topRated/mostExpected) first, then by insertedAt descending.
+ */
+export function sortMoviesMaoyanFirstThenByInsertTime(movies: MergedMovie[]): MergedMovie[] {
+  return [...movies].sort((a, b) => {
+    const aMaoyan = hasMaoyanSource(a)
+    const bMaoyan = hasMaoyanSource(b)
+    if (aMaoyan !== bMaoyan) return aMaoyan ? -1 : 1
+    if (!a.insertedAt && !b.insertedAt) return 0
+    if (!a.insertedAt) return 1
+    if (!b.insertedAt) return -1
+    return b.insertedAt - a.insertedAt
+  })
+}
+
 export function createInitialCacheData(movies: MergedMovie[]): MoviesCacheData {
   const now = Date.now()
   const processed = processMoviesWithInsertTime([], movies)
-  const sorted = sortMoviesByInsertTime(processed)
+  const sorted = sortMoviesMaoyanFirstThenByInsertTime(processed)
   return {
     data: {
       date: getUtcDateString(),
@@ -149,7 +168,7 @@ export function createInitialCacheData(movies: MergedMovie[]): MoviesCacheData {
 export function updateCacheData(existing: MoviesCacheData['data'], newMovies: MergedMovie[], previousNotified: string[] = []): MoviesCacheData {
   const now = Date.now()
   const processed = processMoviesWithInsertTime(existing.movies, newMovies)
-  const sorted = sortMoviesByInsertTime(processed)
+  const sorted = sortMoviesMaoyanFirstThenByInsertTime(processed)
   const newIds = new Set(sorted.map((m) => getMovieId(m)))
   const cleanedNotified = previousNotified.filter((id) => newIds.has(id))
   return {

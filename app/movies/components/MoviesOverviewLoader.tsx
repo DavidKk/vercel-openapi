@@ -15,11 +15,11 @@ interface MoviesCachePayload {
   cachedAt: number
 }
 
-const MOVIES_TTL_MS = 2 * 60 * 60 * 1000 // 2 hours
+const MOVIES_TTL_MS = 30 * 60 * 1000 // 30 minutes (server cache is GIST)
 const CACHE_KEY = 'latest'
 
 /**
- * Client-side loader for movies overview: IDB first (TTL 2h), then API. Reduces API calls for repeat visits.
+ * Client-side loader for movies overview: IDB first (TTL 30m), then API. Reduces API calls for repeat visits.
  */
 export function MoviesOverviewLoader() {
   const [payload, setPayload] = useState<MoviesCachePayload | null>(null)
