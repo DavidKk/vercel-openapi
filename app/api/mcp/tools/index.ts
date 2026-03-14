@@ -1,5 +1,6 @@
 import type { Tool } from '@/initializer/mcp/tool'
 
+import { dns_query } from './dns/dns_query'
 import { convert_currency } from './exchange-rate/convert_currency'
 import { get_exchange_rate } from './exchange-rate/get_exchange_rate'
 import { calc_fuel_recharge_promo } from './fuel-price/calc_fuel_recharge_promo'
@@ -14,6 +15,7 @@ import { get_point_forecast } from './weather/get_point_forecast'
 import { get_point_weather } from './weather/get_point_weather'
 
 const ALL_TOOLS: Tool[] = [
+  dns_query,
   get_exchange_rate,
   convert_currency,
   get_fuel_price,
@@ -31,12 +33,13 @@ const ALL_TOOLS: Tool[] = [
 const TOOLS_MAP = new Map<string, Tool>(ALL_TOOLS.map((t) => [t.name, t]))
 
 /** Category names for /api/function-calling/[category]/tools (use only tools for one domain) */
-export const FUNCTION_CALLING_CATEGORIES = ['holiday', 'fuel-price', 'exchange-rate', 'movies', 'weather'] as const
+export const FUNCTION_CALLING_CATEGORIES = ['dns', 'holiday', 'fuel-price', 'exchange-rate', 'movies', 'weather'] as const
 
 export type FunctionCallingCategory = (typeof FUNCTION_CALLING_CATEGORIES)[number]
 
 /** Tool names per category so callers can request a subset of tools */
 const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
+  dns: ['dns_query'],
   holiday: ['get_today_holiday', 'list_holiday', 'is_workday', 'is_holiday'],
   'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'calc_fuel_recharge_promo'],
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],

@@ -1,5 +1,5 @@
 /** Route prefixes that hide global Nav (e.g. full-screen calendar/pages) */
-export const HIDDEN_ROUTES: string[] = ['/holiday', '/fuel-price', '/geo', '/exchange-rate']
+export const HIDDEN_ROUTES: string[] = ['/holiday', '/fuel-price', '/geo', '/exchange-rate', '/dns']
 
 /** Same height for all content section headers (Calendar toolbar, FuelPrice bar) */
 export const CONTENT_HEADER_CLASS = 'flex shrink-0 items-center border-b border-gray-200 px-4 py-3'

@@ -1,0 +1,5 @@
+export { generateDNSMessage } from './dns-message'
+export { fetchDNSQuery } from './fetch-dns-query'
+export { normalizeDnsHost, resolveDns, type ResolveDnsResult } from './resolve'
+export type { DNSRecord, QueryType } from './types'
+export { isQueryType, stringifyDNSType } from './utils'
