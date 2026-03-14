@@ -1,0 +1,56 @@
+# DNS Query module schema
+
+id: dns
+name: DNS Query
+routePrefix: /dns
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+    iconName: TbWorld
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+overview:
+  componentName: DnsQueryForm
+  importPath: '@/app/dns/components'
+
+apiPage:
+  title: DNS Query API
+  subtitle: GET /api/dns with optional L0 cache. Query a domain against a configurable DNS server (IP or DoH).
+  endpoints:
+    - method: GET
+      path: /dns
+      description: 'Query params: domain (required), dns (optional, default 1.1.1.1). Returns records (A, AAAA) in one response.'
+      exampleResponse: |
+        {
+          "records": [
+            { "name": "example.com", "type": "A", "ttl": 300, "data": "93.184.216.34" },
+            { "name": "example.com", "type": "AAAA", "ttl": 300, "data": "2606:2800:220:1:248:1893:25c8:1946" }
+          ],
+          "domain": "example.com",
+          "dns": "1.1.1.1"
+        }
+  playgroundComponentName: DnsApiPlayground
+  playgroundImportPath: '@/app/dns/api/components'
+
+mcpPage:
+  title: DNS Query MCP tools
+  subtitle: Tools for DNS lookup via the MCP server.
+  tools:
+    - name: dns_query
+      description: 'Query DNS for a domain (A and AAAA records). Params: domain, dns (optional).'
+      paramsDescription: 'domain: string, dns?: string (optional, default 1.1.1.1)'
+  playgroundComponentName: DnsMcpPlayground
+  playgroundImportPath: '@/app/dns/mcp/components'

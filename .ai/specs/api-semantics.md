@@ -70,6 +70,7 @@ Each **module** (holiday, fuel-price, exchange-rate, china-geo, movies, …) sho
 
 ## References
 
+- ADR: `docs/adr/0001-public-api-latest-only.md` (decision: public API = latest credit/data only)
 - Module specs index: `.ai/specs/README.md`
 - Implementation rules: `.ai/rules/global.md`, `.ai/rules/layout/module-layout.md`
 - Code style: project `.cursorrules`

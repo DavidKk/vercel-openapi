@@ -64,6 +64,12 @@ Product development plan for the openapi project. This document describes the **
 - Add a new row or milestone when a **new module or feature** is planned (from `docs/specs/overview.md` or `.ai/tasks/active/`).
 - Done when: schema exists, generator run, API/MCP/Playground/Skill pages in place, aligned with `.ai/specs/api-semantics.md`; E2E or integration tests for new paths as needed.
 
+### P3-DNS: DNS Query module
+
+| ID     | Target                                                                       | Spec / Task                                                                          |
+| ------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| P3-DNS | DNS Query: GET `/api/dns`, optional L0 cache; Overview form + API Playground | `.ai/specs/modules/dns.md`; task breakdown in `.ai/tasks/active/current.md` (T-DNS). |
+
 ---
 
 ## How to update
