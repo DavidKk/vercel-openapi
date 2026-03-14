@@ -1,45 +1,47 @@
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
+import { createLruCache } from '@/services/lru-cache'
 
 import { CACHE_DURATION_MS } from './constants'
 
-/** In-memory cache entry for exchange rate data */
+/** In-memory L1 cache entry: timestamp for TTL, data for response. */
 interface MemoryCacheEntry {
-  data: ExchangeRateData | null
   timestamp: number
+  data: ExchangeRateData
 }
 
-/** Memory cache storage for exchange rates */
-const MEMORY_CACHE: MemoryCacheEntry = {
-  data: null,
-  timestamp: 0,
+/** Max L1 entries (one per base currency). LRU eviction when full. */
+const L1_MAX_SIZE = 100
+
+const state: { lru: ReturnType<typeof createLruCache<string, MemoryCacheEntry>> } = {
+  lru: createLruCache<string, MemoryCacheEntry>(L1_MAX_SIZE),
 }
 
 /**
- * Clear the in-memory exchange rate cache
+ * Clear the in-memory exchange rate cache (L1).
  */
 export function clearExchangeRateCache(): void {
-  MEMORY_CACHE.data = null
-  MEMORY_CACHE.timestamp = 0
+  state.lru = createLruCache<string, MemoryCacheEntry>(L1_MAX_SIZE)
 }
 
 /**
- * Get cached exchange rate data if present and not expired
- * @param baseCurrency Base currency code to match (e.g. 'USD')
- * @returns Cached ExchangeRateData or null if miss/expired
+ * Get cached exchange rate from L1 if present and not expired.
+ *
+ * @param baseCurrency Base currency code (e.g. 'USD')
+ * @returns Cached ExchangeRateData or null on miss/expired
  */
 export function getCachedRate(baseCurrency: string): ExchangeRateData | null {
-  const now = Date.now()
-  if (MEMORY_CACHE.data && MEMORY_CACHE.data.base === baseCurrency && now - MEMORY_CACHE.timestamp < CACHE_DURATION_MS) {
-    return MEMORY_CACHE.data
-  }
-  return null
+  const entry = state.lru.get(baseCurrency)
+  if (!entry) return null
+  if (Date.now() - entry.timestamp >= CACHE_DURATION_MS) return null
+  return entry.data
 }
 
 /**
- * Store exchange rate data in memory cache
+ * Store exchange rate in L1. Key = base currency.
+ *
+ * @param baseCurrency Base currency code (e.g. 'USD')
  * @param data Exchange rate data to cache
  */
-export function setCachedRate(data: ExchangeRateData): void {
-  MEMORY_CACHE.data = data
-  MEMORY_CACHE.timestamp = Date.now()
+export function setCachedRate(baseCurrency: string, data: ExchangeRateData): void {
+  state.lru.set(baseCurrency, { timestamp: Date.now(), data })
 }

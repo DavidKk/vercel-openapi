@@ -6,15 +6,23 @@ import { TbArrowsExchange, TbChevronDown } from 'react-icons/tb'
 
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
 import { Spinner } from '@/components/Spinner'
+import { getExchangeRateFromIdb, setExchangeRateInIdb } from '@/services/freecurrencyapi/browser'
 import { fuzzySearch } from '@/utils/find'
 
+/**
+ * Fetch exchange rates: L0 IndexedDB → API; on success write to IDB.
+ */
 async function fetchExchangeRates(base: string): Promise<ExchangeRateData> {
+  const fromIdb = await getExchangeRateFromIdb(base)
+  if (fromIdb) return fromIdb
+
   const url = `/api/exchange-rate?base=${encodeURIComponent(base)}`
   const res = await fetch(url, { method: 'GET', cache: 'default' })
   const body = (await res.json()) as { code: number; message: string; data?: ExchangeRateData }
   if (!res.ok || body.code !== 0 || !body.data) {
     throw new Error((body as { data?: { error?: string } }).data?.error ?? body.message ?? 'Failed to fetch exchange rates')
   }
+  await setExchangeRateInIdb(base, body.data)
   return body.data
 }
 
