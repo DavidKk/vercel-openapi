@@ -41,6 +41,29 @@ Constraint: Generator and AI may only supply `title` / `ariaLabel` / `iconName` 
 
 ---
 
+## Function Calling and Skill page patterns
+
+All feature modules must implement real pages for **Function Calling** and **Skill** so that all 5 sidebar items resolve to content:
+
+- **Function Calling page**
+  - Path: `app/<module>/function-calling/page.tsx`.
+  - Use the shared `FunctionCallingPanel` (`@/components/FunctionCallingPanel`).
+  - Export a default page component named `<ModuleName>FunctionCallingPage`.
+  - Parameters:
+    - `title`: usually `"Function Calling"`.
+    - `subtitle`: short description of which tools for this module are exposed as OpenAI-compatible functions (list key tool names).
+    - `defaultToolsCategory`: module id (e.g. `"holiday"`, `"exchange-rate"`, `"weather"`).
+- **Skill page**
+  - Path: `app/<module>/skill/page.tsx`.
+  - Use the shared `ApiSkillPanel` (`@/components/ApiSkillPanel`).
+  - Export a default page component named `<ModuleName>SkillPage`.
+  - Import a `<MODULE>_API_SKILL` constant from a local `skill-content` source and pass it as `content`.
+  - Set `downloadFilename` to `<module>-api-skill.md`; pass `fill` to use full-height layout.
+
+New modules should copy these patterns from existing implementations (e.g. holiday, fuel-price, exchange-rate) and adapt only the text and skill content.
+
+---
+
 ## Icons and styling
 
 - Sidebar entries use `react-icons/tb` icons with `className="h-5 w-5"`.

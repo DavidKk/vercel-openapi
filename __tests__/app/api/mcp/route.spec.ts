@@ -24,7 +24,7 @@ describe('MCP API /api/mcp', () => {
       const data = await res.json()
       expect(data.type).toBe('result')
       expect(data.result).toBeDefined()
-      expect(data.result.name).toBe('vercel-openapi')
+      expect(data.result.name).toBe('unbnd')
       expect(data.result.version).toBeDefined()
       expect(data.result.description).toBeDefined()
       expect(typeof data.result.tools).toBe('object')

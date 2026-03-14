@@ -1,3 +1,6 @@
+/**
+ * Route handler wrappers: api (JSON), plainText, buffer, cron. Injects context (params, searchParams) and request context.
+ */
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
@@ -6,16 +9,19 @@ import { getHeaders, runWithContext } from '@/services/context'
 
 import { isStandardResponse, standardResponseError, stringifyUnknownError } from './response'
 
+/** Base context passed to handlers (params, search string, searchParams). */
 export interface Context {
   params: Promise<any>
   search: string
   searchParams: URLSearchParams
 }
 
+/** Context with typed route params. */
 export interface ContextWithParams<P> extends Context {
   params: Promise<P>
 }
 
+/** Wraps a handler that returns a JSON-serializable object; responds with NextResponse.json, merges context headers, 500 on throw. */
 export function api<P>(handle: (req: NextRequest, context: ContextWithParams<P>) => Promise<Record<string, any>>) {
   return async (req: NextRequest, context: { params: Promise<any> }) => {
     return runWithContext(req, async () => {
@@ -55,6 +61,7 @@ export function api<P>(handle: (req: NextRequest, context: ContextWithParams<P>)
   }
 }
 
+/** Wraps a handler that returns a string; responds with plain text, 500 on throw. */
 export function plainText<P>(handle: (req: NextRequest, context: ContextWithParams<P>) => Promise<string | NextResponse>) {
   return async (req: NextRequest, context: { params: Promise<any> }) => {
     return runWithContext(req, async () => {
@@ -79,6 +86,7 @@ export function plainText<P>(handle: (req: NextRequest, context: ContextWithPara
   }
 }
 
+/** Wraps a handler that returns an ArrayBuffer; responds with binary body, 500 on throw. */
 export function buffer<P>(handle: (req: NextRequest, context: ContextWithParams<P>) => Promise<ArrayBuffer | NextResponse>) {
   return async (req: NextRequest, context: { params: Promise<any> }) => {
     return runWithContext(req, async () => {

@@ -1,4 +1,5 @@
 import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
+import { createLogger } from '@/services/logger'
 
 import { fetchAndParseHolidayData } from './timor'
 
@@ -15,6 +16,7 @@ interface MemoryCache {
 }
 
 const MEMORY_CACHE: MemoryCache = {}
+const logger = createLogger('holiday')
 
 /**
  * 获取当前年份的节假日列表
@@ -33,8 +35,7 @@ export async function listHoliday(year = new Date().getFullYear()) {
       return cache
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('load holiday from cache failed', error)
+    logger.fail('load holiday from cache failed', error)
   }
 
   const holidays = await requestHoliday(year)
@@ -46,8 +47,7 @@ export async function listHoliday(year = new Date().getFullYear()) {
   try {
     await saveHolidayToCache(year, holidays)
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('save holiday to cache failed', error)
+    logger.fail('save holiday to cache failed', error)
   }
 
   return holidays

@@ -1,13 +1,13 @@
 import { fetchJsonWithCache } from '@/services/fetch'
-import { fail, info } from '@/services/logger'
 import type { TMDBMovie } from '@/services/tmdb'
 import { fetchPopularMovies, fetchUpcomingMovies, getGenreNames, getMovieDetails, hasTmdbApiKey, searchMulti } from '@/services/tmdb'
 
 import { MAOYAN } from './constants'
+import { logger } from './logger'
 import type { ComingMovie, MergedMovie, MostExpectedResponse, MovieListItem, TopRatedMoviesResponse } from './types'
 
 async function fetchTopRatedMoviesWithoutCache(): Promise<MovieListItem[]> {
-  info('Fetching top rated movies from Maoyan (no cache)')
+  logger.info('Fetching top rated movies from Maoyan (no cache)')
   const data = await fetchJsonWithCache<TopRatedMoviesResponse>(`${MAOYAN.API_BASE}/index/topRatedMovies`, {
     headers: { 'User-Agent': MAOYAN.USER_AGENT },
     cacheDuration: 0,
@@ -51,7 +51,7 @@ async function enrichMovieWithSearchResult(movie: MergedMovie): Promise<{
       return { movie, needsDetails, genreIds }
     }
   } catch (err) {
-    fail(`Error searching TMDB for "${movie.name}":`, err)
+    logger.fail(`Error searching TMDB for "${movie.name}":`, err)
   }
   return { movie, needsDetails: false, genreIds: [] }
 }
@@ -216,13 +216,13 @@ export interface GetMergedMoviesListOptions {
  * @returns Merged list of movies
  */
 export async function getMergedMoviesListWithoutCache(options: GetMergedMoviesListOptions = {}): Promise<MergedMovie[]> {
-  info('Fetching and merging movie lists from Maoyan and TMDB (no request cache)')
+  logger.info('Fetching and merging movie lists from Maoyan and TMDB (no request cache)')
   const { includeTMDBPopular = true, includeTMDBUpcoming = true } = options
   const [topRatedRes, mostExpectedRes] = await Promise.allSettled([fetchTopRatedMoviesWithoutCache(), fetchMostExpectedWithoutCache(20, 0)])
   const topRated = topRatedRes.status === 'fulfilled' ? topRatedRes.value : []
   const mostExpected = mostExpectedRes.status === 'fulfilled' ? mostExpectedRes.value : []
-  if (topRatedRes.status === 'rejected') fail('Failed to fetch top rated from Maoyan:', topRatedRes.reason)
-  if (mostExpectedRes.status === 'rejected') fail('Failed to fetch most expected from Maoyan:', mostExpectedRes.reason)
+  if (topRatedRes.status === 'rejected') logger.fail('Failed to fetch top rated from Maoyan:', topRatedRes.reason)
+  if (mostExpectedRes.status === 'rejected') logger.fail('Failed to fetch most expected from Maoyan:', mostExpectedRes.reason)
   const movieMap = new Map<string, MergedMovie>()
   for (const movie of topRated) {
     const key = movie.name.toLowerCase().trim()
@@ -255,7 +255,7 @@ export async function getMergedMoviesListWithoutCache(options: GetMergedMoviesLi
       })
     }
   }
-  info(`Merged ${movieMap.size} unique movies from Maoyan`)
+  logger.info(`Merged ${movieMap.size} unique movies from Maoyan`)
   if (hasTmdbApiKey()) {
     const tmdbTitleMap = new Map<string, TMDBMovie>()
     const promises: Promise<TMDBMovie[]>[] = []
@@ -285,6 +285,6 @@ export async function getMergedMoviesListWithoutCache(options: GetMergedMoviesLi
     }
   }
   const list = Array.from(movieMap.values())
-  info(`Final merged list: ${list.length} unique movies`)
+  logger.info(`Final merged list: ${list.length} unique movies`)
   return list
 }

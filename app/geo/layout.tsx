@@ -15,9 +15,9 @@ const GEO_SIDEBAR_ITEMS = [
 ]
 
 /**
- * Geo section layout: left icon sidebar + main content. Header is the global Nav.
+ * China GEO section layout: left icon sidebar + main content. Header is the global Nav.
  * @param props Layout props containing page children
- * @returns Geo layout with sidebar and content area
+ * @returns China GEO layout with sidebar and content area
  */
 export default function GeoLayout(props: Readonly<GeoLayoutProps>) {
   const { children } = props

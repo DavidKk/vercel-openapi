@@ -22,5 +22,9 @@ declare namespace NodeJS {
     TMDB_REGION?: string
     /** Secret for cron routes (e.g. /api/cron/sync/movies-gist) */
     CRON_SECRET?: string
+    /** FreeCurrencyAPI.com key (optional; when set, exchange rate uses it instead of no-key fallback) */
+    FREECURRENCYAPI_API_KEY?: string
+    /** QWeather API key (weather module) */
+    QWEATHER_API_KEY?: string
   }
 }

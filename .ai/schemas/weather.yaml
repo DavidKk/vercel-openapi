@@ -1,0 +1,99 @@
+# Weather module schema
+
+id: weather
+name: Weather
+routePrefix: /weather
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+    iconName: TbCloudRain
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+overview:
+  componentName: WeatherOverview
+  importPath: '@/app/weather/components'
+
+apiPage:
+  title: Weather REST API
+  subtitle: Get current weather and short-term forecast for a specific point.
+  endpoints:
+    - method: POST
+      path: /weather
+      description: 'Body { latitude, longitude }. Returns latest "now" weather for that point.'
+      exampleResponse: |
+        {
+          "location": {
+            "latitude": 23.13,
+            "longitude": 113.27,
+            "country": "中国",
+            "province": "广东省",
+            "city": "佛山市",
+            "district": "南海区",
+            "name": "佛山·南海区"
+          },
+          "now": {
+            "observedAt": "2025-01-15T08:00:00Z",
+            "condition": "rain",
+            "conditionText": "小雨",
+            "temperature": 18,
+            "feelsLike": 17,
+            "humidity": 92,
+            "windSpeed": 3.2,
+            "windDirection": "NE",
+            "precipitation": 1.5,
+            "precipitationProbability": 0.9
+          }
+        }
+    - method: POST
+      path: /weather/forecast
+      description: 'Body { latitude, longitude, granularity, hours, days }. Returns short-term forecast for that point.'
+      exampleResponse: |
+        {
+          "location": {
+            "latitude": 23.13,
+            "longitude": 113.27,
+            "country": "中国",
+            "province": "广东省",
+            "city": "佛山市",
+            "district": "南海区"
+          },
+          "forecast": {
+            "granularity": "hourly",
+            "hours": [
+              {
+                "time": "2025-01-15T09:00:00Z",
+                "temperature": 18,
+                "condition": "rain",
+                "conditionText": "小雨",
+                "precipitation": 1.0,
+                "precipitationProbability": 0.8
+              }
+            ]
+          }
+        }
+  playgroundComponentName: WeatherApiPlayground
+  playgroundImportPath: '@/app/weather/api/components'
+
+mcpPage:
+  title: Weather MCP tools
+  subtitle: Tools exposed via MCP for querying point-based weather.
+  tools:
+    - name: get_point_weather
+      description: 'Get current weather for a point (params: latitude, longitude).'
+    - name: get_point_forecast
+      description: 'Get short-term forecast for a point (params: latitude, longitude, granularity, hours, days).'
+  playgroundComponentName: WeatherMcpPlayground
+  playgroundImportPath: '@/app/weather/mcp/components'

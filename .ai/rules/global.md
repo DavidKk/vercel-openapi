@@ -16,18 +16,18 @@
 
 ## Do X → read / do Y
 
-| Task                                                          | Read / do                                                                                                                                                            |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Any change**                                                | This file first, then the row below that matches the task.                                                                                                           |
-| **Layout, sidebar, new module page, API/MCP/Skill structure** | `.ai/rules/layout/module-layout.md`                                                                                                                                  |
-| **Add or move a component, import path, folder**              | `.ai/rules/layout/component-structure.md`                                                                                                                            |
-| **Start writing code (comments, exports, hooks, style)**      | Project `.cursorrules` (or repo root) — English comments, `export function`, JSDoc, etc.                                                                             |
-| **New module from schema**                                    | `.ai/schemas/<name>.yaml` + `.ai/rules/layout/module-layout.md`; generator under `.ai/generators/` if present.                                                       |
-| **New API route**                                             | Existing `app/api/` patterns; `api()` or `cron()` from `initializer/controller`; respond with `jsonSuccess` / `initializer/response`.                                |
-| **Design or change public API behavior**                      | `.ai/specs/api-semantics.md` first — public APIs are read-only and return **latest credit/data** only; then `rules/layout/module-layout.md` and `app/api/` patterns. |
-| **Cron job**                                                  | Use `cron()` wrapper; auth via `CRON_SECRET` (see `services/auth/cron.ts`); path like `app/api/cron/sync/<name>/route.ts`.                                           |
-| **Current plan or task**                                      | `.ai/plans/roadmap.md`; `.ai/tasks/active/current.md`. For context: `.ai/context/current.md`.                                                                        |
-| **New rule or convention**                                    | Add under `.ai/rules/`; mention in this index if it affects “do X → read Y”.                                                                                         |
+| Task                                                          | Read / do                                                                                                                                                                           |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Any change**                                                | This file first, then the row below that matches the task.                                                                                                                          |
+| **Layout, sidebar, new module page, API/MCP/Skill structure** | `.ai/rules/layout/module-layout.md`                                                                                                                                                 |
+| **Add or move a component, import path, folder**              | `.ai/rules/layout/component-structure.md`                                                                                                                                           |
+| **Start writing code (comments, exports, hooks, style)**      | Project `.cursorrules` (or repo root) — English comments, `export function`, JSDoc. For JSDoc in TS: `.ai/rules/comment-spec.md` — do not duplicate param/return types in comments. |
+| **New module from schema**                                    | `.ai/schemas/<name>.yaml` + `.ai/rules/layout/module-layout.md`; generator under `.ai/generators/` if present.                                                                      |
+| **New API route**                                             | Existing `app/api/` patterns; `api()` or `cron()` from `initializer/controller`; respond with `jsonSuccess` / `initializer/response`.                                               |
+| **Design or change public API behavior**                      | `.ai/specs/api-semantics.md` first — public APIs are read-only and return **latest credit/data** only; then `rules/layout/module-layout.md` and `app/api/` patterns.                |
+| **Cron job**                                                  | Use `cron()` wrapper; auth via `CRON_SECRET` (see `services/auth/cron.ts`); path like `app/api/cron/sync/<name>/route.ts`.                                                          |
+| **Current plan or task**                                      | `.ai/plans/roadmap.md`; `.ai/tasks/active/current.md`. For context: `.ai/context/current.md`.                                                                                       |
+| **New rule or convention**                                    | Add under `.ai/rules/`; mention in this index if it affects “do X → read Y”.                                                                                                        |
 
 ---
 

@@ -1,6 +1,6 @@
 # Project summary (one page)
 
-**Product:** Vercel OpenAPI — public API layer for developers; all public APIs are **read-only** and return **latest credit/data** (holiday, fuel price, exchange rate, geo, movies). Next.js App Router, Vercel, JWT + optional 2FA.
+**Product:** unbnd — public API layer for developers; all public APIs are **read-only** and return **latest credit/data** (holiday, fuel price, exchange rate, geo, movies). Next.js App Router, Vercel, JWT + optional 2FA.
 
 **Structure:**
 

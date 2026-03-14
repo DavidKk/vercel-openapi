@@ -35,8 +35,7 @@ let cachedTimestamp = 0
  * Aligned with veil: use cache when present; updates only via cron.
  * - Has data (memory or GIST): return it; do not refresh. Cron handles updates.
  * - No data: trigger a one-shot fetch to bootstrap cache, then return (or empty on failure).
- *
- * @returns { movies, cachedAt } (cachedAt is 0 if no cache).
+ * Returns { movies, cachedAt }; cachedAt is 0 when no cache.
  */
 export async function getMoviesListWithTimestamp(): Promise<{
   movies: MergedMovie[]

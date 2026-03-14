@@ -1,5 +1,6 @@
 'use client'
 
+import { useRequest } from 'ahooks'
 import classNames from 'classnames'
 import { eachDayOfInterval, endOfMonth, format, isSameDay, startOfMonth } from 'date-fns'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -14,6 +15,14 @@ interface CalendarProps {
 
 const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
+async function fetchHolidaysForYear(year: number): Promise<Holiday[]> {
+  const res = await fetch(`/api/holiday/list?year=${year}`)
+  if (!res.ok) return []
+  const body = (await res.json()) as { code: number; data: Holiday[] }
+  if (body.code !== 0 || !Array.isArray(body.data)) return []
+  return body.data
+}
+
 /**
  * Calendar component: month-only, full-height grid, year-month toolbar with arrows and Today,
  * optional holiday dropdown with search; selecting a holiday jumps to that date.
@@ -23,39 +32,15 @@ export function Calendar(props: CalendarProps) {
   const today = new Date()
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
-  const [holidays, setHolidays] = useState<Holiday[]>(Array.isArray(initialHolidays) ? initialHolidays : [])
-  const [holidayYear, setHolidayYear] = useState(today.getFullYear())
   const [pickerOpen, setPickerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const pickerRef = useRef<HTMLDivElement>(null)
 
-  const fetchHolidaysForYear = useCallback(async (year: number): Promise<Holiday[]> => {
-    try {
-      const res = await fetch(`/api/holiday/list?year=${year}`)
-      if (!res.ok) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to load holidays for year', year, res.status)
-        return []
-      }
+  const { data: fetchedHolidays } = useRequest(() => fetchHolidaysForYear(currentYear), {
+    refreshDeps: [currentYear],
+  })
 
-      const body = (await res.json()) as { code: number; data: Holiday[] }
-      if (body.code !== 0 || !Array.isArray(body.data)) {
-        return []
-      }
-
-      return body.data
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Error fetching holidays for year', year, error)
-      return []
-    }
-  }, [])
-
-  useEffect(() => {
-    if (currentYear === holidayYear) return
-    setHolidayYear(currentYear)
-    fetchHolidaysForYear(currentYear).then((list) => setHolidays(Array.isArray(list) ? list : []))
-  }, [currentYear, holidayYear, fetchHolidaysForYear])
+  const holidays = fetchedHolidays ?? initialHolidays
 
   const monthStart = startOfMonth(new Date(currentYear, currentMonth))
   const monthEnd = endOfMonth(new Date(currentYear, currentMonth))

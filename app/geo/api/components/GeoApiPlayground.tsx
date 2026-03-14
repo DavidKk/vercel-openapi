@@ -17,7 +17,7 @@ interface GeoApiState {
 }
 
 /**
- * Client-side playground for POST /api/geo.
+ * Client-side playground for GET /api/geo (cacheable by URL; prefer GET for browser cache).
  */
 export function GeoApiPlayground() {
   const [state, setState] = useState<GeoApiState>({
@@ -38,11 +38,8 @@ export function GeoApiPlayground() {
     try {
       setState((prev) => ({ ...prev, loading: true, error: undefined }))
       const startedAt = performance.now()
-      const response = await fetch('/api/geo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ latitude: lat, longitude: lng }),
-      })
+      const url = `/api/geo?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}`
+      const response = await fetch(url, { method: 'GET', cache: 'default' })
       const durationMs = performance.now() - startedAt
       const text = await response.text()
 
@@ -77,7 +74,7 @@ export function GeoApiPlayground() {
         <div className="flex flex-col bg-white">
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
             <span className="font-medium text-gray-800">Request</span>
-            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>POST /api/geo</span>
+            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET /api/geo</span>
           </div>
           <div className="space-y-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">

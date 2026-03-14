@@ -1,9 +1,12 @@
 import { listHoliday } from '@/app/actions/holiday'
 import { api } from '@/initializer/controller'
-import { jsonSuccess } from '@/initializer/response'
+import { CACHE_CONTROL_LONG_LIVED, jsonSuccess } from '@/initializer/response'
 
 export const runtime = 'edge'
 
+/**
+ * GET with ?year=YYYY. Same params = cacheable; use AJAX GET from client (no Server Action).
+ */
 export const GET = api(async (_req, context) => {
   const yearParam = context.searchParams.get('year')
   const year = yearParam ? Number(yearParam) : new Date().getFullYear()
@@ -14,7 +17,7 @@ export const GET = api(async (_req, context) => {
   return jsonSuccess(holidays, {
     headers: new Headers({
       'Content-Type': 'application/json',
-      'Cache-Control': 's-maxage=600, stale-while-revalidate=1800',
+      'Cache-Control': CACHE_CONTROL_LONG_LIVED,
     }),
   })
 })

@@ -1,8 +1,8 @@
 import { fetchJsonWithCache } from '@/services/fetch'
-import { fail, info, warn } from '@/services/logger'
 import { getTmdbApiKey, hasTmdbApiKey } from '@/services/tmdb/env'
 
 import { TMDB, TMDB_CACHE } from './constants'
+import { logger } from './logger'
 import type { SearchResult } from './types'
 
 export interface TMDBGenre {
@@ -110,7 +110,7 @@ export async function fetchPopularMovies(options: FetchMoviesOptions = {}): Prom
     cacheDuration: 60 * 1000,
   })
   if (!data?.results) throw new Error('TMDB fetch popular movies: invalid response')
-  info(`Fetched ${data.results.length} popular movies from TMDB`)
+  logger.info(`Fetched ${data.results.length} popular movies from TMDB`)
   return data.results
 }
 
@@ -141,7 +141,7 @@ export async function fetchUpcomingMovies(options: FetchMoviesOptions = {}): Pro
     cacheDuration: 60 * 1000,
   })
   if (!data?.results) throw new Error('TMDB fetch upcoming movies: invalid response')
-  info(`Fetched ${data.results.length} upcoming movies from TMDB`)
+  logger.info(`Fetched ${data.results.length} upcoming movies from TMDB`)
   return data.results
 }
 
@@ -170,7 +170,7 @@ export async function getMovieDetails(movieId: number, preferredLanguage = 'zh-C
     }
     return data
   } catch (err) {
-    fail(`TMDB get movie details error for movie ${movieId}:`, err)
+    logger.fail(`TMDB get movie details error for movie ${movieId}:`, err)
     return null
   }
 }
@@ -199,12 +199,12 @@ export async function searchMulti(title: string, options: SearchOptions = {}): P
       cacheDuration: TMDB_CACHE.SEARCH,
     })
     if (!data?.results?.length) {
-      warn(`TMDB search empty result for "${title}"`)
+      logger.warn(`TMDB search empty result for "${title}"`)
       return []
     }
     return data.results
   } catch (err) {
-    fail(`TMDB search error for "${title}":`, err)
+    logger.fail(`TMDB search error for "${title}":`, err)
     return null
   }
 }

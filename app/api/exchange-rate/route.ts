@@ -26,7 +26,7 @@ export const GET = api(async (req, context) => {
     headers: new Headers({
       Charset: 'utf-8',
       'Content-Type': 'application/json',
-      'Cache-Control': 's-maxage=300, stale-while-revalidate=60', // 5 minutes cache
+      'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60',
     }),
   })
 })
