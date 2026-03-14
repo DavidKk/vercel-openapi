@@ -22,10 +22,6 @@ sidebarItems:
     title: Skill
     ariaLabel: Skill
 
-overview:
-  componentName: FuelPriceTable
-  importPath: '@/app/fuel-price/components'
-
 apiPage:
   title: Fuel price REST API
   subtitle: All endpoints below. Responses are cached on the edge when possible.
@@ -50,7 +46,7 @@ apiPage:
         }
     - method: GET
       path: /fuel-price/:province
-      description: Single province (path param, e.g. 北京). Same shape with one province in current/previous.
+      description: Single province (path param, e.g. Beijing). Same shape with one province in current/previous.
     - method: GET
       path: /fuel-price/:province/promo
       description: Query fuelType (b92|b95|b98|b0), amount, bonus. Returns recharge promo result.

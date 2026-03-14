@@ -24,12 +24,7 @@ One YAML per module. Only **variable** content; layout and sidebar order come fr
 | -------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `sidebarItems` | array | Override per-entry `title` / `ariaLabel` / `iconName`. Keys: `overview`, `api`, `mcp`, `functionCalling`, `skill`. Order must match rules. |
 
-### overview (required)
-
-| Field           | Type   | Meaning                                                           |
-| --------------- | ------ | ----------------------------------------------------------------- |
-| `componentName` | string | Main component name (e.g. `Calendar`, `FuelPriceTable`).          |
-| `importPath`    | string | Import path for that component (e.g. `@/app/holiday/components`). |
+**Overview:** Overview page content is **not** generated from schema. Each module’s Overview is specific (calendar, table, form, etc.). The generator produces an empty placeholder. When adding a module, ask the developer how the Overview should be displayed; if they do not specify, leave it empty.
 
 ### apiPage (required)
 

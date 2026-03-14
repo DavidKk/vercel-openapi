@@ -16,7 +16,7 @@ Per-module spec for the Fuel Price public API. Global convention: [api-semantics
 | Method | Path                               | Description                                                                |
 | ------ | ---------------------------------- | -------------------------------------------------------------------------- |
 | GET    | `/api/fuel-price`                  | Current fuel prices for all provinces (latest data).                       |
-| GET    | `/api/fuel-price/[province]`       | Current fuel prices for one province (path param, e.g. 北京).              |
+| GET    | `/api/fuel-price/[province]`       | Current fuel prices for one province (path param, e.g. Beijing).           |
 | GET    | `/api/fuel-price/[province]/promo` | Recharge promo result: fuelType, amount, bonus (query); uses latest price. |
 
 ---
@@ -31,7 +31,7 @@ Per-module spec for the Fuel Price public API. Global convention: [api-semantics
 
 ### GET `/api/fuel-price/[province]`
 
-- **Path:** `province` — province name (e.g. 北京).
+- **Path:** `province` — province name (e.g. Beijing).
 - **Response:** Same shape as above with one province in `current` / `previous`.
 
 ### GET `/api/fuel-price/[province]/promo`

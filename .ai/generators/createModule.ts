@@ -84,21 +84,23 @@ export default function ${layoutName}Layout(props: Readonly<${layoutName}LayoutP
 `
 }
 
+/**
+ * Overview page is not generated from schema; content is module-specific.
+ * Generator produces an empty placeholder. Ask the developer how Overview should be displayed;
+ * if not specified, leave empty until they provide the design.
+ */
 function generateOverviewPageFile(schema: ModuleSchema): string {
-  const comp = schema.overview.componentName
-  const importPath = schema.overview.importPath
   const pageName = pascalCase(schema.id)
 
-  return `import { ${comp} } from '${importPath}'
-
-/**
- * ${schema.name} overview page content: used inside ${schema.routePrefix} layout.
- * Layout is responsible for header and sidebar; this page only renders main content.
+  return `/**
+ * ${schema.name} overview page. Content is not generated from schema.
+ * Ask the developer how the Overview should be displayed; if not specified, leave empty.
+ * Add the main view component here when the developer provides the design.
  */
 export default function ${pageName}Page() {
   return (
     <section className="flex h-full flex-col">
-      <${comp} />
+      {/* Overview content: implement per developer spec or leave empty */}
     </section>
   )
 }

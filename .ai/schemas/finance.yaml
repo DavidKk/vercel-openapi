@@ -22,10 +22,6 @@ sidebarItems:
     title: Skill
     ariaLabel: Skill
 
-overview:
-  componentName: TasiOverview
-  importPath: '@/app/finance/components'
-
 apiPage:
   title: Finance REST API
   subtitle: Company daily and market summary (currently TASI). Today from feed; history and K-line from Turso.
