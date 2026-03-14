@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
 
 import { getMCPToolsByCategory } from '@/app/api/mcp/tools'
+import { createLogger } from '@/services/logger'
 import { mcpToolsToOpenAITools } from '@/utils/function-calling'
 
 export const runtime = 'edge'
+
+const logger = createLogger('api-function-calling-category-tools')
 
 /**
  * GET /api/function-calling/[category]/tools
@@ -14,6 +17,7 @@ export const runtime = 'edge'
  */
 export async function GET(_request: Request, context: { params: Promise<{ category: string }> }) {
   const { category } = await context.params
+  logger.info('request', { category })
   const toolsMap = getMCPToolsByCategory(category)
   if (!toolsMap) {
     return NextResponse.json({ error: 'Unknown category', allowed: ['holiday', 'fuel-price', 'exchange-rate'] }, { status: 404 })

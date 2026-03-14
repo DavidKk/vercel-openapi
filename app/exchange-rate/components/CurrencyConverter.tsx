@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { TbArrowsExchange, TbChevronDown } from 'react-icons/tb'
 
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
+import { LoadingEllipsis } from '@/components/LoadingEllipsis'
 import { Spinner } from '@/components/Spinner'
 import { getExchangeRateFromIdb, setExchangeRateInIdb } from '@/services/freecurrencyapi/browser'
 import { fuzzySearch } from '@/utils/find'
@@ -315,8 +316,11 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
           <div className="flex items-center justify-center gap-3 py-1">
             {loading ? (
               <span className="flex items-center gap-2 text-xs text-gray-500">
-                <Spinner />
-                Loading…
+                <Spinner color="text-gray-500" />
+                <span className="flex items-center">
+                  Loading rates for you
+                  <LoadingEllipsis />
+                </span>
               </span>
             ) : rateText ? (
               <span className="text-xs text-gray-500">{rateText}</span>

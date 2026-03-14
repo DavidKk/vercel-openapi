@@ -1,18 +1,12 @@
-import { listHoliday } from '@/app/actions/holiday'
-
 import { Calendar } from './components'
 
 /**
- * Holiday calendar overview page content: used inside /holiday layout.
- * Layout is responsible for header and sidebar; this page only renders calendar content.
+ * Holiday calendar overview. Data is loaded client-side (IDB cache then API per year) to reduce API requests.
  */
-export default async function HolidayPage() {
-  const currentYear = new Date().getFullYear()
-  const holidays = await listHoliday(currentYear)
-
+export default function HolidayPage() {
   return (
     <section className="flex h-full flex-col">
-      <Calendar initialHolidays={holidays} />
+      <Calendar />
     </section>
   )
 }

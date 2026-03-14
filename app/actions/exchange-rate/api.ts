@@ -1,6 +1,9 @@
 import { clearExchangeRateCache as clearCache, convertCurrency as convert, getCachedExchangeRate as getCachedRate, getExchangeRate as getRate } from '@/services/freecurrencyapi'
+import { createLogger } from '@/services/logger'
 
 import type { ConversionRequest, CurrencyConversion, ExchangeRateData } from './types'
+
+const logger = createLogger('exchange-rate-api')
 
 /**
  * Clear the exchange rate cache
@@ -22,6 +25,7 @@ export async function getExchangeRate(baseCurrency = 'USD'): Promise<ExchangeRat
 
   // Ensure currency code is uppercase
   const normalizedCurrency = baseCurrency.toUpperCase()
+  logger.info('getExchangeRate', { baseCurrency: normalizedCurrency })
 
   return getRate(normalizedCurrency)
 }
@@ -39,6 +43,7 @@ export async function getCachedExchangeRate(baseCurrency = 'USD'): Promise<Excha
 
   // Ensure currency code is uppercase
   const normalizedCurrency = baseCurrency.toUpperCase()
+  logger.info('getCachedExchangeRate', { baseCurrency: normalizedCurrency })
 
   return getCachedRate(normalizedCurrency)
 }
@@ -72,6 +77,7 @@ export async function convertCurrency(request: ConversionRequest): Promise<Curre
     to: request.to.toUpperCase(),
     amount: request.amount,
   }
+  logger.info('convertCurrency', { from: normalizedRequest.from, to: normalizedRequest.to, amount: normalizedRequest.amount })
 
   return convert(normalizedRequest)
 }

@@ -6,19 +6,19 @@ One place for rules, schemas, generators, skills, specs, plans, tasks, context, 
 
 ## Dirs
 
-| Dir             | Read first / use                                                                                                                                           |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **context/**    | Aggregated context: `context/current.md` (current focus), `context/summary.md` (one-page project). Load first to minimize tokens.                          |
-| **rules/**      | `rules/global.md` (index: do X → read Y). Layout: `rules/layout/module-layout.md`, `rules/layout/component-structure.md`. Generator: `module-layout.yaml`. |
-| **specs/**      | Requirements. `specs/api-semantics.md`; per-module under `specs/modules/`.                                                                                 |
-| **knowledge/**  | Terms: `knowledge/glossary.md`. ADR: `docs/adr/`.                                                                                                          |
-| **plans/**      | Product planning. `plans/roadmap.md`; optional `plans/releases/`.                                                                                          |
-| **tasks/**      | Execution. `tasks/active/current.md` (in progress); `tasks/backlog/`, `tasks/done/`. See `tasks/README.md`.                                                |
-| **schemas/**    | One YAML per module. Field contract: `schemas/README.md`. Copy existing YAML, edit, then run generator.                                                    |
-| **generators/** | Commands: `generators/README.md`. Produces `app/<id>/layout.tsx`, `page.tsx`, `api/page.tsx`, `mcp/page.tsx`.                                              |
-| **skills/**     | `skills/<name>/SKILL.md`. New module → `skills/module-generator/SKILL.md`.                                                                                 |
+| Dir             | Read first / use                                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **context/**    | Aggregated context: `context/current.md` (current focus), `context/summary.md` (one-page project). Load first to minimize tokens. |
+| **rules/**      | `rules/global.md` (index: do X → read Y). Layout: `rules/layout/`. Logging: `rules/logging.md`. Generator: `module-layout.yaml`.  |
+| **specs/**      | Requirements. `specs/api-semantics.md`; per-module under `specs/modules/`.                                                        |
+| **knowledge/**  | Terms: `knowledge/glossary.md`. ADR: `docs/adr/`.                                                                                 |
+| **plans/**      | Product planning. `plans/roadmap.md`; optional `plans/releases/`.                                                                 |
+| **tasks/**      | Execution. `tasks/active/current.md` (in progress); `tasks/backlog/`, `tasks/done/`. See `tasks/README.md`.                       |
+| **schemas/**    | One YAML per module. Field contract: `schemas/README.md`. Copy existing YAML, edit, then run generator.                           |
+| **generators/** | Commands: `generators/README.md`. Produces `app/<id>/layout.tsx`, `page.tsx`, `api/page.tsx`, `mcp/page.tsx`.                     |
+| **skills/**     | `skills/<name>/SKILL.md`. New module → `skills/module-generator/SKILL.md`.                                                        |
 
-Outside `.ai/`: **`docs/specs/overview.md`** (product scope, modules); **`docs/adr/`** (architecture decision records).
+Outside `.ai/` (optional; create when needed): **`docs/specs/overview.md`** (product scope, modules); **`docs/adr/`** (architecture decision records). If missing, product scope is still in `.ai/specs/` and plans.
 
 ---
 
@@ -41,6 +41,7 @@ Outside `.ai/`: **`docs/specs/overview.md`** (product scope, modules); **`docs/a
 ## Add/change
 
 - **Rule** → Edit under `rules/`; update `rules/global.md` index if "do X → read Y" changes.
+- **Doc consistency** → See `.ai/docs-review.md` for review notes and how to avoid conflicts (module list, glossary, paths).
 - **Spec** → Edit `specs/api-semantics.md` or `specs/modules/<module>.md`; product overview in `docs/specs/overview.md`.
 - **Knowledge** → Edit `knowledge/glossary.md`; ADR in `docs/adr/`.
 - **Plan** → Edit `plans/roadmap.md` (or add under `plans/releases/`).

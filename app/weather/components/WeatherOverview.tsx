@@ -1,7 +1,7 @@
 'use client'
 
 import { useRequest } from 'ahooks'
-import { memo, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   WiDayCloudy,
   WiDayFog,
@@ -135,40 +135,6 @@ function ForecastSkeleton() {
           </div>
         ))}
       </div>
-    </div>
-  )
-}
-
-/** Text-based ellipsis cycle: "." → ".." → "..." . Memoized so parent re-renders do not reset the animation. */
-const AnimatedEllipsis = memo(function AnimatedEllipsis() {
-  const [dots, setDots] = useState(1)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      setDots((d) => (d >= 3 ? 1 : d + 1))
-    }, 400)
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [])
-
-  return (
-    <span className="inline-block min-w-[1.25em] text-left" aria-hidden>
-      {'.'.repeat(dots)}
-    </span>
-  )
-})
-
-/** Loading state copy with animated ellipsis and short hint; content centered. */
-function LoadingCopy() {
-  return (
-    <div className="flex min-h-[72px] flex-col items-center justify-center gap-1 text-center">
-      <p className="flex items-center justify-center gap-0.5 text-[13px] font-medium text-gray-600">
-        <span>Loading weather for your location</span>
-        <AnimatedEllipsis />
-      </p>
-      <p className="text-[11px] text-gray-400">Checking your area and fetching the next few hours</p>
     </div>
   )
 }
@@ -328,14 +294,12 @@ export function WeatherOverview() {
                 <ForecastSkeleton />
               </div>
             )}
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center text-[12px] text-gray-500">
-              {error && <p className={error.includes('not supported for this service') ? 'text-[11px] text-amber-700' : 'text-[11px] text-red-600'}>{error}</p>}
-              {showLoading ? (
-                <LoadingCopy />
-              ) : (
-                !error && <p className="text-gray-500">Weather for the next few hours will appear here once your location is available and supported.</p>
-              )}
-            </div>
+            {!showLoading && (
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center text-[12px] text-gray-500">
+                {error && <p className={error.includes('not supported for this service') ? 'text-base text-amber-700' : 'text-base text-red-600'}>{error}</p>}
+                {!error && <p className="text-gray-500">Weather for the next few hours will appear here once your location is available and supported.</p>}
+              </div>
+            )}
           </div>
         )}
       </div>

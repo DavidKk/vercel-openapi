@@ -1,10 +1,14 @@
 import { getTodaySpecial, isHolidayToady } from '@/app/actions/holiday'
 import { api } from '@/initializer/controller'
 import { jsonSuccess } from '@/initializer/response'
+import { createLogger } from '@/services/logger'
 
 export const runtime = 'edge'
 
+const logger = createLogger('api-holiday')
+
 export const GET = api(async () => {
+  logger.info('request today')
   const isHoliday = await isHolidayToady()
   const name = await getTodaySpecial()
   return jsonSuccess(

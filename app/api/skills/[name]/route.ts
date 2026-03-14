@@ -1,7 +1,10 @@
 import JSZip from 'jszip'
 import type { NextRequest } from 'next/server'
 
+import { createLogger } from '@/services/logger'
 import { skillBundles } from '@/skills'
+
+const logger = createLogger('api-skills')
 
 /**
  * Handle GET requests for skill bundles and return them as ZIP archives.
@@ -13,10 +16,12 @@ import { skillBundles } from '@/skills'
  */
 export async function GET(req: NextRequest, context: { params: Promise<{ name: string }> }): Promise<Response> {
   const { name } = await context.params
+  logger.info('request', { name })
 
   const bundle = skillBundles.find((item) => item.name === name) ?? skillBundles.find((item) => item.name === 'all')
 
   if (!bundle) {
+    logger.warn('skill bundle not found', { name })
     return new Response('Skill bundle not found', { status: 404 })
   }
 

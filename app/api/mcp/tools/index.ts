@@ -3,6 +3,8 @@ import type { Tool } from '@/initializer/mcp/tool'
 import { dns_query } from './dns/dns_query'
 import { convert_currency } from './exchange-rate/convert_currency'
 import { get_exchange_rate } from './exchange-rate/get_exchange_rate'
+import { get_tasi_company_daily } from './finance/get_tasi_company_daily'
+import { get_tasi_summary_daily } from './finance/get_tasi_summary_daily'
 import { calc_fuel_recharge_promo } from './fuel-price/calc_fuel_recharge_promo'
 import { get_fuel_price } from './fuel-price/get_fuel_price'
 import { get_fuel_price_by_province } from './fuel-price/get_fuel_price_by_province'
@@ -28,12 +30,14 @@ const ALL_TOOLS: Tool[] = [
   list_latest_movies,
   get_point_weather,
   get_point_forecast,
+  get_tasi_company_daily,
+  get_tasi_summary_daily,
 ]
 
 const TOOLS_MAP = new Map<string, Tool>(ALL_TOOLS.map((t) => [t.name, t]))
 
 /** Category names for /api/function-calling/[category]/tools (use only tools for one domain) */
-export const FUNCTION_CALLING_CATEGORIES = ['dns', 'holiday', 'fuel-price', 'exchange-rate', 'movies', 'weather'] as const
+export const FUNCTION_CALLING_CATEGORIES = ['dns', 'holiday', 'fuel-price', 'exchange-rate', 'movies', 'weather', 'finance'] as const
 
 export type FunctionCallingCategory = (typeof FUNCTION_CALLING_CATEGORIES)[number]
 
@@ -45,6 +49,7 @@ const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
   weather: ['get_point_weather', 'get_point_forecast'],
+  finance: ['get_tasi_company_daily', 'get_tasi_summary_daily'],
 }
 
 /**

@@ -1,4 +1,7 @@
 import { setHeaders } from '@/services/context'
+import { createLogger } from '@/services/logger'
+
+const logger = createLogger('fetch')
 
 interface CacheEntry {
   data: ArrayBuffer
@@ -66,8 +69,7 @@ export async function fetchWithCache(url: string, options?: FetchOptions) {
 
       return data
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error)
+      logger.fail('fetchWithCache failed', { url, error })
 
       // Re-throw error
       throw error

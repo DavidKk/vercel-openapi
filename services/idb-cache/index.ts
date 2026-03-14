@@ -1,7 +1,6 @@
 /**
  * Generic client-only IndexedDB cache factory.
- * Use for any API response that should be cached by key with TTL (e.g. geo, holiday list).
- * Reduces repetition when multiple modules need the same "get/set by key, expire after TTL" pattern.
+ * All modules use a single shared database (SHARED_DB_NAME) with different object stores.
  */
 
 export interface IdbCache<T> {
@@ -26,29 +25,85 @@ export interface IdbCache<T> {
   getAll(): Promise<Array<{ key: string; value: T }>>
 }
 
+/** Single IndexedDB database for the app; each module uses a different object store. */
+export const SHARED_DB_NAME = 'unbnd-idb'
+
+const SHARED_DB_VERSION = 4
+
+/** Object store names in the shared DB. Use these with createIdbCache(SHARED_DB_NAME, storeName, ttl). */
+export const IDB_STORES = {
+  RATES: 'rates',
+  FORECAST: 'forecast',
+  TASI_COMPANY_DAILY: 'tasi_company_daily',
+  TASI_MARKET_SUMMARY: 'tasi_market_summary',
+  GEO_REGIONS: 'geo_regions',
+  FUEL_PRICE: 'fuel_price',
+  HOLIDAY_LIST: 'holiday_list',
+  MOVIES: 'movies',
+} as const
+
 function openDb(dbName: string, storeName: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
       reject(new Error('IndexedDB not available'))
       return
     }
-    const req = window.indexedDB.open(dbName, 1)
+    const isShared = dbName === SHARED_DB_NAME
+    const version = isShared ? SHARED_DB_VERSION : 1
+    const req = window.indexedDB.open(dbName, version)
     req.onerror = () => reject(req.error)
     req.onsuccess = () => resolve(req.result)
     req.onupgradeneeded = (e) => {
       const db = (e.target as IDBOpenDBRequest).result
-      if (!db.objectStoreNames.contains(storeName)) {
-        db.createObjectStore(storeName, { keyPath: 'key' })
+      if (isShared) {
+        if (!db.objectStoreNames.contains(IDB_STORES.RATES)) {
+          db.createObjectStore(IDB_STORES.RATES, { keyPath: 'key' })
+        }
+        if (!db.objectStoreNames.contains(IDB_STORES.FORECAST)) {
+          db.createObjectStore(IDB_STORES.FORECAST, { keyPath: 'key' })
+        }
+        if (!db.objectStoreNames.contains(IDB_STORES.TASI_COMPANY_DAILY)) {
+          const companyStore = db.createObjectStore(IDB_STORES.TASI_COMPANY_DAILY, { keyPath: 'date_code' })
+          companyStore.createIndex('by_date', 'date', { unique: false })
+        }
+        if (!db.objectStoreNames.contains(IDB_STORES.TASI_MARKET_SUMMARY)) {
+          db.createObjectStore(IDB_STORES.TASI_MARKET_SUMMARY, { keyPath: 'date' })
+        }
+        if (!db.objectStoreNames.contains(IDB_STORES.GEO_REGIONS)) {
+          const geoStore = db.createObjectStore(IDB_STORES.GEO_REGIONS, { keyPath: 'key' })
+          geoStore.createIndex('by_min_lng', 'minLng', { unique: false })
+        }
+        if (!db.objectStoreNames.contains(IDB_STORES.FUEL_PRICE)) {
+          db.createObjectStore(IDB_STORES.FUEL_PRICE, { keyPath: 'key' })
+        }
+        if (!db.objectStoreNames.contains(IDB_STORES.HOLIDAY_LIST)) {
+          db.createObjectStore(IDB_STORES.HOLIDAY_LIST, { keyPath: 'key' })
+        }
+        if (!db.objectStoreNames.contains(IDB_STORES.MOVIES)) {
+          db.createObjectStore(IDB_STORES.MOVIES, { keyPath: 'key' })
+        }
+      } else {
+        if (!db.objectStoreNames.contains(storeName)) {
+          db.createObjectStore(storeName, { keyPath: 'key' })
+        }
       }
     }
   })
 }
 
 /**
+ * Open the shared IndexedDB. Use when you need direct store access (e.g. finance TASI with date_code key).
+ * Client-only; throws on SSR.
+ */
+export function openSharedDb(storeName: string): Promise<IDBDatabase> {
+  return openDb(SHARED_DB_NAME, storeName)
+}
+
+/**
  * Create a TTL-based IndexedDB cache. Client-only; get/set no-op or return null on SSR.
  *
- * @param dbName IndexedDB database name (e.g. 'unbnd-geo')
- * @param storeName Object store name (e.g. 'geo')
+ * @param dbName IndexedDB database name (use SHARED_DB_NAME for app cache)
+ * @param storeName Object store name (e.g. IDB_STORES.RATES)
  * @param ttlMs TTL in milliseconds; entries older than this are treated as miss
  * @returns Cache with get/set
  */
