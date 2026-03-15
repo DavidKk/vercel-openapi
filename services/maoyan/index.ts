@@ -1,6 +1,7 @@
 import { fetchJsonWithCache } from '@/services/fetch'
 import type { TMDBMovie } from '@/services/tmdb'
 import { fetchPopularMovies, fetchUpcomingMovies, getGenreNames, hasTmdbApiKey } from '@/services/tmdb'
+import { TMDB } from '@/services/tmdb/constants'
 
 import { MAOYAN } from './constants'
 import { logger } from './logger'
@@ -66,7 +67,7 @@ async function batchEnrichOverviewFromMaoyanDetail(movieMap: Map<string, MergedM
 }
 
 function getMaoyanUrl(maoyanId: number | string): string | undefined {
-  if (typeof maoyanId === 'number') return `https://maoyan.com/films/${maoyanId}`
+  if (typeof maoyanId === 'number') return `${MAOYAN.FILM_PAGE_BASE}${maoyanId}`
   return undefined
 }
 
@@ -96,13 +97,13 @@ async function convertTMDBMovieToMergedMovie(tmdbMovie: TMDBMovie, source: 'tmdb
   const movie: MergedMovie = {
     maoyanId: `tmdb-${tmdbMovie.id}`,
     name: tmdbMovie.title,
-    poster: tmdbMovie.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbMovie.poster_path}` : '',
+    poster: tmdbMovie.poster_path ? `${TMDB.POSTER_BASE}${tmdbMovie.poster_path}` : '',
     source,
     sources: [source],
     tmdbId: tmdbMovie.id,
-    tmdbUrl: `https://www.themoviedb.org/movie/${tmdbMovie.id}`,
+    tmdbUrl: `${TMDB.MOVIE_PAGE_BASE}${tmdbMovie.id}`,
   }
-  if (tmdbMovie.poster_path) movie.tmdbPoster = `https://image.tmdb.org/t/p/w500${tmdbMovie.poster_path}`
+  if (tmdbMovie.poster_path) movie.tmdbPoster = `${TMDB.POSTER_BASE}${tmdbMovie.poster_path}`
   if (tmdbMovie.release_date) {
     movie.releaseDate = tmdbMovie.release_date
     const y = tmdbMovie.release_date.match(/^(\d{4})/)
@@ -122,8 +123,8 @@ async function mergeTMDBMovies(movieMap: Map<string, MergedMovie>, tmdbMovies: T
       if (!existing.sources.includes(source)) existing.sources.push(source)
       if (!existing.tmdbId && tmdbMovie.id) {
         existing.tmdbId = tmdbMovie.id
-        existing.tmdbUrl = `https://www.themoviedb.org/movie/${tmdbMovie.id}`
-        if (tmdbMovie.poster_path) existing.tmdbPoster = `https://image.tmdb.org/t/p/w500${tmdbMovie.poster_path}`
+        existing.tmdbUrl = `${TMDB.MOVIE_PAGE_BASE}${tmdbMovie.id}`
+        if (tmdbMovie.poster_path) existing.tmdbPoster = `${TMDB.POSTER_BASE}${tmdbMovie.poster_path}`
         if (tmdbMovie.release_date) {
           existing.releaseDate = tmdbMovie.release_date
           const y = tmdbMovie.release_date.match(/^(\d{4})/)

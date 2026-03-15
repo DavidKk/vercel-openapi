@@ -1,5 +1,7 @@
 import { createLogger } from '@/services/logger'
 
+import { GITHUB_GISTS_BASE } from './constants'
+
 const logger = createLogger('gist')
 
 export interface Gist {
@@ -26,7 +28,7 @@ export interface FetchGistFileParams {
 
 export async function fetchGist(params: FetchGistFileParams): Promise<Gist> {
   const { gistId, gistToken } = params
-  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+  const response = await fetch(`${GITHUB_GISTS_BASE}/${gistId}`, {
     headers: {
       Authorization: `token ${gistToken}`,
     },
@@ -64,7 +66,7 @@ export interface WriteGistFileParams extends FetchGistFileParams {
 
 export async function writeGistFile(params: WriteGistFileParams) {
   const { gistId, gistToken, fileName, content } = params
-  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+  const response = await fetch(`${GITHUB_GISTS_BASE}/${gistId}`, {
     method: 'PATCH',
     headers: {
       Authorization: `token ${gistToken}`,
@@ -112,7 +114,7 @@ export async function writeGistFiles(params: WriteGistFilesParams) {
     })()
   )
 
-  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+  const response = await fetch(`${GITHUB_GISTS_BASE}/${gistId}`, {
     method: 'PATCH',
     headers: {
       Authorization: `token ${gistToken}`,
