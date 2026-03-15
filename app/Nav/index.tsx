@@ -3,9 +3,54 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbGasStation, TbMapPin, TbMovie, TbWorld } from 'react-icons/tb'
 
 import { Tooltip } from '@/components/Tooltip'
+
+const RESIZE_DEBOUNCE_MS = 150
+
+/**
+ * Wraps a scrollable nav: on mount, on mouse leave, and on resize (debounced), scrolls the element with aria-current="page" into view when overflow exists.
+ */
+function ScrollToActiveOnLeave({ children, ...rest }: { children: React.ReactNode } & React.ComponentPropsWithoutRef<'nav'>) {
+  const ref = useRef<HTMLElement>(null)
+  const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function scrollActiveIntoView(behavior: ScrollBehavior = 'smooth') {
+    const el = ref.current
+    if (!el || el.scrollWidth <= el.clientWidth) return
+    const active = el.querySelector('[aria-current="page"]')
+    if (active instanceof HTMLElement) {
+      active.scrollIntoView({ behavior, block: 'nearest', inline: 'nearest' })
+    }
+  }
+
+  useEffect(() => {
+    scrollActiveIntoView('auto')
+  }, [])
+
+  useEffect(() => {
+    function onResize() {
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current)
+      resizeTimeoutRef.current = setTimeout(() => {
+        resizeTimeoutRef.current = null
+        scrollActiveIntoView('auto')
+      }, RESIZE_DEBOUNCE_MS)
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current)
+    }
+  }, [])
+
+  return (
+    <nav ref={ref} onMouseLeave={() => scrollActiveIntoView()} {...rest}>
+      {children}
+    </nav>
+  )
+}
 
 /**
  * Global app header: title + icon links to modules. Shown on every page for a single, app-like shell.
@@ -25,28 +70,34 @@ export function Nav() {
   const pathname = usePathname()
 
   return (
-    <header className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
-      <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-gray-900 hover:text-gray-700">
+    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 py-2">
+      <Link href="/" className="flex shrink-0 items-center gap-2 text-sm font-semibold text-gray-900 hover:text-gray-700">
         <Image src="/logo-32.png" alt="Unbnd logo" width={24} height={24} className="h-6 w-6 shrink-0" />
         <span>Unbnd</span>
       </Link>
-      <nav className="flex items-center gap-1" aria-label="Modules">
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname?.startsWith(item.href) ?? false
-          return (
-            <Tooltip key={item.href} content={item.title}>
-              <Link
-                href={item.href}
-                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${isActive ? 'bg-gray-200 text-gray-900 ring-1 ring-gray-300 ring-inset' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
-                aria-label={item.title}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                {item.icon}
-              </Link>
-            </Tooltip>
-          )
-        })}
-      </nav>
+      <ScrollToActiveOnLeave
+        className="flex-1 overflow-x-auto overflow-y-hidden py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ scrollBehavior: 'smooth' }}
+        aria-label="Modules"
+      >
+        <div className="flex min-w-max flex-nowrap items-center justify-end gap-1">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname?.startsWith(item.href) ?? false
+            return (
+              <Tooltip key={item.href} content={item.title}>
+                <Link
+                  href={item.href}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${isActive ? 'bg-gray-200 text-gray-900 ring-1 ring-gray-300 ring-inset' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
+                  aria-label={item.title}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  {item.icon}
+                </Link>
+              </Tooltip>
+            )
+          })}
+        </div>
+      </ScrollToActiveOnLeave>
     </header>
   )
 }

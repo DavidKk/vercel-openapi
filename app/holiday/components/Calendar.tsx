@@ -71,11 +71,19 @@ export function Calendar(props: CalendarProps) {
     setCurrentMonth(today.getMonth())
   }, [])
 
-  const pickerOptions = holidays.filter((h) => {
-    if (!h.name?.trim()) return false
-    if (!searchQuery.trim()) return true
-    return h.name.toLowerCase().includes(searchQuery.toLowerCase())
-  })
+  const todayStr = format(today, 'yyyy-MM-dd')
+  const pickerOptions = holidays
+    .filter((h) => {
+      if (!h.name?.trim()) return false
+      if (!searchQuery.trim()) return true
+      return h.name.toLowerCase().includes(searchQuery.toLowerCase())
+    })
+    .sort((a, b) => {
+      const aPast = a.date < todayStr
+      const bPast = b.date < todayStr
+      if (aPast !== bPast) return aPast ? 1 : -1
+      return a.date.localeCompare(b.date)
+    })
 
   const selectHoliday = useCallback((h: Holiday) => {
     const d = new Date(h.date)
@@ -106,7 +114,7 @@ export function Calendar(props: CalendarProps) {
   if (forceLoading || (loading && holidays.length === 0)) {
     return (
       <div className="flex h-full min-h-0 flex-col bg-white" aria-busy="true" aria-label="Loading holiday calendar">
-        <div className={`${CONTENT_HEADER_CLASS} min-h-[63px] flex-wrap gap-3`}>
+        <div className={`${CONTENT_HEADER_CLASS} min-h-[63px] gap-3`}>
           <div className="flex items-center gap-1">
             <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100" aria-hidden />
             <div className="h-6 w-28 animate-pulse rounded bg-gray-200" aria-hidden />
@@ -143,7 +151,7 @@ export function Calendar(props: CalendarProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className={`${CONTENT_HEADER_CLASS} flex-wrap gap-3`}>
+      <div className={`${CONTENT_HEADER_CLASS} gap-3`}>
         <div className="flex items-center gap-1">
           <button type="button" onClick={handlePrevMonth} className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100" aria-label="Previous month">
             <TbChevronLeft className="h-5 w-5" />
@@ -173,7 +181,7 @@ export function Calendar(props: CalendarProps) {
             <TbChevronDown className="h-4 w-4 text-gray-500" />
           </button>
           {pickerOpen && (
-            <div className="absolute right-0 top-full z-10 mt-1 w-64 rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
+            <div className="absolute right-0 top-full z-10 mt-1 w-80 min-w-[16rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
               <div className="border-b border-gray-100 px-2 pb-2">
                 <input
                   type="text"
