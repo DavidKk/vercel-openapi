@@ -174,7 +174,7 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
             <TbChevronDown className="h-4 w-4 text-gray-500" />
           </button>
           {pickerOpen && (
-            <div className="absolute right-0 top-full z-10 mt-1 w-56 rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
+            <div className="absolute right-0 top-full z-10 mt-1 w-72 min-w-[14rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
               <div className="border-b border-gray-100 px-2 pb-2">
                 <input
                   type="text"
