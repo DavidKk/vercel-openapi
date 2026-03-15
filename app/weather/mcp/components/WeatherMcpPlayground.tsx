@@ -19,6 +19,9 @@ interface WeatherMcpState {
   paramsText: string
 }
 
+/** MCP endpoint for this module (POST /api/mcp/weather) */
+const MCP_PATH = '/api/mcp/weather'
+
 /**
  * MCP playground for weather-related tools: get_point_weather, get_point_forecast.
  * @returns Weather MCP playground component
@@ -75,7 +78,7 @@ export function WeatherMcpPlayground() {
       setState((prev) => ({ ...prev, loading: true, error: undefined }))
 
       const startedAt = performance.now()
-      const response = await fetch('/api/mcp', {
+      const response = await fetch(MCP_PATH, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,9 +123,9 @@ export function WeatherMcpPlayground() {
         <div className="flex flex-col bg-white">
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
             <span className="font-medium text-gray-800">Request</span>
-            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>POST /api/mcp</span>
+            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>POST {MCP_PATH}</span>
           </div>
-          <div className="space-y-2 px-3 py-2 text-[11px] text-gray-700">
+          <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1 text-[11px]">
               <span className="text-[11px] text-gray-700">Tool name</span>
               <FormSelect

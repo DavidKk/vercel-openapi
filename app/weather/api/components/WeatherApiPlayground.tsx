@@ -122,7 +122,7 @@ export function WeatherApiPlayground() {
             <span className="font-medium text-gray-800">Request</span>
             <span className={PLAYGROUND_HEADER_BADGE_CLASS}>{endpoint === 'now' ? 'POST /api/weather' : 'POST /api/weather/forecast'}</span>
           </div>
-          <div className="space-y-2 px-3 py-2 text-[11px] text-gray-700">
+          <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"

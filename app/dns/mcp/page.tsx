@@ -6,7 +6,7 @@ import { DnsMcpPlayground } from './components'
 
 /**
  * DNS Query MCP page.
- * Left: MCP tools doc. Right: playground for POST /api/mcp (dns_query tool).
+ * Left: MCP tools doc. Right: playground for POST /api/mcp/dns (dns_query tool).
  */
 export default function DnsMcpPage() {
   return (
@@ -16,7 +16,7 @@ export default function DnsMcpPage() {
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="POST" path="/api/mcp" />
+            <DocEndpointRow method="POST" path="/api/mcp/dns" />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ tool, params }'}</code>. Call{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">dns_query</code> with domain (and optional dns).

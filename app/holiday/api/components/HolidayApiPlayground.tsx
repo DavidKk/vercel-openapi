@@ -66,7 +66,7 @@ export function HolidayApiPlayground() {
             <span className="font-medium text-gray-800">Request</span>
             <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET /api/holiday</span>
           </div>
-          <div className="space-y-2 px-3 py-2 text-[11px] text-gray-700">
+          <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <p className="text-[11px] text-gray-600">This endpoint does not require parameters. Click the button below to send a request.</p>
             <button
               type="button"

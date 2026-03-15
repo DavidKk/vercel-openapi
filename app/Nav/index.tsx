@@ -8,6 +8,8 @@ import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbGasStat
 
 import { Tooltip } from '@/components/Tooltip'
 
+import { getModuleSubPath } from './utils'
+
 const RESIZE_DEBOUNCE_MS = 150
 
 /**
@@ -68,6 +70,7 @@ const NAV_ITEMS = [
 
 export function Nav() {
   const pathname = usePathname()
+  const subPath = getModuleSubPath(pathname ?? null)
 
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 py-2">
@@ -83,10 +86,11 @@ export function Nav() {
         <div className="flex min-w-max flex-nowrap items-center justify-end gap-1">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname?.startsWith(item.href) ?? false
+            const href = subPath ? `${item.href}${subPath}` : item.href
             return (
               <Tooltip key={item.href} content={item.title}>
                 <Link
-                  href={item.href}
+                  href={href}
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${isActive ? 'bg-gray-200 text-gray-900 ring-1 ring-gray-300 ring-inset' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
                   aria-label={item.title}
                   aria-current={isActive ? 'page' : undefined}

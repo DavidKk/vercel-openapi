@@ -15,6 +15,9 @@ interface MoviesMcpState {
   paramsText: string
 }
 
+/** MCP endpoint for this module (POST /api/mcp/movies) */
+const MCP_PATH = '/api/mcp/movies'
+
 /**
  * Client-side playground for movies MCP tool (list_latest_movies).
  */
@@ -31,7 +34,7 @@ export function MoviesMcpPlayground() {
       if (state.paramsText.trim()) params = JSON.parse(state.paramsText)
       setState((prev) => ({ ...prev, loading: true, error: undefined }))
       const startedAt = performance.now()
-      const response = await fetch('/api/mcp', {
+      const response = await fetch(MCP_PATH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ tool: 'list_latest_movies', params }),
@@ -68,9 +71,9 @@ export function MoviesMcpPlayground() {
         <div className="flex flex-col bg-white">
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
             <span className="font-medium text-gray-800">Request</span>
-            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>POST /api/mcp</span>
+            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>POST {MCP_PATH}</span>
           </div>
-          <form onSubmit={handleSendRequest} className="space-y-2 px-3 py-2 text-[11px] text-gray-700">
+          <form onSubmit={handleSendRequest} className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <p className="text-[11px] text-gray-600">Tool: list_latest_movies. Params: optional year (e.g. {'{ "year": 2025 }'})</p>
             <textarea
               value={paramsText}

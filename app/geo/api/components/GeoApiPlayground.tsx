@@ -76,7 +76,7 @@ export function GeoApiPlayground() {
             <span className="font-medium text-gray-800">Request</span>
             <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET /api/geo</span>
           </div>
-          <div className="space-y-2 px-3 py-2 text-[11px] text-gray-700">
+          <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">
               <span className="text-[11px] text-gray-700">Latitude</span>
               <input

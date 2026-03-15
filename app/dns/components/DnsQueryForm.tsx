@@ -86,7 +86,7 @@ export function DnsQueryForm() {
         <div className="shrink-0 basis-[20%]" aria-hidden />
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-md shrink-0">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
               <label className="flex flex-col gap-1">
                 <span className="text-sm text-gray-600">DNS service endpoint</span>
                 <DnsEndpointInput

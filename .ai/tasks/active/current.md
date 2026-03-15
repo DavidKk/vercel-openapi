@@ -29,6 +29,8 @@ Tasks currently in progress. AI should read this to know what to implement. When
 
 ---
 
+---
+
 ## Template for new tasks
 
 ```markdown
