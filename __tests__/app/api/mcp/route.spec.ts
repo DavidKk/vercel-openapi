@@ -172,4 +172,58 @@ describe('MCP API /api/mcp', () => {
       expect(data.error.message).toContain('Method not found')
     })
   })
+
+  describe('GET with ?includes= filter', () => {
+    it('should return manifest with only holiday and fuel-price tools when includes=holiday,fuel-price', async () => {
+      const req = new NextRequest(`${baseUrl}?includes=holiday,fuel-price`, { method: 'GET' })
+      const res = await GET(req, context)
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.type).toBe('result')
+      expect(data.result.tools.get_today_holiday).toBeDefined()
+      expect(data.result.tools.get_fuel_price).toBeDefined()
+      expect(data.result.tools.get_exchange_rate).toBeUndefined()
+    })
+
+    it('should return 400 when includes has no valid modules', async () => {
+      const req = new NextRequest(`${baseUrl}?includes=unknown-module`, { method: 'GET' })
+      const res = await GET(req, context)
+
+      expect(res.status).toBe(400)
+      const data = await res.json()
+      expect(data.type).toBe('error')
+      expect(data.error.message).toContain('No tools')
+    })
+  })
+
+  describe('POST with ?includes= filter', () => {
+    it('should execute holiday tool when includes=holiday', async () => {
+      const req = new NextRequest(`${baseUrl}?includes=holiday`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'get_today_holiday', params: {} }),
+      })
+      const res = await POST(req, context)
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.type).toBe('result')
+      expect(data.result.name).toBe('星期一')
+    })
+
+    it('should return TOOL_NOT_FOUND for tool from excluded module when includes=holiday', async () => {
+      const req = new NextRequest(`${baseUrl}?includes=holiday`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'get_exchange_rate', params: { base: 'USD' } }),
+      })
+      const res = await POST(req, context)
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.type).toBe('error')
+      expect(data.error.code).toBe('TOOL_NOT_FOUND')
+    })
+  })
 })

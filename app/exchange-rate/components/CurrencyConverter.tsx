@@ -300,7 +300,7 @@ export function CurrencyConverter({ currencies, initialExchangeRates }: Currency
       )}
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <div data-testid="converter-row-from">
             <AmountCurrencyRow
               amountValue={amount}

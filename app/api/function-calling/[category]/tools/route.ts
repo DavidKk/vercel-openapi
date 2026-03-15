@@ -20,7 +20,7 @@ export async function GET(_request: Request, context: { params: Promise<{ catego
   logger.info('request', { category })
   const toolsMap = getMCPToolsByCategory(category)
   if (!toolsMap) {
-    return NextResponse.json({ error: 'Unknown category', allowed: ['holiday', 'fuel-price', 'exchange-rate'] }, { status: 404 })
+    return NextResponse.json({ error: 'Unknown category', allowed: ['dns', 'holiday', 'fuel-price', 'exchange-rate', 'movies', 'weather', 'finance'] }, { status: 404 })
   }
   const tools = mcpToolsToOpenAITools(toolsMap)
   return NextResponse.json({ tools })

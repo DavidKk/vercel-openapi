@@ -61,8 +61,8 @@ export function getMCPTools(): Map<string, Tool> {
 }
 
 /**
- * Get MCP tools for a single category (for /api/function-calling/[category]/tools).
- * @param category One of holiday, fuel-price, exchange-rate
+ * Get MCP tools for a single category (for /api/function-calling/[category]/tools and /api/mcp/[module]).
+ * @param category One of FUNCTION_CALLING_CATEGORIES
  * @returns Map of tool name to Tool, or null if category is unknown
  */
 export function getMCPToolsByCategory(category: string): Map<string, Tool> | null {
@@ -75,6 +75,25 @@ export function getMCPToolsByCategory(category: string): Map<string, Tool> | nul
     const tool = TOOLS_MAP.get(name)
     if (tool) {
       out.set(name, tool)
+    }
+  }
+  return out
+}
+
+/**
+ * Get MCP tools for multiple categories (for /api/mcp?includes=holiday,fuel-price).
+ * Unknown category names are ignored.
+ * @param includes Array of category names (e.g. ['holiday', 'fuel-price'])
+ * @returns Map of tool name to Tool (union of all requested categories)
+ */
+export function getMCPToolsByIncludes(includes: string[]): Map<string, Tool> {
+  const out = new Map<string, Tool>()
+  for (const category of includes) {
+    const map = getMCPToolsByCategory(category)
+    if (map) {
+      for (const [name, tool] of map) {
+        out.set(name, tool)
+      }
     }
   }
   return out

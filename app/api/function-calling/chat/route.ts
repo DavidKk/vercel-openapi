@@ -1,7 +1,8 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
-import { getMCPTools } from '@/app/api/mcp/tools'
+import { getMCPTools, getMCPToolsByIncludes } from '@/app/api/mcp/tools'
+import type { Tool } from '@/initializer/mcp/tool'
 import { createLogger } from '@/services/logger'
 import { mcpToolsToOpenAITools } from '@/utils/function-calling'
 
@@ -11,6 +12,19 @@ const logger = createLogger('api-function-calling-chat')
 
 /** Max rounds of tool calls to prevent infinite loops */
 const MAX_TOOL_ROUNDS = 10
+
+/**
+ * Parse ?includes=holiday,fuel-price from request (same semantics as /api/mcp).
+ */
+function getToolsForRequest(req: NextRequest): Map<string, Tool> {
+  const includes = req.nextUrl.searchParams
+    .get('includes')
+    ?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (!includes?.length) return getMCPTools()
+  return getMCPToolsByIncludes(includes)
+}
 
 /** Function part of a tool call (name + arguments JSON string) */
 interface ChatToolCallFunction {
@@ -50,13 +64,13 @@ interface OpenAIChatMessage {
 }
 
 /**
- * Execute tool by name with parsed arguments using existing MCP tools.
+ * Execute tool by name with parsed arguments using the given tools map.
+ * @param toolsMap Available tools (e.g. filtered by ?includes=)
  * @param name Tool name
  * @param argsJson JSON string of arguments
  * @returns Tool result (serialized to string for assistant message)
  */
-async function executeTool(name: string, argsJson: string): Promise<string> {
-  const toolsMap = getMCPTools()
+async function executeTool(toolsMap: Map<string, Tool>, name: string, argsJson: string): Promise<string> {
   const tool = toolsMap.get(name)
   if (!tool) {
     return JSON.stringify({ error: `Unknown tool: ${name}` })
@@ -119,7 +133,10 @@ export async function POST(req: NextRequest) {
 
   logger.info('chat request', { model, messageCount: initialMessages.length })
 
-  const toolsMap = getMCPTools()
+  const toolsMap = getToolsForRequest(req)
+  if (toolsMap.size === 0) {
+    return NextResponse.json({ error: 'No tools for given includes. Use ?includes=holiday,fuel-price etc.' }, { status: 400 })
+  }
   const tools = mcpToolsToOpenAITools(toolsMap)
   const messages: ChatMessage[] = [...initialMessages]
   let rounds = 0
@@ -176,7 +193,7 @@ export async function POST(req: NextRequest) {
     }
 
     for (const tc of assistantMessage.tool_calls) {
-      const content = await executeTool(tc.function.name, tc.function.arguments)
+      const content = await executeTool(toolsMap, tc.function.name, tc.function.arguments)
       messages.push({
         role: 'tool',
         tool_call_id: tc.id,

@@ -179,7 +179,7 @@ function renderChatResponseContent(chatError: string | undefined, chatReply: str
   }
   if (chatReply) {
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <p className="font-medium text-gray-700">Assistant:</p>
         <p className="whitespace-pre-wrap rounded bg-gray-50 p-2">{chatReply}</p>
         {chatResponseBody && (
@@ -335,7 +335,7 @@ export function FunctionCallingPlayground(props: FunctionCallingPlaygroundProps)
               <span className="font-medium text-gray-800">Request</span>
               <span className={PLAYGROUND_HEADER_BADGE_CLASS}>Mock flow (POST /api/mcp)</span>
             </div>
-            <div className="space-y-2 px-3 py-2">
+            <div className="flex flex-col gap-2 px-3 py-2">
               <p className="text-[11px] text-gray-600">Preset (click to trigger tool calls):</p>
               <div className="flex flex-wrap gap-1">
                 {presetPrompts.map((p) => (
