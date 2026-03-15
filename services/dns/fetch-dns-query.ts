@@ -16,11 +16,12 @@ export async function fetchDNSQuery(dns: string, domain: string, queryType: Quer
 
   const queryUrl = `https://${dns}/dns-query`
   const dnsMessage = generateDNSMessage(domain, queryType)
+  const body = dnsMessage.buffer.slice(dnsMessage.byteOffset, dnsMessage.byteOffset + dnsMessage.byteLength) as ArrayBuffer
 
   const response = await fetch(queryUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/dns-message' },
-    body: dnsMessage,
+    body,
   })
 
   if (!response.ok) {

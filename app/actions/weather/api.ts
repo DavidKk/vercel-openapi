@@ -8,6 +8,7 @@ import { getRegionKey } from '@/services/china-geo/cache'
 import { createLogger } from '@/services/logger'
 import { createLruCache } from '@/services/lru-cache'
 import { getCachedTurso, setCachedTurso } from '@/services/weather/turso-cache'
+import { decodeBase64Url } from '@/utils/url-base64'
 
 import type { ForecastHour, WeatherForecastResponse, WeatherLocation, WeatherNowResponse } from './types'
 
@@ -62,7 +63,7 @@ interface QWeatherHourlyResponse {
 }
 
 /** QWeather API base (v7). Use /now for real-time, /24h for hourly forecast. Host from QWeather console. */
-const QWEATHER_BASE_URL = 'https://p57qqt8guf.re.qweatherapi.com/v7/weather'
+const QWEATHER_BASE_URL = decodeBase64Url('aHR0cHM6Ly9wNTdxcXQ4Z3VmLnJlLnF3ZWF0aGVyYXBpLmNvbS92Ny93ZWF0aGVy')
 
 const NOW_CACHE_TTL = 5 * 60 * 1000
 const FORECAST_CACHE_TTL = 30 * 60 * 1000

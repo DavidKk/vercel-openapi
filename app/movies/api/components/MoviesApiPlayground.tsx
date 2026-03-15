@@ -64,7 +64,7 @@ export function MoviesApiPlayground() {
             <p className="text-[11px] text-gray-600">Returns latest movies from cache. No parameters.</p>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded border border-gray-300 bg-gray-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex w-fit items-center justify-center self-start rounded border border-gray-300 bg-gray-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={handleSendRequest}
               disabled={loading}
             >
