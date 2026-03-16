@@ -40,7 +40,18 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
     previousPricesMap.set(item.province, item)
   })
 
-  const latestUpdated = new Date(fuelPrices.latestUpdated).toLocaleString()
+  const latestUpdatedDate = new Date(fuelPrices.latestUpdated)
+  const latestUpdated =
+    Number.isNaN(latestUpdatedDate.getTime()) === false
+      ? `${latestUpdatedDate.getFullYear()}-${String(latestUpdatedDate.getMonth() + 1).padStart(2, '0')}-${String(latestUpdatedDate.getDate()).padStart(
+          2,
+          '0'
+        )} ${String(latestUpdatedDate.getHours()).padStart(2, '0')}:${String(latestUpdatedDate.getMinutes()).padStart(
+          2,
+          '0'
+        )}:${String(latestUpdatedDate.getSeconds()).padStart(2, '0')}`
+      : ''
+  const nextAdjustmentDate = fuelPrices.nextAdjustmentDate ?? null
 
   let userProvinceData = null
   let otherProvincesData = [...fuelPrices.current]
@@ -282,7 +293,8 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-end border-t border-gray-200 px-4 py-1.5 text-xs text-gray-500">
+      <div className="flex shrink-0 flex-col gap-0.5 border-t border-gray-200 px-4 py-1.5 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+        {nextAdjustmentDate && <span className="sm:ml-auto">Next adjustment: {nextAdjustmentDate}</span>}
         <span>Last updated: {latestUpdated}</span>
       </div>
     </div>
