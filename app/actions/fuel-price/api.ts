@@ -1,7 +1,7 @@
 import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
 import { createLogger } from '@/services/logger'
 
-import { fetchAndParseFuelPriceData } from './autohome'
+import { fetchAndParseFuelPriceData, fetchNextAdjustmentDate } from './sources'
 import type { FuelPrice, FuelPriceList, ProvinceFuelPrice } from './types'
 import { isFuelPrice } from './types'
 
@@ -36,11 +36,22 @@ export function clearFuelPriceCache() {
  * @returns Promise<FuelPrice>
  */
 export async function getFuelPrice(): Promise<FuelPrice> {
-  const fuelPrices = await fetchAndParseFuelPriceData()
+  const [fuelPrices, nextAdjustmentDate] = await Promise.all([
+    fetchAndParseFuelPriceData(),
+    // Best-effort fetch for next adjustment date; failures should not break main fuel price data
+    (async () => {
+      try {
+        return await fetchNextAdjustmentDate()
+      } catch {
+        return null
+      }
+    })(),
+  ])
 
   return {
     data: fuelPrices,
     lastUpdated: new Date().toISOString(),
+    nextAdjustmentDate,
   }
 }
 
@@ -141,6 +152,7 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
       current: currentData.data,
       latestUpdated: new Date(currentData.lastUpdated).getTime(),
       previousUpdated: previousData ? new Date(previousData.lastUpdated).getTime() : 0,
+      nextAdjustmentDate: currentData.nextAdjustmentDate ?? null,
     }
 
     // Update memory cache
@@ -169,6 +181,7 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
         current: freshData.data,
         latestUpdated: new Date(freshData.lastUpdated).getTime(),
         previousUpdated: currentData ? new Date(currentData.lastUpdated).getTime() : 0,
+        nextAdjustmentDate: freshData.nextAdjustmentDate ?? null,
       }
     } else {
       // Data unchanged: do NOT bump logical lastUpdated,沿用当前缓存时间戳
@@ -178,6 +191,7 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
         current: (currentData ?? freshData).data,
         latestUpdated: currentData ? new Date(currentData.lastUpdated).getTime() : new Date(freshData.lastUpdated).getTime(),
         previousUpdated: previousData ? new Date(previousData.lastUpdated).getTime() : 0,
+        nextAdjustmentDate: (currentData ?? freshData).nextAdjustmentDate ?? null,
       }
     }
 
@@ -194,6 +208,7 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
         current: currentData.data,
         latestUpdated: new Date(currentData.lastUpdated).getTime(),
         previousUpdated: previousData ? new Date(previousData.lastUpdated).getTime() : 0,
+        nextAdjustmentDate: currentData.nextAdjustmentDate ?? null,
       }
 
       // Update memory cache

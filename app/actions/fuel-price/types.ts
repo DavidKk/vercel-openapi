@@ -40,6 +40,8 @@ export function isFuelType(fuelType: string): fuelType is FuelType {
 export interface FuelPrice {
   data: FuelPriceData[]
   lastUpdated: string
+  /** Optional next fuel price adjustment date in format YYYY-MM-DD */
+  nextAdjustmentDate?: string | null
 }
 
 /**
@@ -63,6 +65,8 @@ export interface FuelPriceList {
   current: FuelPriceData[]
   latestUpdated: number
   previousUpdated: number
+  /** Optional next fuel price adjustment date in format YYYY-MM-DD */
+  nextAdjustmentDate?: string | null
 }
 
 /**
