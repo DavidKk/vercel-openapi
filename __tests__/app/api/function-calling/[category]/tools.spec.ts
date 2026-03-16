@@ -33,8 +33,9 @@ describe('Function Calling API /api/function-calling/[category]/tools', () => {
     const names = data.tools.map((t: { function: { name: string } }) => t.function.name)
     expect(names).toContain('get_fuel_price')
     expect(names).toContain('get_fuel_price_by_province')
+    expect(names).toContain('get_next_fuel_price_adjustment')
     expect(names).toContain('calc_fuel_recharge_promo')
-    expect(names.length).toBe(3)
+    expect(names.length).toBe(4)
   })
 
   it('should return 404 for unknown category', async () => {
