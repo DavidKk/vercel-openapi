@@ -6,29 +6,24 @@ export const PRICES_API_SKILL = `# Prices API - HTTP usage for agents
 
 Base URL: BASE_URL
 
-## GET /api/prices - List supported price lists
+## GET /api/prices/products - List all products
 
-Returns grouped price-list names and products. No auth required.
+Returns the full product list. No auth required.
 
 Example:
-  GET BASE_URL/api/prices
+  GET BASE_URL/api/prices/products
 
 Response (200): JSON
   {
     "code": 0,
     "message": "ok",
-    "data": {
-      "lists": [{ "name": "cola", "count": 3 }],
-      "products": [ ... ],
-      "totalLists": 1,
-      "totalProducts": 3
-    }
+    "data": [ ... ]
   }
 
-## GET /api/prices/search?q={keyword} - Search public product data
+## GET /api/prices/products/search?q={keyword} - Search public product data
 
 Example:
-  GET BASE_URL/api/prices/search?q=cola
+  GET BASE_URL/api/prices/products/search?q=cola
 
 Returns matched lists and products by keyword.
 
@@ -63,10 +58,10 @@ Response (200): JSON
 ## cURL quick examples
 
 List:
-  curl -X GET "BASE_URL/api/prices"
+  curl -X GET "BASE_URL/api/prices/products"
 
 Search:
-  curl -X GET "BASE_URL/api/prices/search?q=cola"
+  curl -X GET "BASE_URL/api/prices/products/search?q=cola"
 
 Calc:
   curl -X POST "BASE_URL/api/prices/calc" \\

@@ -31,7 +31,7 @@ export function PricesOverviewLoader() {
           return
         }
 
-        const response = await fetch('/api/prices', { cache: 'default' })
+        const response = await fetch('/api/prices/products', { cache: 'default' })
         if (cancelled) return
         if (!response.ok) {
           setError(await response.text().catch(() => 'Failed to load prices'))
@@ -39,8 +39,8 @@ export function PricesOverviewLoader() {
           return
         }
 
-        const envelope = (await response.json()) as { code?: number; data?: { products?: ProductType[] } }
-        const products = envelope?.data?.products
+        const envelope = (await response.json()) as { code?: number; data?: ProductType[] | { products?: ProductType[] } }
+        const products = Array.isArray(envelope?.data) ? envelope.data : envelope?.data?.products
         if (!Array.isArray(products)) {
           setError('Invalid prices response')
           setLoading(false)

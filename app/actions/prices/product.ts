@@ -50,6 +50,20 @@ export async function getAllProducts(): Promise<ProductType[]> {
 }
 
 /**
+ * Gets a product by its id.
+ * @param id Product id
+ * @returns Product if found, otherwise undefined
+ */
+export async function getProductById(id: string): Promise<ProductType | undefined> {
+  if (!(await validateCookie())) {
+    throw new Error('Not authorized')
+  }
+
+  const products = await getProductsFromGist()
+  return products.find((product) => product.id === id)
+}
+
+/**
  * Creates a product.
  * @param product Product payload without id
  * @returns Created product

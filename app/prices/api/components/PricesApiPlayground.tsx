@@ -12,9 +12,9 @@ import type { RequestExampleInput } from '@/utils/requestExamples'
 
 type PricesApiEndpoint = 'list' | 'search' | 'calc'
 
-const PRICES_API_ENDPOINTS: Record<PricesApiEndpoint, { method: 'GET' | 'POST'; path: '/api/prices' | '/api/prices/search' | '/api/prices/calc' }> = {
-  list: { method: 'GET', path: '/api/prices' },
-  search: { method: 'GET', path: '/api/prices/search' },
+const PRICES_API_ENDPOINTS: Record<PricesApiEndpoint, { method: 'GET' | 'POST'; path: '/api/prices/products' | '/api/prices/products/search' | '/api/prices/calc' }> = {
+  list: { method: 'GET', path: '/api/prices/products' },
+  search: { method: 'GET', path: '/api/prices/products/search' },
   calc: { method: 'POST', path: '/api/prices/calc' },
 }
 
@@ -59,7 +59,7 @@ export function PricesApiPlayground() {
       const startedAt = performance.now()
       const selected = PRICES_API_ENDPOINTS[state.endpoint]
 
-      const url = state.endpoint === 'search' && state.query.trim() ? `/api/prices/search?q=${encodeURIComponent(state.query.trim())}` : selected.path
+      const url = state.endpoint === 'search' && state.query.trim() ? `/api/prices/products/search?q=${encodeURIComponent(state.query.trim())}` : selected.path
 
       const requestInit: RequestInit = {
         method: selected.method,
@@ -102,7 +102,7 @@ export function PricesApiPlayground() {
 
   const requestExamples: RequestExampleInput | null = (() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const url = endpoint === 'search' && query.trim() ? `${origin}/api/prices/search?q=${encodeURIComponent(query.trim())}` : `${origin}${selected.path}`
+    const url = endpoint === 'search' && query.trim() ? `${origin}/api/prices/products/search?q=${encodeURIComponent(query.trim())}` : `${origin}${selected.path}`
 
     const headers: Record<string, string> = { Accept: 'application/json, text/html;q=0.9,*/*;q=0.8' }
     if (selected.method === 'POST') {
@@ -130,8 +130,8 @@ export function PricesApiPlayground() {
                 value={endpoint}
                 onChange={(value) => setState((prev) => ({ ...prev, endpoint: value as PricesApiEndpoint }))}
                 options={[
-                  { value: 'list', label: 'GET /api/prices - list supported price lists' },
-                  { value: 'search', label: 'GET /api/prices/search - search products' },
+                  { value: 'list', label: 'GET /api/prices/products - list products' },
+                  { value: 'search', label: 'GET /api/prices/products/search - search products' },
                   { value: 'calc', label: 'POST /api/prices/calc - calculate comparisons' },
                 ]}
               />
