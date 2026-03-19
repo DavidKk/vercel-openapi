@@ -1,6 +1,8 @@
 import { TbApi, TbCode, TbFileText, TbMovie, TbRobot } from 'react-icons/tb'
 
+import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { validateCookie } from '@/services/auth/access'
 
 interface MoviesLayoutProps {
   children: React.ReactNode
@@ -19,13 +21,15 @@ const MOVIES_SIDEBAR_ITEMS = [
  * @param props Layout props containing page children
  * @returns Movies layout with sidebar and content area
  */
-export default function MoviesLayout(props: Readonly<MoviesLayoutProps>) {
+export default async function MoviesLayout(props: Readonly<MoviesLayoutProps>) {
   const { children } = props
+  const isAuthenticated = await validateCookie()
+  const sidebarItems = withManageSidebarItem(MOVIES_SIDEBAR_ITEMS, '/movies', isAuthenticated)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-100">
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <DashboardSidebar items={MOVIES_SIDEBAR_ITEMS} />
+        <DashboardSidebar items={sidebarItems} />
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { AUTH_TOKEN_NAME } from './constants'
 
 export interface CheckAccessOptions {
   loginUrl?: string
+  forbiddenUrl?: string
   redirectUrl?: string
   isApiRouter?: boolean
 }
@@ -29,7 +30,7 @@ export async function validateCookie() {
 }
 
 export async function checkAccess(options?: CheckAccessOptions) {
-  const { redirectUrl = '/', loginUrl = '/login', isApiRouter = true } = options || {}
+  const { forbiddenUrl = '/forbidden', isApiRouter = true } = options || {}
   if (await validateCookie()) {
     return true
   }
@@ -38,8 +39,7 @@ export async function checkAccess(options?: CheckAccessOptions) {
     return false
   }
 
-  const url = redirectUrl ? `${loginUrl}?redirectUrl=${encodeURIComponent(redirectUrl)}` : loginUrl
-  redirect(url)
+  redirect(forbiddenUrl)
 }
 
 export interface CheckUnAccessOptions {

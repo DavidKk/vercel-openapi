@@ -133,6 +133,11 @@ export function unauthorized(message = 'unauthorized') {
   return standardResponseError(message, { code: 2000 })
 }
 
+/** Error response for forbidden (code 2003). */
+export function forbidden(message = 'forbidden') {
+  return standardResponseError(message, { code: 2003 })
+}
+
 /** 400 plain-text invalid parameters. */
 export function textInvalidParameters(message: string, options: ResponseInit = {}) {
   return invalidParameters(message).toTextResponse(400, options)
@@ -151,6 +156,11 @@ export function jsonInvalidParameters(message: string, options: ErrorResponseIni
 /** 401 JSON unauthorized. */
 export function jsonUnauthorized(message = 'unauthorized', options: ErrorResponseInit = {}) {
   return unauthorized(message).toJsonResponse(401, options)
+}
+
+/** 403 JSON forbidden. */
+export function jsonForbidden(message = 'forbidden', options: ErrorResponseInit = {}) {
+  return forbidden(message).toJsonResponse(403, options)
 }
 
 export { CACHE_CONTROL_LONG_LIVED, CACHE_MAX_AGE_ONE_YEAR_S } from './cache-control'

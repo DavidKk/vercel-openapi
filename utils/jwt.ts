@@ -10,12 +10,16 @@ function getSecretKey(secret: string): Uint8Array {
 /**
  * Generate a signed JWT with the given payload
  * @param payload Claims to embed in the token
+ * @param expiresIn Optional expiration override (e.g. 7d)
  * @returns Signed JWT string
  */
-export async function generateToken(payload: object): Promise<string> {
+export async function generateToken(payload: object, expiresIn?: string): Promise<string> {
   const { JWT_SECRET, JWT_EXPIRES_IN } = getJWTConfig()
   const key = getSecretKey(JWT_SECRET)
-  return new SignJWT({ ...payload }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime(JWT_EXPIRES_IN).sign(key)
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(expiresIn ?? JWT_EXPIRES_IN)
+    .sign(key)
 }
 
 /**
@@ -35,12 +39,8 @@ export async function verifyToken(token: string): Promise<Record<string, unknown
 }
 
 function getJWTConfig() {
-  const JWT_SECRET = process.env.JWT_SECRET
+  const JWT_SECRET = process.env.JWT_SECRET || process.env.ACCESS_PASSWORD || 'unbnd-default-jwt-secret'
   const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d'
-
-  if (!JWT_SECRET) {
-    throw new Error('process.env.JWT_SECRET is not defined')
-  }
 
   return {
     JWT_SECRET,

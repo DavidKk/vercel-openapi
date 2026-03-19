@@ -8,6 +8,7 @@ import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbGasStat
 
 import { Tooltip } from '@/components/Tooltip'
 
+import { AuthEntry } from './AuthEntry'
 import { getModuleSubPath } from './utils'
 
 const RESIZE_DEBOUNCE_MS = 150
@@ -83,7 +84,7 @@ export function Nav() {
         style={{ scrollBehavior: 'smooth' }}
         aria-label="Modules"
       >
-        <div className="flex min-w-max flex-nowrap items-center justify-end gap-1">
+        <div className="flex min-w-max flex-nowrap items-center justify-end gap-1 pr-2">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname?.startsWith(item.href) ?? false
             const href = subPath ? `${item.href}${subPath}` : item.href
@@ -102,6 +103,9 @@ export function Nav() {
           })}
         </div>
       </ScrollToActiveOnLeave>
+      <div className="shrink-0">
+        <AuthEntry />
+      </div>
     </header>
   )
 }

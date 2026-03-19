@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import type { NextRequest } from 'next/server'
 
 import type { Context } from '@/initializer/controller'
-import { jsonUnauthorized } from '@/initializer/response'
+import { jsonForbidden } from '@/initializer/response'
 import { validateCookie } from '@/services/auth/access'
 
 /** Context with optional auth flag. */
@@ -13,11 +13,11 @@ export interface AuthContext extends Context {
   $$authorized?: boolean
 }
 
-/** Wraps an API handler; returns 401 JSON if cookie invalid, otherwise runs handle. */
+/** Wraps an API handler; returns 403 JSON if cookie invalid, otherwise runs handle. */
 export function withAuthHandler<C extends Context>(handle: (req: NextRequest, context: C & AuthContext) => Promise<any>) {
   return async (req: NextRequest, context: C & AuthContext) => {
     if (!(await validateCookie())) {
-      return jsonUnauthorized()
+      return jsonForbidden()
     }
 
     return handle(req, context)
