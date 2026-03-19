@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getMCPToolsByCategory } from '@/app/api/mcp/tools'
+import { getAuthSession } from '@/services/auth/session'
 import { TOOL_CATEGORIES } from '@/services/function-calling/categories'
 import { createLogger } from '@/services/logger'
 import { mcpToolsToOpenAITools } from '@/utils/function-calling'
@@ -8,6 +9,8 @@ import { mcpToolsToOpenAITools } from '@/utils/function-calling'
 export const runtime = 'edge'
 
 const logger = createLogger('api-function-calling-category-tools')
+
+const PROTECTED_PRICES_TOOL_NAMES = ['create_product', 'update_product', 'delete_product'] as const
 
 /**
  * GET /api/function-calling/[category]/tools
@@ -23,6 +26,19 @@ export async function GET(_request: Request, context: { params: Promise<{ catego
   if (!toolsMap) {
     return NextResponse.json({ error: 'Unknown category', allowed: TOOL_CATEGORIES }, { status: 404 })
   }
-  const tools = mcpToolsToOpenAITools(toolsMap)
+
+  const session = category === 'prices' ? await getAuthSession() : { authenticated: false }
+  const filteredTools =
+    category === 'prices' && !session.authenticated
+      ? (() => {
+          const next = new Map(toolsMap)
+          for (const name of PROTECTED_PRICES_TOOL_NAMES) {
+            next.delete(name)
+          }
+          return next
+        })()
+      : toolsMap
+
+  const tools = mcpToolsToOpenAITools(filteredTools)
   return NextResponse.json({ tools })
 }

@@ -1,21 +1,43 @@
 'use client'
 
-import { useState } from 'react'
-import { TbCode } from 'react-icons/tb'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { MdOutlineAdminPanelSettings } from 'react-icons/md'
+import { TbChevronDown, TbCode } from 'react-icons/tb'
 
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
-import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
+import { Tooltip } from '@/components/Tooltip'
 import type { RequestExampleInput } from '@/utils/requestExamples'
 
-type PricesApiEndpoint = 'list' | 'search' | 'calc'
+type PricesApiEndpoint = 'list' | 'search' | 'calc' | 'create' | 'update' | 'delete'
 
-const PRICES_API_ENDPOINTS: Record<PricesApiEndpoint, { method: 'GET' | 'POST'; path: '/api/prices/products' | '/api/prices/products/search' | '/api/prices/calc' }> = {
+const PRICES_API_ENDPOINTS: Record<
+  PricesApiEndpoint,
+  {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    path: '/api/prices/products' | '/api/prices/calc'
+    needsQuery?: 'q' | 'id'
+    needsBody?: boolean
+  }
+> = {
   list: { method: 'GET', path: '/api/prices/products' },
-  search: { method: 'GET', path: '/api/prices/products/search' },
+  search: { method: 'GET', path: '/api/prices/products', needsQuery: 'q' },
+  calc: { method: 'POST', path: '/api/prices/calc', needsBody: true },
+  create: { method: 'POST', path: '/api/prices/products', needsBody: true },
+  update: { method: 'PUT', path: '/api/prices/products', needsQuery: 'id', needsBody: true },
+  delete: { method: 'DELETE', path: '/api/prices/products', needsQuery: 'id' },
+}
+
+/** Endpoint display strings used in dropdown & request badge (does not rely on PRICES_API_ENDPOINTS.path shortcuts). */
+const PRICES_API_ENDPOINT_DISPLAY: Record<PricesApiEndpoint, { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; admin?: boolean }> = {
+  list: { method: 'GET', path: '/api/prices/products' },
+  search: { method: 'GET', path: '/api/prices/products/search?q={keyword}' },
   calc: { method: 'POST', path: '/api/prices/calc' },
+  create: { method: 'POST', path: '/api/prices/products', admin: true },
+  update: { method: 'PUT', path: '/api/prices/products?id={id}', admin: true },
+  delete: { method: 'DELETE', path: '/api/prices/products?id={id}', admin: true },
 }
 
 interface PricesApiState {
@@ -33,7 +55,23 @@ interface PricesApiState {
  * Playground for prices-related routes and auth session API.
  * @returns Prices API playground
  */
-export function PricesApiPlayground() {
+export interface PricesApiPlaygroundProps {
+  /** Whether to show authenticated CURD endpoints in the playground */
+  canWrite: boolean
+  /**
+   * Optional admin API key injected by the page.
+   * Notes:
+   * - The real API KEY should be configured as a server-side environment variable.
+   * - Avoid hardcoding secrets in client bundles; only inject the value when the server explicitly provides it.
+   * - When absent we still show `<API_KEY>` in request examples.
+   */
+  adminApiKey?: string | null
+}
+
+export function PricesApiPlayground(props: PricesApiPlaygroundProps) {
+  const { canWrite, adminApiKey } = props
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
+  const [endpointOpen, setEndpointOpen] = useState(false)
   const [state, setState] = useState<PricesApiState>({
     loading: false,
     endpoint: 'list',
@@ -52,6 +90,26 @@ export function PricesApiPlayground() {
 
   const [examplesOpen, setExamplesOpen] = useState(false)
 
+  useEffect(() => {
+    if (!endpointOpen) return
+    function onPointerDown(event: MouseEvent) {
+      const el = dropdownRef.current
+      if (!el) return
+      if (event.target instanceof Node && !el.contains(event.target)) {
+        setEndpointOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [endpointOpen])
+
+  const endpointOptions: PricesApiEndpoint[] = useMemo(() => {
+    const base: PricesApiEndpoint[] = ['list', 'search', 'calc']
+    if (!canWrite) return base
+    return [...base, 'create', 'update', 'delete']
+  }, [canWrite])
+
   async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     try {
@@ -59,13 +117,21 @@ export function PricesApiPlayground() {
       const startedAt = performance.now()
       const selected = PRICES_API_ENDPOINTS[state.endpoint]
 
-      const url = state.endpoint === 'search' && state.query.trim() ? `/api/prices/products/search?q=${encodeURIComponent(state.query.trim())}` : selected.path
+      const q = state.query.trim()
+      let url: string = selected.path
+      if (state.endpoint === 'search') {
+        if (!q) throw new Error('q is required for search')
+        url = `/api/prices/products/search?q=${encodeURIComponent(q)}`
+      } else if (state.endpoint === 'update' || state.endpoint === 'delete') {
+        if (!q) throw new Error('id is required')
+        url = `/api/prices/products?id=${encodeURIComponent(q)}`
+      }
 
       const requestInit: RequestInit = {
         method: selected.method,
         headers: { Accept: 'application/json, text/html;q=0.9,*/*;q=0.8' },
       }
-      if (selected.method === 'POST') {
+      if (selected.method === 'POST' || selected.method === 'PUT') {
         requestInit.headers = {
           ...requestInit.headers,
           'Content-Type': 'application/json',
@@ -99,13 +165,28 @@ export function PricesApiPlayground() {
 
   const { loading, endpoint, query, bodyText, status, durationMs, error, responseBody } = state
   const selected = PRICES_API_ENDPOINTS[endpoint]
+  const selectedDisplay = PRICES_API_ENDPOINT_DISPLAY[endpoint]
 
   const requestExamples: RequestExampleInput | null = (() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const url = endpoint === 'search' && query.trim() ? `${origin}/api/prices/products/search?q=${encodeURIComponent(query.trim())}` : `${origin}${selected.path}`
+    const q = query.trim()
+    let url = `${origin}${selected.path}`
+    if (endpoint === 'search') {
+      url = `${origin}/api/prices/products/search?q=${encodeURIComponent(q)}`
+    } else if (endpoint === 'update' || endpoint === 'delete') {
+      url = `${origin}/api/prices/products?id=${encodeURIComponent(q)}`
+    }
 
     const headers: Record<string, string> = { Accept: 'application/json, text/html;q=0.9,*/*;q=0.8' }
-    if (selected.method === 'POST') {
+
+    const isAdminCurd = endpoint === 'create' || endpoint === 'update' || endpoint === 'delete'
+    if (canWrite && isAdminCurd) {
+      const resolvedKey = adminApiKey?.trim() ? adminApiKey.trim() : '<API_KEY>'
+      // Request examples for ADMIN-protected endpoints: use a simple header-based API key placeholder.
+      headers.Authorization = `Bearer ${resolvedKey}`
+    }
+
+    if (selected.method === 'POST' || selected.method === 'PUT') {
       headers['Content-Type'] = 'application/json'
       return { method: selected.method, url, headers, body: bodyText }
     }
@@ -119,36 +200,91 @@ export function PricesApiPlayground() {
         <div className="flex flex-col bg-white">
           <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
             <span className="font-medium text-gray-800">Request</span>
-            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>
-              {selected.method} {selected.path}
+            <span className={`${PLAYGROUND_HEADER_BADGE_CLASS} inline-flex items-center gap-1 whitespace-nowrap`}>
+              {selectedDisplay.method} {selectedDisplay.path}
+              {selectedDisplay.admin ? (
+                <Tooltip content="ADMIN" placement="top">
+                  <MdOutlineAdminPanelSettings className="h-3 w-3 text-indigo-700" aria-label="ADMIN" />
+                </Tooltip>
+              ) : null}
             </span>
           </div>
           <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">
               <span className="text-[11px] text-gray-700">Endpoint</span>
-              <FormSelect
-                value={endpoint}
-                onChange={(value) => setState((prev) => ({ ...prev, endpoint: value as PricesApiEndpoint }))}
-                options={[
-                  { value: 'list', label: 'GET /api/prices/products - list products' },
-                  { value: 'search', label: 'GET /api/prices/products/search - search products' },
-                  { value: 'calc', label: 'POST /api/prices/calc - calculate comparisons' },
-                ]}
-              />
+              <div ref={dropdownRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setEndpointOpen((open) => !open)}
+                  className="flex h-8 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-900"
+                  aria-haspopup="listbox"
+                  aria-expanded={endpointOpen}
+                >
+                  <div className="flex min-w-0 items-center gap-1">
+                    <span className="min-w-0 truncate leading-none">
+                      {selectedDisplay.method} {selectedDisplay.path}
+                    </span>
+                    {selectedDisplay.admin ? (
+                      <Tooltip content="ADMIN" placement="top">
+                        <MdOutlineAdminPanelSettings className="h-3 w-3 shrink-0 text-indigo-700" aria-label="ADMIN" />
+                      </Tooltip>
+                    ) : null}
+                  </div>
+                  <TbChevronDown className={`ml-2 h-4 w-4 text-gray-500 transition-transform ${endpointOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {endpointOpen ? (
+                  <div
+                    role="listbox"
+                    aria-label="Endpoint"
+                    className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-auto rounded-lg border border-gray-200 bg-white shadow-md"
+                  >
+                    {endpointOptions.map((opt) => {
+                      const display = PRICES_API_ENDPOINT_DISPLAY[opt]
+                      const isSelected = opt === endpoint
+
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          className={`block w-full px-3 py-2 text-left text-sm transition-colors ${isSelected ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'}`}
+                          onClick={() => {
+                            setState((prev) => ({ ...prev, endpoint: opt }))
+                            setEndpointOpen(false)
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="min-w-0 truncate leading-none">
+                              {display.method} {display.path}
+                            </span>
+                            {display.admin ? (
+                              <Tooltip content="ADMIN" placement="top">
+                                <MdOutlineAdminPanelSettings className="h-3 w-3 shrink-0 text-indigo-700" aria-label="ADMIN" />
+                              </Tooltip>
+                            ) : null}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : null}
+              </div>
             </label>
-            {endpoint === 'search' ? (
+            {endpoint === 'search' || endpoint === 'update' || endpoint === 'delete' ? (
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] text-gray-700">q</span>
+                <span className="text-[11px] text-gray-700">{endpoint === 'search' ? 'q' : endpoint === 'update' ? 'id' : 'id'}</span>
                 <input
                   type="text"
                   className="h-8 rounded border border-gray-300 bg-white px-2 text-sm text-gray-900"
                   value={query}
                   onChange={(event) => setState((prev) => ({ ...prev, query: event.target.value }))}
-                  placeholder="cola"
+                  placeholder={endpoint === 'search' ? 'cola' : '12'}
                 />
               </label>
             ) : null}
-            {endpoint === 'calc' ? (
+            {endpoint === 'calc' || endpoint === 'create' || endpoint === 'update' ? (
               <label className="flex flex-col gap-1">
                 <span className="text-[11px] text-gray-700">Body (JSON)</span>
                 <textarea

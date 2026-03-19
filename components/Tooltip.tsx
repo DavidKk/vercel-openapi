@@ -92,7 +92,7 @@ export function Tooltip(props: TooltipProps) {
     <>
       <span
         ref={triggerRef}
-        className="inline-flex"
+        className="inline-flex items-center"
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}

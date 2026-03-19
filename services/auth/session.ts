@@ -14,8 +14,15 @@ export interface AuthSession {
  * @returns Current session with authenticated flag and username
  */
 export async function getAuthSession(): Promise<AuthSession> {
-  const cookieStore = await cookies()
-  const token = cookieStore.get(AUTH_TOKEN_NAME)?.value
+  let token: string | undefined
+  try {
+    const cookieStore = await cookies()
+    token = cookieStore.get(AUTH_TOKEN_NAME)?.value
+  } catch {
+    // In unit tests or non-Next request contexts, `cookies()` may throw.
+    // Treat as unauthenticated instead of crashing the route.
+    return { authenticated: false, username: null }
+  }
 
   if (!token) {
     return { authenticated: false, username: null }

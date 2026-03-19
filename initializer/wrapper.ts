@@ -1,6 +1,7 @@
 /**
  * Auth wrappers: withAuthHandler for API routes (401 JSON), withAuthAction for server actions (redirect to login).
  */
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { NextRequest } from 'next/server'
 
@@ -34,7 +35,21 @@ interface Action<A extends any[], R> {
 export function withAuthAction<A extends any[], R>(request: (...args: A) => Promise<R>): Action<A, R> {
   const action = async (...args: A): Promise<R> => {
     if (!(await validateCookie())) {
-      redirect('/login')
+      /** Derive "back" URL from referer to support redirectUrl callback after login. */
+      const reqHeaders = await headers()
+      const referer = reqHeaders.get('referer') ?? ''
+
+      let back = '/'
+      if (referer) {
+        try {
+          const u = new URL(referer)
+          back = `${u.pathname}${u.search}`
+        } catch {
+          back = '/'
+        }
+      }
+
+      redirect(`/login?redirectUrl=${encodeURIComponent(back)}`)
     }
 
     return request(...args)

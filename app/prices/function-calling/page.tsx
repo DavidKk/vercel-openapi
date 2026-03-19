@@ -6,6 +6,10 @@ import { FunctionCallingPanel } from '@/components/FunctionCallingPanel'
  */
 export default function PricesFunctionCallingPage() {
   return (
-    <FunctionCallingPanel title="Function Calling" subtitle="Call public prices tools for list/search/calc workflows through function calling." defaultToolsCategory="prices" />
+    <FunctionCallingPanel
+      title="Function Calling"
+      subtitle="Call prices tools through function calling (ADMIN CURD tools are protected and will be visible after login)."
+      defaultToolsCategory="prices"
+    />
   )
 }

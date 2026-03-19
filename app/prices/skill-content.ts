@@ -2,7 +2,7 @@
  * API skill document for agents: how to use prices-related endpoints.
  * Use BASE_URL as placeholder; replaced with current origin when copying/downloading.
  */
-export const PRICES_API_SKILL = `# Prices API - HTTP usage for agents
+export const PRICES_API_SKILL_PUBLIC = `# Prices API - HTTP usage for agents
 
 Base URL: BASE_URL
 
@@ -20,7 +20,7 @@ Response (200): JSON
     "data": [ ... ]
   }
 
-## GET /api/prices/products/search?q={keyword} - Search public product data
+## GET /api/prices/products/search?q={keyword} - Search product data
 
 Example:
   GET BASE_URL/api/prices/products/search?q=cola
@@ -70,6 +70,55 @@ Calc:
 
 ## Notes
 
-- Endpoints above are public and do not require login.
-- Manage/write capabilities remain login-protected.
+- Endpoints above are read-only and do not require admin login.
+- Manage/write capabilities remain ADMIN-protected (login required).
 `
+
+export const PRICES_API_SKILL_PROTECTED = `${PRICES_API_SKILL_PUBLIC}
+
+## ADMIN (Protected): Product management (login required)
+
+These endpoints modify stored product data. They require an authenticated request.
+
+ADMIN access is controlled by an API key. Include the following header in your requests:
+
+- Authorization: Bearer <API_KEY>
+
+API KEY storage note:
+- The real API KEY should be stored/configured on the server via environment variables (or deployment secrets).
+- Do not embed secrets directly into client code; examples use placeholders.
+
+### Create product
+
+curl -X POST \"BASE_URL/api/prices/products\" \\
+  -H \"Content-Type: application/json\" \\
+  -H \"Authorization: Bearer <API_KEY>\" \\
+  -d '{
+    \"name\": \"cola\",
+    \"brand\": \"Acme\",
+    \"unit\": \"L\",
+    \"unitBestPrice\": 1.23,
+    \"unitConversions\": [\"= 1000 ml\"],
+    \"remark\": \"optional\"
+  }'
+
+### Update product
+
+curl -X PUT \"BASE_URL/api/prices/products?id=12\" \\
+  -H \"Content-Type: application/json\" \\
+  -H \"Authorization: Bearer <API_KEY>\" \\
+  -d '{
+    \"unitBestPrice\": 1.29
+  }'
+
+### Delete product
+
+curl -X DELETE \"BASE_URL/api/prices/products?id=12\" \\
+  -H \"Authorization: Bearer <API_KEY>\" 
+`
+
+/**
+ * Backward-compatible export.
+ * Unauthenticated users should fetch {@link PRICES_API_SKILL_PUBLIC} via UI APIs.
+ */
+export const PRICES_API_SKILL = PRICES_API_SKILL_PUBLIC
