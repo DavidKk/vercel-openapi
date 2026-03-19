@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MdOutlineAdminPanelSettings } from 'react-icons/md'
 import { TbLogout, TbUserCircle } from 'react-icons/tb'
@@ -22,6 +22,7 @@ export function AuthEntry() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const router = useRouter()
 
   const loadSession = useCallback(async () => {
@@ -64,10 +65,14 @@ export function AuthEntry() {
   }
 
   if (!session.authenticated) {
+    const queryString = searchParams?.toString() ?? ''
+    const currentPathWithQuery = queryString ? `${pathname}?${queryString}` : pathname
+    const redirectUrl = encodeURIComponent(currentPathWithQuery)
+
     return (
       <Tooltip content="Login">
         <Link
-          href="/login"
+          href={`/login?redirectUrl=${redirectUrl}`}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
           aria-label="Login"
         >

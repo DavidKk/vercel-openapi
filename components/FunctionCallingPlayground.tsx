@@ -45,7 +45,7 @@ const TOOL_NAMES_BY_CATEGORY: Record<string, string[]> = {
   'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'calc_fuel_recharge_promo'],
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
-  prices: ['list_price_lists', 'search_prices', 'calc_prices'],
+  prices: ['list_price_lists', 'search_prices', 'calc_prices', 'create_product', 'update_product', 'delete_product'],
 }
 
 /** Province names for fuel-price tool param extraction (match order for .at(0)) */
@@ -126,6 +126,37 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
           quantityUnit: unitMatch?.[1] ?? 'L',
         },
       })
+    }
+
+    if (/(创建|新增|添加|新建)/.test(m) && /产品|商品|价目/.test(m)) {
+      const idMatch = m.match(/id\s*(\d+)/i) // may appear but create_product doesn't need id
+      void idMatch
+      const nameMatch = m.match(/名称\s*[:：]?\s*([^\s，。、;；]+)|(?:产品|商品)[:：]?\s*([^\s，。、;；]+)/i)
+      const name = nameMatch?.[1] ?? nameMatch?.[2] ?? 'cola'
+      const unitMatch = m.match(/(ml|g|kg|L)\b/i)?.[1] ?? 'L'
+      const bestPriceMatch = m.match(/单价\s*[:：]?\s*(\d+(?:\.\d+)?)/)
+      const unitBestPrice = bestPriceMatch ? Number(bestPriceMatch[1]) : 1.23
+      calls.push({
+        name: 'create_product',
+        params: { name, brand: undefined, unit: unitMatch, unitBestPrice, unitConversions: undefined, remark: undefined },
+      })
+    }
+
+    if (/(更新|修改|变更)/.test(m) && /产品|商品|价目/.test(m)) {
+      const idMatch = m.match(/id\s*(\d+)/i) ?? m.match(/产品id\s*(\d+)/)
+      const id = idMatch?.[1] ?? '12'
+      const bestPriceMatch = m.match(/单价\s*[:：]?\s*(\d+(?:\.\d+)?)/)
+      const unitBestPrice = bestPriceMatch ? Number(bestPriceMatch[1]) : undefined
+      calls.push({
+        name: 'update_product',
+        params: { id, unitBestPrice, name: undefined, brand: undefined, unit: undefined, unitConversions: undefined, remark: undefined },
+      })
+    }
+
+    if (/(删除|移除)/.test(m) && /产品|商品|价目/.test(m)) {
+      const idMatch = m.match(/id\s*(\d+)/i) ?? m.match(/产品id\s*(\d+)/)
+      const id = idMatch?.[1] ?? '12'
+      calls.push({ name: 'delete_product', params: { id } })
     }
   }
 

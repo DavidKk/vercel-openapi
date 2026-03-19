@@ -2,12 +2,15 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 import { getMCPTools, getMCPToolsByIncludes } from '@/app/api/mcp/tools'
+import { getAuthSession } from '@/services/auth/session'
 import { createLogger } from '@/services/logger'
 import { mcpToolsToOpenAITools } from '@/utils/function-calling'
 
 export const runtime = 'edge'
 
 const logger = createLogger('api-function-calling-tools')
+
+const PROTECTED_PRICES_TOOL_NAMES = ['create_product', 'update_product', 'delete_product'] as const
 
 /**
  * Parse ?includes=holiday,fuel-price from request (same semantics as /api/mcp).
@@ -36,6 +39,17 @@ export async function GET(req: NextRequest) {
   if (toolsMap.size === 0) {
     return NextResponse.json({ error: 'No tools for given includes. Use ?includes=holiday,fuel-price etc.' }, { status: 400 })
   }
-  const tools = mcpToolsToOpenAITools(toolsMap)
+
+  const session = await getAuthSession()
+  const filteredTools = !session.authenticated
+    ? (() => {
+        const next = new Map(toolsMap)
+        for (const name of PROTECTED_PRICES_TOOL_NAMES) {
+          next.delete(name)
+        }
+        return next
+      })()
+    : toolsMap
+  const tools = mcpToolsToOpenAITools(filteredTools)
   return NextResponse.json({ tools })
 }
