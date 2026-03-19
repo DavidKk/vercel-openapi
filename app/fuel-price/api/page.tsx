@@ -17,7 +17,7 @@ export default function FuelPriceApiPage() {
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/fuel-price" />
+            <DocEndpointRow method="GET" path="/api/fuel-price" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               All provinces. Returns <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">current</code>,{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">previous</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">latestUpdated</code>,{' '}
@@ -26,12 +26,12 @@ export default function FuelPriceApiPage() {
           </div>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/fuel-price/:province" />
+            <DocEndpointRow method="GET" path="/api/fuel-price/:province" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>Single province (path param, e.g. 北京). Same shape with one province in current/previous.</p>
           </div>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/fuel-price/:province/promo" />
+            <DocEndpointRow method="GET" path="/api/fuel-price/:province/promo" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Query: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">fuelType</code> (b92|b95|b98|b0),{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">amount</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">bonus</code>. Returns

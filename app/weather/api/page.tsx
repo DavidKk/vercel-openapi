@@ -16,14 +16,14 @@ export default function WeatherApiPage() {
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="POST" path="/api/weather" />
+            <DocEndpointRow method="POST" path="/api/weather" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Body <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ latitude, longitude }'}</code>. Returns latest &quot;now&quot; weather for that point.
             </p>
           </div>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="POST" path="/api/weather/forecast" />
+            <DocEndpointRow method="POST" path="/api/weather/forecast" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Body <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ latitude, longitude, granularity, hours, days }'}</code>. Returns short-term forecast for that
               point.

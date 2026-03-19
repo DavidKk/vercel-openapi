@@ -4,10 +4,13 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
+import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
+import { TOOL_CATEGORIES, type ToolCategory } from '@/services/function-calling/categories'
 
-type Tab = 'tools' | 'chat'
+type PlaygroundEndpoint = 'tools' | 'chat'
+type ScopeMode = 'all' | 'category' | 'includes'
 
 /** Preset prompts per category (module-scoped). Empty string key = geo / all modules combined. */
 const PRESET_PROMPTS_BY_CATEGORY: Record<string, { label: string; value: string }[]> = {
@@ -25,11 +28,12 @@ const PRESET_PROMPTS_BY_CATEGORY: Record<string, { label: string; value: string 
     { label: '最近有什么热门电影？', value: '最近上映或者快上映的热门电影有哪些？' },
     { label: '今年的新片列表', value: '今年有哪些评分比较高的新片？' },
   ],
-  '': [
-    { label: '今天是不是节假日？', value: '今天是不是节假日？' },
-    { label: '100 美元换人民币多少？', value: '100 美元换人民币大概多少？' },
-    { label: '今年有哪些假期？', value: '今年（当前年份）有哪些假期？列一下。' },
+  prices: [
+    { label: '当前有哪些价目表？', value: '当前支持的价目表有哪些？' },
+    { label: '搜索可乐', value: '帮我搜索可乐相关的商品。' },
+    { label: '按总价总量计算', value: '可乐总价12.5元，总量1.5L，帮我算每个品牌单价对比。' },
   ],
+  '': [],
 }
 
 /**
@@ -41,6 +45,7 @@ const TOOL_NAMES_BY_CATEGORY: Record<string, string[]> = {
   'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'calc_fuel_recharge_promo'],
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
+  prices: ['list_price_lists', 'search_prices', 'calc_prices'],
 }
 
 /** Province names for fuel-price tool param extraction (match order for .at(0)) */
@@ -69,6 +74,7 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
   const isHoliday = !isModuleScoped || category === 'holiday'
   const isExchange = !isModuleScoped || category === 'exchange-rate'
   const isFuel = !isModuleScoped || category === 'fuel-price'
+  const isPrices = !isModuleScoped || category === 'prices'
 
   if (isHoliday && /今天|今日/.test(m) && /节假|假期|放假/.test(m)) {
     calls.push({ name: 'get_today_holiday', params: {} })
@@ -98,6 +104,31 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
     calls.push({ name: 'calc_fuel_recharge_promo', params: { province, amount, bonus: 10 } })
   }
 
+  if (isPrices) {
+    if (/价目表|列表|有哪些/.test(m) && /价格|价目|商品/.test(m)) {
+      calls.push({ name: 'list_price_lists', params: {} })
+    }
+    if (/搜索|查找|匹配/.test(m)) {
+      const keyword = m.match(/搜索|查找|匹配/) ? m.replace(/.*?(搜索|查找|匹配)\s*/, '').trim() : ''
+      calls.push({ name: 'search_prices', params: { q: keyword || 'cola' } })
+    }
+    if (/(总价|总量|单价|对比|计算)/.test(m)) {
+      const priceMatch = m.match(/总价\s*(\d+(?:\.\d+)?)/)
+      const quantityMatch = m.match(/总量\s*(\d+(?:\.\d+)?)/)
+      const unitMatch = m.match(/总量\s*\d+(?:\.\d+)?\s*([a-zA-Z\u4e00-\u9fa5]+)/u)
+      const nameMatch = m.match(/(可乐|牛奶|鸡蛋|大米|食用油)/)
+      calls.push({
+        name: 'calc_prices',
+        params: {
+          productName: nameMatch?.[1] ?? 'cola',
+          totalPrice: priceMatch ? Number(priceMatch[1]) : 12.5,
+          totalQuantity: quantityMatch ? Number(quantityMatch[1]) : 1.5,
+          quantityUnit: unitMatch?.[1] ?? 'L',
+        },
+      })
+    }
+  }
+
   if (calls.length === 0 && isHoliday) {
     calls.push({ name: 'get_today_holiday', params: {} })
   }
@@ -106,6 +137,9 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
   }
   if (calls.length === 0 && isFuel) {
     calls.push({ name: 'get_fuel_price', params: {} })
+  }
+  if (calls.length === 0 && isPrices) {
+    calls.push({ name: 'list_price_lists', params: {} })
   }
 
   /** Module-scoped: only return tools that belong to this category (no cross-module) */
@@ -123,8 +157,8 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
  * @param params Tool parameters object
  * @returns Parsed result (object or string) or error string when request fails
  */
-async function callMcpTool(name: string, params: Record<string, unknown>): Promise<unknown> {
-  const res = await fetch('/api/mcp', {
+async function callMcpTool(name: string, params: Record<string, unknown>, executePath: string): Promise<unknown> {
+  const res = await fetch(executePath, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tool: name, params }),
@@ -227,10 +261,43 @@ export interface FunctionCallingPlaygroundProps {
  */
 export function FunctionCallingPlayground(props: FunctionCallingPlaygroundProps) {
   const { defaultToolsCategory = '' } = props
-  const [tab, setTab] = useState<Tab>('tools')
-  /** Each module uses only its own category (geo has no category → '' = all tools). No Category selector. */
-  const effectiveCategory = defaultToolsCategory
-  const presetPrompts = PRESET_PROMPTS_BY_CATEGORY[effectiveCategory] ?? PRESET_PROMPTS_BY_CATEGORY['']
+  const [endpoint, setEndpoint] = useState<PlaygroundEndpoint>('tools')
+  const [scopeMode, setScopeMode] = useState<ScopeMode>(defaultToolsCategory ? 'category' : 'all')
+  const [selectedCategory, setSelectedCategory] = useState<ToolCategory>(
+    TOOL_CATEGORIES.includes(defaultToolsCategory as ToolCategory) ? (defaultToolsCategory as ToolCategory) : TOOL_CATEGORIES[0]
+  )
+  const [includesText, setIncludesText] = useState(defaultToolsCategory || TOOL_CATEGORIES.join(','))
+
+  const normalizedIncludes = includesText
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  const effectiveCategory = scopeMode === 'category' ? selectedCategory : ''
+  const toolsPath =
+    scopeMode === 'all'
+      ? '/api/function-calling/tools'
+      : scopeMode === 'category'
+        ? `/api/function-calling/${selectedCategory}/tools`
+        : `/api/function-calling/tools?includes=${encodeURIComponent(normalizedIncludes.join(','))}`
+  const mcpExecutePath =
+    scopeMode === 'all'
+      ? '/api/mcp'
+      : scopeMode === 'category'
+        ? `/api/mcp?includes=${encodeURIComponent(selectedCategory)}`
+        : `/api/mcp?includes=${encodeURIComponent(normalizedIncludes.join(','))}`
+
+  const allowedToolNames =
+    scopeMode === 'category'
+      ? (TOOL_NAMES_BY_CATEGORY[selectedCategory] ?? [])
+      : scopeMode === 'includes'
+        ? normalizedIncludes.flatMap((category) => TOOL_NAMES_BY_CATEGORY[category] ?? [])
+        : []
+
+  const promptCategory =
+    scopeMode === 'category' ? selectedCategory : scopeMode === 'includes' ? (normalizedIncludes.find((category) => PRESET_PROMPTS_BY_CATEGORY[category]?.length) ?? '') : ''
+
+  const presetPrompts = PRESET_PROMPTS_BY_CATEGORY[promptCategory] ?? PRESET_PROMPTS_BY_CATEGORY['']
 
   const [toolsLoading, setToolsLoading] = useState(false)
   const [toolsStatus, setToolsStatus] = useState<number | undefined>(undefined)
@@ -251,7 +318,7 @@ export function FunctionCallingPlayground(props: FunctionCallingPlaygroundProps)
     setToolsResponseBody(undefined)
     setToolsStatus(undefined)
     const startedAt = performance.now()
-    const url = effectiveCategory ? `/api/function-calling/${effectiveCategory}/tools` : '/api/function-calling/tools'
+    const url = toolsPath
     try {
       const res = await fetch(url, { method: 'GET' })
       const duration = performance.now() - startedAt
@@ -279,23 +346,25 @@ export function FunctionCallingPlayground(props: FunctionCallingPlaygroundProps)
     setChatStatus(undefined)
     const startedAt = performance.now()
     try {
-      const toolCalls = mockInferToolCalls(text, effectiveCategory)
+      const inferred = mockInferToolCalls(text, effectiveCategory)
+      const toolCalls = allowedToolNames.length > 0 ? inferred.filter((tc) => allowedToolNames.includes(tc.name)) : inferred
+      const calls = toolCalls.length > 0 ? toolCalls : inferred
       const results: unknown[] = []
-      for (const tc of toolCalls) {
-        const result = await callMcpTool(tc.name, tc.params)
+      for (const tc of calls) {
+        const result = await callMcpTool(tc.name, tc.params, mcpExecutePath)
         results.push(result)
       }
       const duration = performance.now() - startedAt
       setChatDurationMs(duration)
       setChatStatus(200)
 
-      const reply = mockFormatReply(toolCalls, results)
+      const reply = mockFormatReply(calls, results)
       setChatReply(reply)
       setChatResponseBody(
         JSON.stringify(
           {
             message: { role: 'assistant', content: reply },
-            flow: { tool_calls: toolCalls, tool_results: results },
+            flow: { tool_calls: calls, tool_results: results, scope: scopeMode, includes: normalizedIncludes },
           },
           null,
           2
@@ -311,88 +380,109 @@ export function FunctionCallingPlayground(props: FunctionCallingPlaygroundProps)
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <PlaygroundPanelHeader />
-      <div className="flex shrink-0 items-center gap-1 border-b border-gray-200 px-3 py-2">
-        <button
-          type="button"
-          onClick={() => setTab('tools')}
-          className={`rounded px-2 py-1 text-[11px] font-medium ${tab === 'tools' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-        >
-          Tools (GET)
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('chat')}
-          className={`rounded px-2 py-1 text-[11px] font-medium ${tab === 'chat' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-        >
-          Chat (POST)
-        </button>
-      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-px overflow-hidden bg-gray-100">
+        <div className="flex shrink-0 flex-col bg-white">
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
+            <span className="font-medium text-gray-800">Request</span>
+            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>{endpoint === 'tools' ? `GET ${toolsPath}` : 'POST /api/function-calling/chat (mock flow via /api/mcp)'}</span>
+          </div>
+          <div className="flex flex-col gap-2 px-3 py-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] text-gray-700">Scope</span>
+              <FormSelect
+                value={scopeMode}
+                onChange={(value) => setScopeMode(value as ScopeMode)}
+                options={[
+                  { value: 'all', label: 'All modules' },
+                  { value: 'category', label: 'Single module category' },
+                  { value: 'includes', label: 'Selected modules (includes)' },
+                ]}
+              />
+            </label>
+            {scopeMode === 'category' ? (
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] text-gray-700">Category</span>
+                <FormSelect
+                  value={selectedCategory}
+                  onChange={(value) => setSelectedCategory(value as ToolCategory)}
+                  options={TOOL_CATEGORIES.map((category) => ({ value: category, label: category }))}
+                />
+              </label>
+            ) : null}
+            {scopeMode === 'includes' ? (
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] text-gray-700">Includes (comma-separated)</span>
+                <input
+                  type="text"
+                  value={includesText}
+                  onChange={(event) => setIncludesText(event.target.value)}
+                  className="h-8 rounded border border-gray-300 bg-white px-2 text-sm text-gray-900"
+                  placeholder="holiday,exchange-rate,prices"
+                />
+              </label>
+            ) : null}
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] text-gray-700">Endpoint</span>
+              <FormSelect
+                value={endpoint}
+                onChange={(value) => setEndpoint(value as PlaygroundEndpoint)}
+                options={[
+                  { value: 'tools', label: `GET ${toolsPath}` },
+                  { value: 'chat', label: 'POST /api/function-calling/chat (mock)' },
+                ]}
+              />
+            </label>
 
-      {tab === 'chat' && (
-        <div className="flex min-h-0 flex-1 flex-col gap-px overflow-hidden bg-gray-100">
-          <div className="flex shrink-0 flex-col bg-white">
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
-              <span className="font-medium text-gray-800">Request</span>
-              <span className={PLAYGROUND_HEADER_BADGE_CLASS}>Mock flow (POST /api/mcp)</span>
-            </div>
-            <div className="flex flex-col gap-2 px-3 py-2">
-              <p className="text-[11px] text-gray-600">Preset (click to trigger tool calls):</p>
-              <div className="flex flex-wrap gap-1">
-                {presetPrompts.map((p) => (
-                  <button
-                    key={p.value}
-                    type="button"
-                    onClick={() => handleSendChat(p.value)}
-                    disabled={chatLoading}
-                    className="rounded border border-gray-300 bg-white px-2 py-1 text-[10px] text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                  >
-                    {p.label}
-                  </button>
-                ))}
+            {endpoint === 'tools' ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFetchTools}
+                  className="inline-flex items-center justify-center rounded border border-gray-300 bg-gray-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={toolsLoading}
+                >
+                  {toolsLoading ? 'Fetching...' : 'Fetch tools'}
+                </button>
+                {toolsDurationMs !== undefined && <span className="text-[10px] text-gray-500">{toolsDurationMs.toFixed(0)} ms</span>}
               </div>
-              {chatDurationMs !== undefined && <span className="text-[10px] text-gray-500">Last run: {chatDurationMs.toFixed(0)} ms</span>}
-            </div>
-          </div>
-          <div className="flex min-h-[200px] min-w-0 flex-1 flex-col overflow-hidden bg-white">
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
-              <span className="font-medium text-gray-800">Response</span>
-              {chatStatus !== undefined && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono text-gray-700">HTTP {chatStatus}</span>}
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto bg-white p-2 text-[10px] leading-relaxed text-gray-800">
-              {renderChatResponseContent(chatError, chatReply, chatResponseBody)}
-            </div>
+            ) : (
+              <>
+                <p className="text-[11px] text-gray-600">Preset prompts:</p>
+                <div className="flex flex-wrap gap-1">
+                  {presetPrompts.map((p) => (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => handleSendChat(p.value)}
+                      disabled={chatLoading}
+                      className="rounded border border-gray-300 bg-white px-2 py-1 text-[10px] text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                {chatDurationMs !== undefined && <span className="text-[10px] text-gray-500">Last run: {chatDurationMs.toFixed(0)} ms</span>}
+              </>
+            )}
           </div>
         </div>
-      )}
 
-      {tab === 'tools' && (
-        <div className="flex min-h-0 flex-1 flex-col gap-px overflow-hidden bg-gray-100">
-          <div className="flex shrink-0 flex-col bg-white">
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
-              <span className="font-medium text-gray-800">Request</span>
-              <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET {effectiveCategory ? `/api/function-calling/${effectiveCategory}/tools` : '/api/function-calling/tools'}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-              <button
-                type="button"
-                onClick={handleFetchTools}
-                className="inline-flex items-center justify-center rounded border border-gray-300 bg-gray-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={toolsLoading}
-              >
-                {toolsLoading ? 'Fetching...' : 'Fetch tools'}
-              </button>
-              {toolsDurationMs !== undefined && <span className="text-[10px] text-gray-500">{toolsDurationMs.toFixed(0)} ms</span>}
-            </div>
+        <div className="flex min-h-[200px] min-w-0 flex-1 flex-col overflow-hidden bg-white">
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
+            <span className="font-medium text-gray-800">Response</span>
+            {endpoint === 'tools' ? (
+              toolsStatus !== undefined ? (
+                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono text-gray-700">HTTP {toolsStatus}</span>
+              ) : null
+            ) : chatStatus !== undefined ? (
+              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono text-gray-700">HTTP {chatStatus}</span>
+            ) : null}
           </div>
-          <div className="flex min-h-[200px] min-w-0 flex-1 flex-col overflow-hidden bg-white">
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
-              <span className="font-medium text-gray-800">Response</span>
-              {toolsStatus !== undefined && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono text-gray-700">HTTP {toolsStatus}</span>}
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto bg-white p-2 text-[10px] leading-relaxed text-gray-800">{renderToolsResponseContent(toolsError, toolsResponseBody)}</div>
+          <div className="min-h-0 flex-1 overflow-auto bg-white p-2 text-[10px] leading-relaxed text-gray-800">
+            {endpoint === 'tools' ? renderToolsResponseContent(toolsError, toolsResponseBody) : renderChatResponseContent(chatError, chatReply, chatResponseBody)}
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

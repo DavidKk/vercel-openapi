@@ -2,6 +2,7 @@ import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLAS
 import { DocEndpointRow } from '@/components/DocEndpointRow'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 import { DocPlaygroundLayout } from '@/components/DocPlaygroundLayout'
+import { TOOL_CATEGORIES } from '@/services/function-calling/categories'
 
 import { FunctionCallingPlayground } from './FunctionCallingPlayground'
 
@@ -20,6 +21,9 @@ export interface FunctionCallingPanelProps {
  */
 export function FunctionCallingPanel(props: FunctionCallingPanelProps) {
   const { title, subtitle, defaultToolsCategory } = props
+  const category = defaultToolsCategory?.trim()
+  const moduleCategory = category && TOOL_CATEGORIES.includes(category as (typeof TOOL_CATEGORIES)[number]) ? (category as (typeof TOOL_CATEGORIES)[number]) : null
+  const isModulePage = Boolean(moduleCategory)
 
   return (
     <DocPlaygroundLayout
@@ -32,28 +36,54 @@ export function FunctionCallingPanel(props: FunctionCallingPanelProps) {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">tool_calls</code>; your gateway then executes them (e.g. via POST /api/mcp).
             </p>
             <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
-            <div className={DOC_ENDPOINT_BOX_CLASS}>
-              <DocEndpointRow method="GET" path="/api/function-calling/tools" />
-              <p className={DOC_ENDPOINT_DESC_CLASS}>
-                Returns all tools as <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ tools: [...] }'}</code> in OpenAI Chat Completions format.
-              </p>
-            </div>
-            <div className={DOC_ENDPOINT_BOX_CLASS}>
-              <DocEndpointRow method="GET" path="/api/function-calling/[category]/tools" />
-              <p className={DOC_ENDPOINT_DESC_CLASS}>
-                Returns only tools for one category. <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">[category]</code>:{' '}
-                <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">holiday</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">fuel-price</code>,{' '}
-                <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">exchange-rate</code>. Use when the caller needs a subset of tools.
-              </p>
-            </div>
-            <div className={DOC_ENDPOINT_BOX_CLASS}>
-              <DocEndpointRow method="POST" path="/api/function-calling/chat" />
-              <p className={DOC_ENDPOINT_DESC_CLASS}>
-                Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ messages, model? }'}</code>. Requires{' '}
-                <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">OPENAI_API_KEY</code>. The server sends messages + tools to OpenAI, runs tool_calls via MCP tools, and
-                returns the final reply.
-              </p>
-            </div>
+            {isModulePage && moduleCategory ? (
+              <>
+                <div className={DOC_ENDPOINT_BOX_CLASS}>
+                  <DocEndpointRow method="GET" path={`/api/function-calling/${moduleCategory}/tools`} enableCopy />
+                  <p className={DOC_ENDPOINT_DESC_CLASS}>
+                    Returns only tools for <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{moduleCategory}</code>.
+                  </p>
+                </div>
+                <div className={DOC_ENDPOINT_BOX_CLASS}>
+                  <DocEndpointRow method="POST" path={`/api/function-calling/chat?includes=${encodeURIComponent(moduleCategory)}`} enableCopy />
+                  <p className={DOC_ENDPOINT_DESC_CLASS}>
+                    Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ messages, model? }'}</code>. Filters allowed tools by{' '}
+                    <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">includes={moduleCategory}</code>, then executes tool_calls via MCP tools and returns the final
+                    reply.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={DOC_ENDPOINT_BOX_CLASS}>
+                  <DocEndpointRow method="GET" path="/api/function-calling/tools" enableCopy />
+                  <p className={DOC_ENDPOINT_DESC_CLASS}>
+                    Returns all tools as <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ tools: [...] }'}</code> in OpenAI Chat Completions format.
+                  </p>
+                </div>
+                <div className={DOC_ENDPOINT_BOX_CLASS}>
+                  <DocEndpointRow method="GET" path="/api/function-calling/[category]/tools" enableCopy />
+                  <p className={DOC_ENDPOINT_DESC_CLASS}>
+                    Returns only tools for one category. <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">[category]</code>:{' '}
+                    {TOOL_CATEGORIES.map((category, index) => (
+                      <span key={category}>
+                        <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{category}</code>
+                        {index < TOOL_CATEGORIES.length - 1 ? ', ' : ''}
+                      </span>
+                    ))}{' '}
+                    . Use when the caller needs a subset of tools.
+                  </p>
+                </div>
+                <div className={DOC_ENDPOINT_BOX_CLASS}>
+                  <DocEndpointRow method="POST" path="/api/function-calling/chat" enableCopy />
+                  <p className={DOC_ENDPOINT_DESC_CLASS}>
+                    Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ messages, model? }'}</code>. Requires{' '}
+                    <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">OPENAI_API_KEY</code>. The server sends messages + tools to OpenAI, runs tool_calls via MCP tools,
+                    and returns the final reply.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </>
       }

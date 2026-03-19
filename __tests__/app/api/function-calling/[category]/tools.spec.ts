@@ -43,6 +43,6 @@ describe('Function Calling API /api/function-calling/[category]/tools', () => {
     expect(res.status).toBe(404)
     const data = await res.json()
     expect(data.error).toBeDefined()
-    expect(data.allowed).toEqual(['dns', 'holiday', 'fuel-price', 'exchange-rate', 'movies', 'weather', 'finance'])
+    expect(data.allowed).toEqual(['dns', 'holiday', 'fuel-price', 'exchange-rate', 'movies', 'weather', 'finance', 'prices'])
   })
 })

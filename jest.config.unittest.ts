@@ -19,5 +19,7 @@ export default (): Config.InitialOptions => ({
       prefix: '<rootDir>',
     }),
   },
+  /** Allow ts-jest to transform ESM-only packages in node_modules */
+  transformIgnorePatterns: ['node_modules/(?!(jose)/)'],
   setupFiles: ['<rootDir>/jest.setup.ts'],
 })

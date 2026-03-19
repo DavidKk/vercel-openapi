@@ -17,7 +17,7 @@ export default function MoviesApiPage() {
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/movies" />
+            <DocEndpointRow method="GET" path="/api/movies" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>Returns latest movies list from cache (GIST). No auth required.</p>
           </div>
           <h2 className={DOC_SECTION_TITLE_CLASS}>Response example</h2>

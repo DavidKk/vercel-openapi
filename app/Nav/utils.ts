@@ -1,7 +1,7 @@
 /**
  * Module path segments that appear in the nav. Must stay in sync with NAV_ITEMS in index.tsx.
  */
-const MODULE_SLUGS = new Set(['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'dns', 'finance'])
+const MODULE_SLUGS = new Set(['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'dns', 'finance', 'prices'])
 
 /**
  * Sub-path first segment that is shared across modules (e.g. mcp, api, skill, function-calling).

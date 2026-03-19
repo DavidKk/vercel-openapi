@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { TbApi, TbCheck, TbCode, TbCopy, TbDownload, TbPlayerPlay, TbRobot, TbSelector, TbTerminal, TbX } from 'react-icons/tb'
 
 import { useNotification } from '@/components/Notification'
+import { TOOL_CATEGORIES } from '@/services/function-calling/categories'
 
 type HomeTab = 'mcp' | 'function-calling' | 'skill' | 'api'
 
@@ -17,15 +18,25 @@ const TABS: { id: HomeTab; label: string; icon: ReactNode }[] = [
 ]
 
 /** Module options for ?includes= (same slugs as /api/mcp and function-calling). */
+const TOOL_CATEGORY_LABELS: Record<string, string> = {
+  holiday: 'Holiday',
+  'fuel-price': 'Fuel Price',
+  'exchange-rate': 'Exchange Rate',
+  weather: 'Weather',
+  movies: 'Movies',
+  dns: 'DNS',
+  finance: 'Finance',
+  prices: 'Prices',
+}
+
+const MODULE_OPTIONS_ORDER: string[] = ['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'dns', 'finance']
+
 const MODULE_OPTIONS: { id: string; label: string }[] = [
-  { id: 'holiday', label: 'Holiday' },
-  { id: 'fuel-price', label: 'Fuel Price' },
-  { id: 'exchange-rate', label: 'Exchange Rate' },
-  { id: 'geo', label: 'China GEO' },
-  { id: 'weather', label: 'Weather' },
-  { id: 'movies', label: 'Movies' },
-  { id: 'dns', label: 'DNS' },
-  { id: 'finance', label: 'Finance' },
+  ...MODULE_OPTIONS_ORDER.filter((id) => id === 'geo' || (TOOL_CATEGORIES as readonly string[]).includes(id)).map((id) => ({
+    id,
+    label: id === 'geo' ? 'China GEO' : (TOOL_CATEGORY_LABELS[id] ?? id),
+  })),
+  ...TOOL_CATEGORIES.filter((id) => !MODULE_OPTIONS_ORDER.includes(id)).map((id) => ({ id, label: TOOL_CATEGORY_LABELS[id] ?? id })),
 ]
 
 const ALL_MODULE_IDS = MODULE_OPTIONS.map((o) => o.id)

@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from 'react'
 
-import { NotificationType, useNotificationContext } from '../context/NotificationContext'
+import { NotificationType, useOptionalNotificationContext } from '../context/NotificationContext'
 
 /** Throttle interval for progress updates (ms) */
 const PROGRESS_THROTTLE_MS = 100
@@ -32,7 +32,11 @@ const throttleState = (): { lastUpdate: number; pendingPercent: number | null; t
 })
 
 export function useNotification() {
-  const { addNotification, updateNotification, removeNotification, clearAll } = useNotificationContext()
+  const context = useOptionalNotificationContext()
+  const addNotification = context?.addNotification ?? (() => '')
+  const updateNotification = context?.updateNotification ?? (() => {})
+  const removeNotification = context?.removeNotification ?? (() => {})
+  const clearAll = context?.clearAll ?? (() => {})
   const throttleMapRef = useRef<Map<string, ReturnType<typeof throttleState>>>(new Map())
 
   /**

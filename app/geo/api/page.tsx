@@ -16,14 +16,14 @@ export default function GeoApiPage() {
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/geo" />
+            <DocEndpointRow method="GET" path="/api/geo" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Query: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">latitude</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">longitude</code>{' '}
               (numbers). Cacheable (long-lived). Returns <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">province</code>,{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">city</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">district</code>,{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">latitude</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">longitude</code>.
             </p>
-            <DocEndpointRow method="POST" path="/api/geo" />
+            <DocEndpointRow method="POST" path="/api/geo" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ latitude, longitude }'}</code> (numbers). Same response.
             </p>

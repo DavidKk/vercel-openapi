@@ -1,0 +1,19 @@
+import { getAllProducts } from '@/app/actions/prices/product'
+import { checkAccess } from '@/services/auth/access'
+
+import { PricesManager } from './prices-manager'
+
+/**
+ * Prices manage page. Requires authenticated session.
+ * @returns Product manager page
+ */
+export default async function PricesManagePage() {
+  await checkAccess({ isApiRouter: false })
+  const products = await getAllProducts()
+
+  return (
+    <section className="flex h-full flex-col p-4 md:p-6">
+      <PricesManager initialProducts={products} />
+    </section>
+  )
+}
