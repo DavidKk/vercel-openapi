@@ -1,6 +1,8 @@
 import { TbApi, TbCode, TbFileText, TbRobot } from 'react-icons/tb'
 
+import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { validateCookie } from '@/services/auth/access'
 
 interface WeatherLayoutProps {
   children: React.ReactNode
@@ -19,13 +21,15 @@ const SIDEBAR_ITEMS = [
  * @param props Layout props containing page children
  * @returns Weather layout with sidebar and content area
  */
-export default function WeatherLayout(props: Readonly<WeatherLayoutProps>) {
+export default async function WeatherLayout(props: Readonly<WeatherLayoutProps>) {
   const { children } = props
+  const isAuthenticated = await validateCookie()
+  const sidebarItems = withManageSidebarItem(SIDEBAR_ITEMS, '/weather', isAuthenticated)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-100">
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <DashboardSidebar items={SIDEBAR_ITEMS} />
+        <DashboardSidebar items={sidebarItems} />
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
       </div>
     </div>

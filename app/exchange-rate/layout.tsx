@@ -1,6 +1,8 @@
 import { TbApi, TbCode, TbCurrencyDollar, TbFileText, TbRobot } from 'react-icons/tb'
 
+import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
+import { validateCookie } from '@/services/auth/access'
 
 interface ExchangeRateLayoutProps {
   children: React.ReactNode
@@ -19,13 +21,15 @@ const EXCHANGE_RATE_SIDEBAR_ITEMS = [
  * @param props Layout props containing page children
  * @returns Exchange rate layout with sidebar and content area
  */
-export default function ExchangeRateLayout(props: Readonly<ExchangeRateLayoutProps>) {
+export default async function ExchangeRateLayout(props: Readonly<ExchangeRateLayoutProps>) {
   const { children } = props
+  const isAuthenticated = await validateCookie()
+  const sidebarItems = withManageSidebarItem(EXCHANGE_RATE_SIDEBAR_ITEMS, '/exchange-rate', isAuthenticated)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-100">
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <DashboardSidebar items={EXCHANGE_RATE_SIDEBAR_ITEMS} />
+        <DashboardSidebar items={sidebarItems} />
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
       </div>
     </div>

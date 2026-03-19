@@ -9,7 +9,7 @@ import { generateToken } from '@/utils/jwt'
 
 const logger = createLogger('auth-login')
 
-export async function login(username: string, password: string, token: string) {
+export async function login(username: string, password: string, token?: string) {
   if (!username) {
     throw new Error('Username is required')
   }
@@ -28,11 +28,11 @@ export async function login(username: string, password: string, token: string) {
     throw new Error('Invalid username or password')
   }
 
-  const authToken = await generateToken({ authenticated: true })
+  const authToken = await generateToken({ authenticated: true, username }, '7d')
   const cookie = serialize(AUTH_TOKEN_NAME, authToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60,
+    maxAge: 7 * 24 * 60 * 60,
     path: '/',
   })
 
