@@ -2,7 +2,7 @@
 
 import { useRequest } from 'ahooks'
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import Alert, { type AlertImperativeHandler } from '@/components/Alert'
 import { Spinner } from '@/components/Spinner'
@@ -24,6 +24,7 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
   const [access2FAToken, setAccess2FAToken] = useState('')
   const [complete, setComplete] = useState(false)
   const alertRef = useRef<AlertImperativeHandler>(null)
+  const prev2FACompletionRef = useRef(false)
   const router = useRouter()
 
   const { run: submit, loading: submitting } = useRequest(
@@ -58,8 +59,41 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submitting || complete) {
+      return
+    }
     submit()
   }
+
+  /**
+   * Automatically attempt login when a full 6-digit 2FA token is entered.
+   * It triggers only on the transition "incomplete -> complete" to avoid repeat submissions.
+   */
+  useEffect(() => {
+    if (!enable2FA) {
+      prev2FACompletionRef.current = false
+      return
+    }
+
+    const isComplete = /^\d{6}$/.test(access2FAToken)
+    const wasComplete = prev2FACompletionRef.current
+    prev2FACompletionRef.current = isComplete
+
+    if (!isComplete || wasComplete) {
+      return
+    }
+
+    if (complete || submitting) {
+      return
+    }
+
+    // Keep parity with server validation: require username/password before auto-submit.
+    if (!username || !password) {
+      return
+    }
+
+    submit()
+  }, [access2FAToken, complete, enable2FA, password, submitting, submit, username])
 
   return (
     <div className="flex h-full justify-center bg-gray-100 pt-[20vh]">
@@ -88,18 +122,19 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
             onChange={(event) => setAccess2FAToken(event.target.value)}
             placeholder="2FA Code"
             maxLength={6}
-            pattern="\d{6}"
+            pattern="[0-9]{6}"
             required
           />
         )}
         <button
           disabled={submitting || complete}
           type="submit"
-          className="relative w-full max-w-lg rounded bg-gray-900 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full max-w-lg rounded bg-gray-900 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? (
-            <span className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2">
+            <span className="inline-flex items-center justify-center gap-2" aria-live="polite">
               <Spinner />
+              <span>Logging in...</span>
             </span>
           ) : complete ? (
             <span>Signing in...</span>
