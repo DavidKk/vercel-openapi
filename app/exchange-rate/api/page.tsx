@@ -17,7 +17,7 @@ export default function ExchangeRateApiPage() {
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/exchange-rate" />
+            <DocEndpointRow method="GET" path="/api/exchange-rate" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Query: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">base</code> (default USD). Returns{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">base</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">date</code>,{' '}
@@ -26,7 +26,7 @@ export default function ExchangeRateApiPage() {
           </div>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="POST" path="/api/exchange-rate" />
+            <DocEndpointRow method="POST" path="/api/exchange-rate" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ from, to, amount }'}</code>. Returns{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">from</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">to</code>,{' '}

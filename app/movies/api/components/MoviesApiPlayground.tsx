@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { TbCode } from 'react-icons/tb'
 
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
+import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
+import type { RequestExampleInput } from '@/utils/requestExamples'
 
 interface MoviesApiState {
   loading: boolean
@@ -19,6 +22,8 @@ interface MoviesApiState {
  */
 export function MoviesApiPlayground() {
   const [state, setState] = useState<MoviesApiState>({ loading: false })
+
+  const [examplesOpen, setExamplesOpen] = useState(false)
 
   async function handleSendRequest() {
     try {
@@ -51,6 +56,15 @@ export function MoviesApiPlayground() {
 
   const { loading, status, durationMs, error, responseBody } = state
 
+  const requestExamples: RequestExampleInput = (() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    return {
+      method: 'GET',
+      url: `${origin}/api/movies`,
+      headers: { Accept: 'application/json' },
+    }
+  })()
+
   return (
     <div className="flex h-full flex-col bg-white">
       <PlaygroundPanelHeader />
@@ -62,14 +76,28 @@ export function MoviesApiPlayground() {
           </div>
           <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <p className="text-[11px] text-gray-600">Returns latest movies from cache. No parameters.</p>
-            <button
-              type="button"
-              className="inline-flex w-fit items-center justify-center self-start rounded border border-gray-300 bg-gray-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={handleSendRequest}
-              disabled={loading}
-            >
-              {loading ? 'Sending...' : 'Send request'}
-            </button>
+            <div className="flex items-center gap-2 self-start">
+              <button
+                type="button"
+                className="inline-flex w-fit items-center justify-center rounded border border-gray-300 bg-gray-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleSendRequest}
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Send request'}
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded border border-gray-300 bg-white px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setExamplesOpen(true)}
+                aria-label="Request examples"
+                title="Request examples"
+                disabled={loading}
+              >
+                <span className="inline-flex h-4 w-4 items-center justify-center">
+                  <TbCode className="h-3 w-3" />
+                </span>
+              </button>
+            </div>
             {durationMs !== undefined && <p className="text-[10px] text-gray-500">Last request: {durationMs.toFixed(0)} ms</p>}
           </div>
         </div>
@@ -89,6 +117,7 @@ export function MoviesApiPlayground() {
           </div>
         </div>
       </div>
+      <RequestExamplesPopup open={examplesOpen} onClose={() => setExamplesOpen(false)} request={requestExamples} defaultTab="curl" />
     </div>
   )
 }

@@ -158,3 +158,11 @@ export function useNotificationContext(): NotificationContextValue {
   }
   return context
 }
+
+/**
+ * Hook to use notification context when provider may be absent.
+ * @returns Notification context value or null
+ */
+export function useOptionalNotificationContext(): NotificationContextValue | null {
+  return useContext(NotificationContext)
+}

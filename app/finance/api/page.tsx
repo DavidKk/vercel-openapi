@@ -16,7 +16,7 @@ export default function FinanceTasiApiPage() {
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/finance/tasi/company/daily" />
+            <DocEndpointRow method="GET" path="/api/finance/tasi/company/daily" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               No params = today all companies. <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">date=YYYY-MM-DD</code> = that day.{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">code</code> + <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">from</code> +{' '}
@@ -25,7 +25,7 @@ export default function FinanceTasiApiPage() {
           </div>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/finance/tasi/summary/daily" />
+            <DocEndpointRow method="GET" path="/api/finance/tasi/summary/daily" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               No params = today. <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">date=YYYY-MM-DD</code> = that day.{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">from</code> + <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">to</code> = market K-line.

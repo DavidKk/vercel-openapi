@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { TbCode } from 'react-icons/tb'
 
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
+import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
+import type { RequestExampleInput } from '@/utils/requestExamples'
 
 interface GeoApiState {
   loading: boolean
@@ -25,6 +28,8 @@ export function GeoApiPlayground() {
     latitude: '39.9042',
     longitude: '116.4074',
   })
+
+  const [examplesOpen, setExamplesOpen] = useState(false)
 
   async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -66,6 +71,17 @@ export function GeoApiPlayground() {
 
   const { loading, status, durationMs, error, responseBody, latitude, longitude } = state
 
+  const requestExamples: RequestExampleInput | null = (() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const lat = parseFloat(latitude)
+    const lng = parseFloat(longitude)
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+    return {
+      method: 'GET',
+      url: `${origin}/api/geo?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}`,
+    }
+  })()
+
   return (
     <div className="flex h-full flex-col bg-white">
       <PlaygroundPanelHeader />
@@ -105,6 +121,18 @@ export function GeoApiPlayground() {
               >
                 {loading ? 'Sending...' : 'Send request'}
               </button>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded border border-gray-300 bg-white px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setExamplesOpen(true)}
+                disabled={!requestExamples}
+                aria-label="Request examples"
+                title="Request examples"
+              >
+                <span className="inline-flex h-4 w-4 items-center justify-center">
+                  <TbCode className="h-3 w-3" />
+                </span>
+              </button>
               {durationMs !== undefined && <span className="text-[10px] text-gray-500">{durationMs.toFixed(0)} ms</span>}
             </div>
           </div>
@@ -126,6 +154,7 @@ export function GeoApiPlayground() {
           </div>
         </div>
       </form>
+      <RequestExamplesPopup open={examplesOpen} onClose={() => setExamplesOpen(false)} request={requestExamples} defaultTab="curl" />
     </div>
   )
 }

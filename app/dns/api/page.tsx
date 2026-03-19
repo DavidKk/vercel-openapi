@@ -20,7 +20,7 @@ export default function DnsApiPage() {
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
 
           <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/dns" />
+            <DocEndpointRow method="GET" path="/api/dns" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Query: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">domain</code> (required),{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">dns</code> (optional, default 1.1.1.1). Returns A and AAAA records in one response.

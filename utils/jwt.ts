@@ -1,5 +1,3 @@
-import { jwtVerify, SignJWT } from 'jose'
-
 /**
  * Encode JWT secret string to Uint8Array for jose HMAC (HS256)
  */
@@ -16,6 +14,7 @@ function getSecretKey(secret: string): Uint8Array {
 export async function generateToken(payload: object, expiresIn?: string): Promise<string> {
   const { JWT_SECRET, JWT_EXPIRES_IN } = getJWTConfig()
   const key = getSecretKey(JWT_SECRET)
+  const { SignJWT } = await import('jose')
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime(expiresIn ?? JWT_EXPIRES_IN)
@@ -31,6 +30,7 @@ export async function verifyToken(token: string): Promise<Record<string, unknown
   try {
     const { JWT_SECRET } = getJWTConfig()
     const key = getSecretKey(JWT_SECRET)
+    const { jwtVerify } = await import('jose')
     const { payload } = await jwtVerify(token, key)
     return (payload as Record<string, unknown>) ?? null
   } catch {

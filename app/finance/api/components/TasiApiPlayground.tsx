@@ -1,10 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { TbCode } from 'react-icons/tb'
 
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
+import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
+import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
+import type { RequestExampleInput } from '@/utils/requestExamples'
 
 type Endpoint = 'company' | 'summary'
 
@@ -33,6 +37,8 @@ export function TasiApiPlayground() {
     from: '',
     to: '',
   })
+
+  const [examplesOpen, setExamplesOpen] = useState(false)
 
   async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -88,6 +94,34 @@ export function TasiApiPlayground() {
   const { loading, status, durationMs, error, responseBody, endpoint, date, code, from, to } = state
   const path = endpoint === 'company' ? '/api/finance/tasi/company/daily' : '/api/finance/tasi/summary/daily'
 
+  const requestExamples: RequestExampleInput = (() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    let url: string
+    if (endpoint === 'company') {
+      if (code && from && to) {
+        url = `${path}?code=${encodeURIComponent(code)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      } else if (date) {
+        url = `${path}?date=${encodeURIComponent(date)}`
+      } else {
+        url = path
+      }
+    } else {
+      if (from && to) {
+        url = `${path}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      } else if (date) {
+        url = `${path}?date=${encodeURIComponent(date)}`
+      } else {
+        url = path
+      }
+    }
+
+    return {
+      method: 'GET',
+      url: `${origin}${url}`,
+      headers: { Accept: 'application/json' },
+    }
+  })()
+
   return (
     <div className="flex h-full flex-col bg-white">
       <PlaygroundPanelHeader />
@@ -100,14 +134,14 @@ export function TasiApiPlayground() {
           <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">
               <span>Endpoint</span>
-              <select
-                className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+              <FormSelect
                 value={endpoint}
-                onChange={(e) => setState((prev) => ({ ...prev, endpoint: e.target.value as Endpoint }))}
-              >
-                <option value="company">Company daily</option>
-                <option value="summary">Summary daily</option>
-              </select>
+                onChange={(v) => setState((prev) => ({ ...prev, endpoint: v as Endpoint }))}
+                options={[
+                  { value: 'company', label: 'Company daily' },
+                  { value: 'summary', label: 'Summary daily' },
+                ]}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span>date (optional, YYYY-MM-DD)</span>
@@ -185,6 +219,17 @@ export function TasiApiPlayground() {
               >
                 {loading ? 'Sending…' : 'Send request'}
               </button>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded border border-gray-300 bg-white px-2 py-1 text-[11px] font-medium text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setExamplesOpen(true)}
+                aria-label="Request examples"
+                title="Request examples"
+              >
+                <span className="inline-flex h-4 w-4 items-center justify-center">
+                  <TbCode className="h-3 w-3" />
+                </span>
+              </button>
               {durationMs != null && <span className="text-[10px] text-gray-500">{durationMs.toFixed(0)} ms</span>}
             </div>
           </div>
@@ -199,6 +244,7 @@ export function TasiApiPlayground() {
           </div>
         </div>
       </form>
+      <RequestExamplesPopup open={examplesOpen} onClose={() => setExamplesOpen(false)} request={requestExamples} defaultTab="curl" />
     </div>
   )
 }

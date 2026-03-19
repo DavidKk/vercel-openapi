@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
+import { MdPriceCheck } from 'react-icons/md'
 import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbGasStation, TbMapPin, TbMovie, TbWorld } from 'react-icons/tb'
 
 import { Tooltip } from '@/components/Tooltip'
@@ -67,6 +68,7 @@ const NAV_ITEMS = [
   { href: '/movies', title: 'Movies', icon: <TbMovie className="h-5 w-5" /> },
   { href: '/dns', title: 'DNS Query', icon: <TbWorld className="h-5 w-5" /> },
   { href: '/finance', title: 'Finance', icon: <TbChartLine className="h-5 w-5" /> },
+  { href: '/prices', title: 'Prices', icon: <MdPriceCheck className="h-5 w-5" /> },
 ]
 
 export function Nav() {

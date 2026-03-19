@@ -1,0 +1,43 @@
+# Prices module schema
+
+id: prices
+name: Prices
+routePrefix: /prices
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+    iconName: TbCurrencyDollar
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+apiPage:
+  title: Prices REST API
+  subtitle: Module currently focuses on overview and authenticated manager workflow.
+  endpoints:
+    - method: GET
+      path: /prices
+      description: Public overview page for price comparison.
+    - method: GET
+      path: /prices/manage
+      description: Authenticated product manager page.
+  playgroundComponentName: PricesApiPlayground
+  playgroundImportPath: '@/app/prices/api/components'
+
+mcpPage:
+  title: Prices MCP tools
+  subtitle: Prices MCP tools are not exposed yet.
+  tools: []
+  playgroundComponentName: PricesMcpPlayground
+  playgroundImportPath: '@/app/prices/mcp/components'
