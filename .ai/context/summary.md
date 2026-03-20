@@ -1,6 +1,6 @@
 # Project summary (one page)
 
-**Product:** unbnd — public API layer for developers; all public APIs are **read-only** and return **latest credit/data** (holiday, fuel-price, exchange-rate, geo, movies, weather, dns, finance, prices). Next.js App Router, Vercel, JWT + optional 2FA.
+**Product:** unbnd — public API layer for developers; all public APIs are **read-only** and return **latest credit/data** (holiday, fuel-price, exchange-rate, geo, movies, weather, dns, finance, prices, proxy-rule clash config). Next.js App Router, Vercel, JWT + optional 2FA.
 
 **Structure:**
 
@@ -12,4 +12,4 @@
 - **Schemas:** `.ai/schemas/*.yaml` (one per module); generator: `pnpm run generate:module .ai/schemas/<id>.yaml`.
 - **Skills:** `.ai/skills/module-generator/SKILL.md` for new modules.
 
-**Modules:** See `.ai/specs/README.md` for the full list: holiday, fuel-price, exchange-rate, geo, movies, weather, dns, finance, prices. Each has 5 sidebar entries (Overview, API, MCP, Function Calling, Skill). API pattern: edge, `api()`, `jsonSuccess`.
+**Modules:** See `.ai/specs/README.md` for the full list: holiday, fuel-price, exchange-rate, geo, movies, weather, dns, finance, prices, proxy-rule. Each has 5 sidebar entries (Overview, API, MCP, Function Calling, Skill). API pattern: edge, `api()`, `jsonSuccess`.

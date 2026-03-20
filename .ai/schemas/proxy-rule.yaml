@@ -1,0 +1,48 @@
+# Proxy rule module schema (reference; layout matches generated app/proxy-rule/*)
+
+id: proxy-rule
+name: Proxy Rule
+routePrefix: /proxy-rule
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+apiPage:
+  title: Proxy rule API
+  subtitle: Public merged Clash config and authenticated gist admin.
+  endpoints:
+    - method: GET
+      path: /api/proxy-rule/clash/config?type=Proxy
+      description: Returns merged RULE-SET line prefixes for the given action.
+    - method: GET
+      path: /api/proxy-rule/admin/clash
+      description: Authenticated — list rules from gist.
+    - method: POST
+      path: /api/proxy-rule/admin/clash
+      description: Authenticated — replace gist rules.
+  playgroundComponentName: ProxyRuleApiPlayground
+  playgroundImportPath: '@/app/proxy-rule/api/components'
+
+mcpPage:
+  title: Proxy rule MCP tools
+  subtitle: get_clash_rule_config for merged clash lines.
+  tools:
+    - name: get_clash_rule_config
+      description: Returns merged payload lines for a clash action.
+      paramsDescription: 'type: string (required) — e.g. Proxy.'
+  playgroundComponentName: ProxyRuleMcpPlayground
+  playgroundImportPath: '@/app/proxy-rule/mcp/components'

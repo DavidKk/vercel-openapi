@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { MdOutlineAdminPanelSettings } from 'react-icons/md'
 import { TbLogout, TbUserCircle } from 'react-icons/tb'
 
@@ -18,6 +18,14 @@ interface SessionData {
  * @returns Auth control shown on the right side of global header
  */
 export function AuthEntry() {
+  return (
+    <Suspense fallback={<span className="block h-9 w-9 shrink-0" aria-hidden="true" />}>
+      <AuthEntryContent />
+    </Suspense>
+  )
+}
+
+function AuthEntryContent() {
   const [session, setSession] = useState<SessionData | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)

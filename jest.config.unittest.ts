@@ -18,8 +18,14 @@ export default (): Config.InitialOptions => ({
     ...pathsToModuleNameMapper(tsconfigPaths, {
       prefix: '<rootDir>',
     }),
+    // Support `import x from './file.md?raw'` in unit tests.
+    '^(.+\\.md)\\?raw$': '$1',
   },
   /** Allow ts-jest to transform ESM-only packages in node_modules */
   transformIgnorePatterns: ['node_modules/(?!(jose)/)'],
+  transform: {
+    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.md$': '<rootDir>/jest-md-raw-transformer.js',
+  },
   setupFiles: ['<rootDir>/jest.setup.ts'],
 })

@@ -1,4 +1,5 @@
 import { GET } from '@/app/api/function-calling/[category]/tools/route'
+import { TOOL_CATEGORIES } from '@/services/function-calling/categories'
 
 describe('Function Calling API /api/function-calling/[category]/tools', () => {
   it('should return 200 and only holiday tools for category holiday', async () => {
@@ -43,6 +44,6 @@ describe('Function Calling API /api/function-calling/[category]/tools', () => {
     expect(res.status).toBe(404)
     const data = await res.json()
     expect(data.error).toBeDefined()
-    expect(data.allowed).toEqual(['dns', 'holiday', 'fuel-price', 'exchange-rate', 'movies', 'weather', 'finance', 'prices'])
+    expect(data.allowed).toEqual(TOOL_CATEGORIES)
   })
 })

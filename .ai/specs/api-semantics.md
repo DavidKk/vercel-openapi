@@ -16,9 +16,10 @@
 - `/api/weather`
 - `/api/dns`
 - `/api/finance/...` (e.g. TASI company/summary daily)
+- `/api/proxy-rule/clash/config` (merged Clash RULE-SET line prefixes; query `type`)
 - (and any future module under `/api/<module>/...`)
 
-Excluded: auth (`/api/auth`), cron (`/api/cron`), MCP (`/api/mcp`), install-skill, and other internal or admin endpoints. Those may have different semantics; this spec applies only to **public** data APIs above.
+Excluded: auth (`/api/auth`), cron (`/api/cron`), MCP (`/api/mcp`), install-skill, authenticated admin routes (e.g. `/api/proxy-rule/admin/...`), and other internal or admin endpoints. Those may have different semantics; this spec applies only to **public** data APIs above.
 
 ---
 
@@ -58,7 +59,7 @@ Server-side callers (e.g. other API routes, MCP tools, Server Components that ne
 
 ## Per-module specs (split requirements)
 
-Each **module** (holiday, fuel-price, exchange-rate, geo, movies, weather, dns, finance, …) should have its own **module spec** that defines:
+Each **module** (holiday, fuel-price, exchange-rate, geo, movies, weather, dns, finance, prices, proxy-rule, …) should have its own **module spec** that defines:
 
 - Purpose and scope of that module’s public API
 - Endpoints: method, path, query/body params, response shape
