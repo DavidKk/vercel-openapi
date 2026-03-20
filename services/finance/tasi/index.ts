@@ -1,5 +1,5 @@
 /**
- * Finance (TASI): read today from GIST (if not expired) or remote; DB is backup only. See services/finance/tasi/README.md.
+ * Finance (TASI): read today snapshot from KV (if not expired) or remote; DB is backup only. See services/finance/tasi/README.md.
  */
 
 import { createLogger } from '@/services/logger'
@@ -50,7 +50,7 @@ function clampRange(from: string, to: string, maxDays: number): { from: string; 
 }
 
 /**
- * Get company daily: for today use GIST (if not expired) → remote; else from Turso or K-line. DB not used for today read.
+ * Get company daily: for today use KV snapshot (if not expired) → remote; else from Turso or K-line. DB not used for today read.
  *
  * @param options date (single day), or code+from+to (K-line)
  * @returns Company records or []
@@ -78,11 +78,11 @@ export async function getCompanyDaily(options: { date?: string; code?: string; f
   return getCompanyDailyToday()
 }
 
-/** Latest trading day: use GIST if not expired (by TTL), else fetch from remote. No date match — data is previous trading day. */
+/** Latest trading day: use KV snapshot if not expired (by TTL), else fetch from remote. No date match — data is previous trading day. */
 async function getCompanyDailyToday(): Promise<TasiCompanyDailyRecord[]> {
   const fromGist = await getTasiSnapshotFromGist()
   if (fromGist && !isGistSnapshotExpired(fromGist) && Array.isArray(fromGist.company) && fromGist.company.length > 0) {
-    logger.info('company daily: cache hit GIST', { snapshotDate: fromGist.date, count: fromGist.company.length })
+    logger.info('company daily: cache hit KV', { snapshotDate: fromGist.date, count: fromGist.company.length })
     return fromGist.company
   }
   logger.info('company daily: cache miss, fetching from remote')
@@ -91,7 +91,7 @@ async function getCompanyDailyToday(): Promise<TasiCompanyDailyRecord[]> {
 }
 
 /**
- * Get market summary: for today use GIST (if not expired) → remote; else from Turso or K-line. DB not used for today read.
+ * Get market summary: for today use KV snapshot (if not expired) → remote; else from Turso or K-line. DB not used for today read.
  *
  * @param options date (single day), or from+to (K-line)
  * @returns Summary or array of summaries, or null/[]
@@ -119,11 +119,11 @@ export async function getSummaryDaily(options: { date?: string; from?: string; t
   return getSummaryDailyToday()
 }
 
-/** Latest trading day: use GIST if not expired (by TTL), else fetch from remote. No date match — data is previous trading day. */
+/** Latest trading day: use KV snapshot if not expired (by TTL), else fetch from remote. No date match — data is previous trading day. */
 async function getSummaryDailyToday(): Promise<TasiMarketSummary | null> {
   const fromGist = await getTasiSnapshotFromGist()
   if (fromGist && !isGistSnapshotExpired(fromGist) && fromGist.summary != null) {
-    logger.info('summary daily: cache hit GIST', { snapshotDate: fromGist.date })
+    logger.info('summary daily: cache hit KV', { snapshotDate: fromGist.date })
     return fromGist.summary
   }
   logger.info('summary daily: cache miss, fetching from remote')
@@ -132,7 +132,7 @@ async function getSummaryDailyToday(): Promise<TasiMarketSummary | null> {
 }
 
 /**
- * Fetch today from remote and apply write rules (same date → GIST only; new date → DB then GIST). Dedupes parallel calls.
+ * Fetch today from remote and apply write rules (same date → KV only; new date → DB then KV). Dedupes parallel calls.
  */
 async function getTodaySnapshotFromRemoteAndPersist(): Promise<{ date: string; company: TasiCompanyDailyRecord[]; summary: TasiMarketSummary }> {
   if (todayRefreshPromise) return todayRefreshPromise
@@ -152,16 +152,16 @@ async function getTodaySnapshotFromRemoteAndPersist(): Promise<{ date: string; c
 }
 
 /**
- * Apply write rules: if prev GIST has same date → update GIST only; else write DB then GIST (new day).
+ * Apply write rules: if prev KV has same date → update KV only; else write DB then KV (new day).
  */
 async function applyFreshData(snapshot: { date: string; company: TasiCompanyDailyRecord[]; summary: TasiMarketSummary }): Promise<void> {
   const prev = await getTasiSnapshotFromGist()
   if (prev && prev.date === snapshot.date) {
-    logger.info('applyFreshData: same date, GIST only', { date: snapshot.date })
+    logger.info('applyFreshData: same date, KV only', { date: snapshot.date })
     await saveTasiSnapshotToGist(snapshot)
     return
   }
-  logger.info('applyFreshData: new date, DB then GIST', { date: snapshot.date, companyCount: snapshot.company.length })
+  logger.info('applyFreshData: new date, DB then KV', { date: snapshot.date, companyCount: snapshot.company.length })
   await writeCompanyDaily(snapshot.date, snapshot.company)
   await writeSummary(snapshot.date, snapshot.summary)
   await deleteOlderThanRetention()
@@ -169,7 +169,7 @@ async function applyFreshData(snapshot: { date: string; company: TasiCompanyDail
 }
 
 /**
- * Cron ingest: fetch from remote, then apply write rules (same date → GIST only; new date → DB then GIST). Fallback so no day is missed.
+ * Cron ingest: fetch from remote, then apply write rules (same date → KV only; new date → DB then KV). Fallback so no day is missed.
  *
  * @returns { written: boolean, date: string }
  */
@@ -182,11 +182,11 @@ export async function runIngest(): Promise<{ written: boolean; date: string }> {
   const prev = await getTasiSnapshotFromGist()
   const sameDate = prev != null && prev.date === date
   if (sameDate) {
-    logger.info('ingest: same date, GIST only', { date })
+    logger.info('ingest: same date, KV only', { date })
     await saveTasiSnapshotToGist(snapshot)
     return { written: true, date }
   }
-  logger.info('ingest: new date, DB then GIST', { date, companyCount: company.length })
+  logger.info('ingest: new date, DB then KV', { date, companyCount: company.length })
   await writeCompanyDaily(date, company)
   await writeSummary(date, summary)
   await deleteOlderThanRetention()

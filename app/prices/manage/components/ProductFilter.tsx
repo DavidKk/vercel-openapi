@@ -25,7 +25,7 @@ export function ProductFilter({ onFilterChange, placeholder = 'Filter products..
       <input
         type="text"
         placeholder={placeholder}
-        className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 pr-10 text-sm text-gray-900 outline-none transition focus:ring-2 focus:ring-gray-200"
+        className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 pr-10 text-sm text-gray-900 outline-none transition-colors focus:outline-none focus:border-gray-500"
         value={filterText}
         onChange={(event) => setFilterText(event.target.value)}
       />

@@ -1,5 +1,7 @@
 import { TbSettings } from 'react-icons/tb'
 
+import { MODULES_WITH_MANAGER_PAGES } from '@/app/Nav/utils'
+
 import type { DashboardSidebarItem } from './DashboardSidebar'
 
 /**
@@ -11,6 +13,11 @@ import type { DashboardSidebarItem } from './DashboardSidebar'
  */
 export function withManageSidebarItem(items: DashboardSidebarItem[], modulePath: string, authenticated: boolean): DashboardSidebarItem[] {
   if (!authenticated) {
+    return items
+  }
+
+  const moduleSlug = modulePath.replace(/^\/+/, '').split('/')[0]
+  if (!MODULES_WITH_MANAGER_PAGES.has(moduleSlug)) {
     return items
   }
 

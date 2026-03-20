@@ -12,7 +12,7 @@ export { createInitialCacheData, getMoviesFromGist, getResultFromCache, setResul
 export type { MoviesCacheData } from './types'
 
 /**
- * Read-only: get movies from cache (memory or GIST). Never triggers upstream API.
+ * Read-only: get movies from cache (memory or KV). Never triggers upstream API.
  * @returns Cached movies or empty array
  */
 export async function getMoviesListFromCache(): Promise<MergedMovie[]> {
@@ -36,7 +36,7 @@ let cachedTimestamp = 0
 /**
  * Get movies list and cache timestamp for API response.
  * Aligned with veil: use cache when present; updates only via cron.
- * - Has data (memory or GIST): return it; do not refresh. Cron handles updates.
+ * - Has data (memory or KV): return it; do not refresh. Cron handles updates.
  * - No data: trigger a one-shot fetch to bootstrap cache, then return (or empty on failure).
  * Returns { movies, cachedAt }; cachedAt is 0 when no cache.
  */
@@ -53,7 +53,7 @@ export async function getMoviesListWithTimestamp(): Promise<{
   try {
     cacheData = await getMoviesFromGist()
   } catch {
-    // GIST not configured or read failed
+    // KV not configured or read failed
   }
 
   if (cacheData?.data?.movies && cacheData.data.movies.length > 0) {
@@ -73,12 +73,12 @@ export async function getMoviesListWithTimestamp(): Promise<{
 }
 
 export interface GetMoviesListWithAutoUpdateOptions extends GetMergedMoviesListOptions {
-  /** When true, skip cache freshness check and always fetch Maoyan + TMDB and write to GIST */
+  /** When true, skip cache freshness check and always fetch Maoyan + TMDB and write to KV */
   forceRefresh?: boolean
 }
 
 /**
- * Get movies with auto-update: read cache; if stale/missing, fetch and save to GIST.
+ * Get movies with auto-update: read cache; if stale/missing, fetch and save to KV.
  * For use by cron or server; not from Edge (uses Node/async I/O).
  * @param options Merge options and optional forceRefresh
  * @returns Movies list
@@ -99,7 +99,7 @@ export async function getMoviesListWithAutoUpdate(options: GetMoviesListWithAuto
   if (cacheData && !needsUpdate) {
     const count = cacheData.data.movies.length
     const ts = cacheData.data.timestamp
-    logger.info('Using GIST cache (not stale)', {
+    logger.info('Using KV cache (not stale)', {
       count,
       timestamp: ts,
       updatedAt: ts ? new Date(ts).toISOString() : undefined,
@@ -114,7 +114,7 @@ export async function getMoviesListWithAutoUpdate(options: GetMoviesListWithAuto
     newMovies = await getMergedMoviesListWithoutCache(mergeOptions)
   } catch (err) {
     if (cacheData) {
-      logger.warn('Refresh failed, using previous GIST cache', { count: cacheData.data.movies.length, error: err })
+      logger.warn('Refresh failed, using previous KV cache', { count: cacheData.data.movies.length, error: err })
       return cacheData.data.movies
     }
     throw err
@@ -127,7 +127,7 @@ export async function getMoviesListWithAutoUpdate(options: GetMoviesListWithAuto
     return []
   }
 
-  logger.info('Merged list ready, saving to GIST', { count: newMovies.length })
+  logger.info('Merged list ready, saving to KV', { count: newMovies.length })
   if (!cacheData) cacheData = createInitialCacheData(newMovies)
   else cacheData = updateCacheData(cacheData.data, newMovies, cacheData.notifiedMovieIds)
   try {

@@ -21,15 +21,13 @@ export function ProductItem({ product, isSelected, onSelect, onDelete, disabled 
   return (
     <div
       onClick={!disabled ? onSelect : undefined}
-      className={`w-full rounded-lg border p-3 text-left transition ${
-        disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50'
-      } ${isSelected ? 'border-gray-400 bg-gray-100' : 'border-gray-200 bg-white'}`}
+      className={`w-full px-2 py-1.5 text-left transition ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50'} ${isSelected ? 'bg-gray-100' : 'bg-white'}`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-gray-900">{displayName}</div>
-          {product.remark ? <div className="mt-0.5 truncate text-xs text-gray-500">{product.remark}</div> : null}
-          <div className="mt-1 text-sm text-gray-700">
+          <div className="truncate text-sm text-gray-900 leading-tight">{displayName}</div>
+          {product.remark ? <div className="mt-0.5 truncate text-[11px] text-gray-500 leading-tight">{product.remark}</div> : null}
+          <div className="mt-0.5 truncate text-xs text-gray-700 leading-tight">
             {product.unitBestPrice} / {product.unit}
           </div>
         </div>
@@ -39,7 +37,7 @@ export function ProductItem({ product, isSelected, onSelect, onDelete, disabled 
             event.stopPropagation()
             onDelete(event)
           }}
-          className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+          className="h-7 shrink-0 rounded border border-gray-300 px-2 text-[11px] text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
           disabled={disabled}
         >
           Delete

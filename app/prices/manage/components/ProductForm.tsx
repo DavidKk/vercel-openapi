@@ -18,6 +18,9 @@ interface ProductFormProps {
   afterSaved?: (product: ProductType) => void
   onCancel: () => void
   showEmptyState?: boolean
+  draftMode?: boolean
+  onDraftCreate?: (product: Omit<ProductType, 'id'>) => Promise<ProductType> | ProductType
+  onDraftUpdate?: (id: string, updates: Partial<ProductType>) => Promise<ProductType | null> | ProductType | null
 }
 
 /**
@@ -25,16 +28,17 @@ interface ProductFormProps {
  * @param props Form props
  * @returns Product form
  */
-export function ProductForm({ product, afterSaved, onCancel, showEmptyState = true }: Readonly<ProductFormProps>) {
+export function ProductForm({ product, afterSaved, onCancel, showEmptyState = true, draftMode, onDraftCreate, onDraftUpdate }: Readonly<ProductFormProps>) {
   const notification = useNotification()
   const formRef = useRef<HTMLFormElement>(null)
+  const isDraftMode = Boolean(draftMode)
   const [name, setName] = useState(product?.name || '')
   const [brand, setBrand] = useState(product?.brand || '')
   const [unit, setUnit] = useState(product?.unit || '')
   const [unitBestPrice, setUnitBestPrice] = useState(product?.unitBestPrice?.toString() || '')
   const [unitConversions, setUnitConversions] = useState<string[]>(product?.unitConversions?.length ? [...product.unitConversions] : [''])
   const [remark, setRemark] = useState(product?.remark || '')
-  const { products, loadingAddProduct, loadingUpdateProduct, loadingRemoveProduct, addProductAction, updateProductAction, removeProductAction } = useProductActions()
+  const { products, loadingAddProduct, loadingUpdateProduct, loadingRemoveProduct, addProductAction, updateProductAction } = useProductActions()
   const [isUnitDisabled, setIsUnitDisabled] = useState(false)
 
   const productSuggestions = useMemo(() => {
@@ -45,6 +49,8 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
   const isEditing = Boolean(product)
   const isFormSubmitting = loadingAddProduct || loadingUpdateProduct || loadingRemoveProduct
   const unitConversionValidator = useMemo(() => createProductUnitConversionValidator(unit), [unit])
+  const unitBestPriceNum = parseFloat(unitBestPrice)
+  const canSubmit = Boolean(name.trim()) && Boolean(unit.trim()) && Boolean(unitBestPrice.trim()) && Number.isFinite(unitBestPriceNum) && unitBestPriceNum > 0
 
   function updateFormFields(nextProduct: ProductType) {
     setName(nextProduct.name)
@@ -122,6 +128,11 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
       notification.error('Please fill in all required fields')
       return
     }
+    const validUnit = validateUnit(unit.trim())
+    if (validUnit !== true) {
+      notification.error(validUnit)
+      return
+    }
     const price = parseFloat(unitBestPrice)
     if (Number.isNaN(price) || price <= 0) {
       notification.error('Please enter a valid unit price')
@@ -146,15 +157,38 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
     }
 
     try {
+      const payload = {
+        name: name.trim(),
+        brand: brand.trim() || undefined,
+        unit: unit.trim(),
+        unitBestPrice: price,
+        unitConversions: conversionsToSave.length ? conversionsToSave : undefined,
+        remark: remark.trim() || undefined,
+      }
+
+      if (isDraftMode) {
+        if (isEditing && product) {
+          const updated = await onDraftUpdate?.(product.id, payload)
+          if (!updated) {
+            throw new Error('Failed to update product')
+          }
+          notification.success('Product updated successfully')
+          afterSaved?.(updated)
+          return
+        }
+
+        const created = await onDraftCreate?.(payload)
+        if (!created) {
+          throw new Error('Failed to create product')
+        }
+        notification.success('Product created successfully')
+        afterSaved?.(created)
+        clearFormFields()
+        return
+      }
+
       if (isEditing && product) {
-        const updated = await updateProductAction(product.id, {
-          name: name.trim(),
-          brand: brand.trim() || undefined,
-          unit: unit.trim(),
-          unitBestPrice: price,
-          unitConversions: conversionsToSave.length ? conversionsToSave : undefined,
-          remark: remark.trim() || undefined,
-        })
+        const updated = await updateProductAction(product.id, payload)
         if (!updated) {
           throw new Error('Failed to update product')
         }
@@ -163,14 +197,7 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
         return
       }
 
-      const created = await addProductAction({
-        name: name.trim(),
-        brand: brand.trim() || undefined,
-        unit: unit.trim(),
-        unitBestPrice: price,
-        unitConversions: conversionsToSave.length ? conversionsToSave : undefined,
-        remark: remark.trim() || undefined,
-      })
+      const created = await addProductAction(payload)
       if (!created) {
         throw new Error('Failed to create product')
       }
@@ -182,134 +209,125 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
     }
   }
 
-  async function handleDelete() {
-    if (!product) {
-      return
-    }
-    if (!confirm(`Are you sure you want to delete "${product.name}${product.brand ? ` - ${product.brand}` : ''}"?`)) {
-      return
-    }
-    try {
-      await removeProductAction(product.id)
-      clearFormFields()
-      onCancel()
-      notification.success('Product deleted successfully')
-    } catch (error) {
-      notification.error(error instanceof Error ? error.message : 'Delete failed')
-    }
-  }
+  // Deletion is handled via the list (ProductList) to keep the form focused.
 
   if (showEmptyState && !isEditing && !product) {
     return (
-      <section className="flex h-full items-center justify-center rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <section className="flex h-full items-center justify-center">
         <div className="text-center">
-          <h2 className="text-sm font-semibold text-gray-900">Product Manager</h2>
-          <p className="mt-2 text-xs text-gray-500">Select a product to edit, or click Add Product to create one.</p>
+          <h2 className="text-sm font-semibold text-gray-900">Product Form</h2>
+          <p className="mt-2 text-xs text-gray-500">Select a product to edit, or click Add product to create one.</p>
         </div>
       </section>
     )
   }
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-900">{isEditing ? 'Edit Product' : 'Add Product'}</h2>
-        <button type="button" onClick={onCancel} className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 transition hover:bg-gray-100">
-          Cancel
+    <section className="relative flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-between border-b border-gray-200 px-2 py-1.5">
+        <div className="flex flex-col">
+          <h2 className="text-sm font-semibold text-gray-900">{isEditing ? 'Edit Product' : 'Add product'}</h2>
+          <p className="mt-0.5 leading-tight text-[10px] text-gray-500">Edit product fields and save.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 text-base text-gray-600 transition hover:bg-gray-100"
+          aria-label="Close"
+          title="Close"
+        >
+          ×
         </button>
       </div>
 
-      <form ref={formRef} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-        <ProductFormInput
-          label="Product Name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          validator={validateProductName}
-          required
-          suggestions={productSuggestions}
-        />
-        <ProductFormInput label="Brand" value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="Optional" />
-        <ProductFormInput label="Unit" prefix="/" value={unit} onChange={(event) => setUnit(event.target.value)} validator={validateUnit} required disabled={isUnitDisabled} />
-        <ProductFormInput
-          label="Unit Price"
-          prefix="¥"
-          value={unitBestPrice}
-          onChange={(event) => setUnitBestPrice(event.target.value)}
-          validator={validateProductUnitPrice}
-          required
-        />
-        <ProductFormInput label="Remark" value={remark} onChange={(event) => setRemark(event.target.value)} validator={validateRemark} placeholder="Optional" />
+      <form ref={formRef} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-2 pt-2 pb-2">
+          <ProductFormInput
+            label="Product Name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            validator={validateProductName}
+            required
+            suggestions={productSuggestions}
+          />
+          <ProductFormInput label="Brand" value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="Optional" />
+          <ProductFormInput label="Unit" prefix="/" value={unit} onChange={(event) => setUnit(event.target.value)} validator={validateUnit} required disabled={isUnitDisabled} />
+          <ProductFormInput
+            label="Unit Price"
+            prefix="¥"
+            value={unitBestPrice}
+            onChange={(event) => setUnitBestPrice(event.target.value)}
+            validator={validateProductUnitPrice}
+            required
+          />
+          <ProductFormInput label="Remark" value={remark} onChange={(event) => setRemark(event.target.value)} validator={validateRemark} placeholder="Optional" />
 
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-medium text-gray-600">Unit Conversions</label>
-          {unitConversions.map((conversion, index) => (
-            <div key={`${index}-${conversion}`} className="flex items-center gap-2">
-              <div className="flex-1">
-                <ProductFormInput
-                  label=""
-                  prefix="="
-                  value={conversion}
-                  onChange={(event) => {
-                    const next = [...unitConversions]
-                    next[index] = event.target.value
-                    setUnitConversions(next)
-                  }}
-                  validator={unitConversionValidator}
-                  suggestions={unitConversionSuggestions}
-                  placeholder="e.g. 100ml"
-                />
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-medium text-gray-600">Unit Conversions</label>
+            {unitConversions.map((conversion, index) => (
+              <div key={`${index}-${conversion}`} className="flex items-center gap-2">
+                <div className="flex-1">
+                  <ProductFormInput
+                    label=""
+                    prefix="="
+                    value={conversion}
+                    onChange={(event) => {
+                      const next = [...unitConversions]
+                      next[index] = event.target.value
+                      setUnitConversions(next)
+                    }}
+                    validator={unitConversionValidator}
+                    suggestions={unitConversionSuggestions}
+                    placeholder="e.g. 100ml"
+                  />
+                </div>
+                {unitConversions.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setUnitConversions((prev) => prev.filter((_, i) => i !== index))}
+                    className="rounded border border-gray-300 p-2 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <TbMinus className="h-4 w-4" />
+                  </button>
+                ) : null}
               </div>
-              {unitConversions.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => setUnitConversions((prev) => prev.filter((_, i) => i !== index))}
-                  className="rounded border border-gray-300 p-2 text-gray-600 transition hover:bg-gray-100"
-                >
-                  <TbMinus className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
-          ))}
-          {unitConversions.length < 5 ? (
-            <button
-              type="button"
-              onClick={() => setUnitConversions((prev) => [...prev, ''])}
-              className="inline-flex w-fit items-center gap-1 rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 transition hover:bg-gray-100"
-            >
-              <TbPlus className="h-4 w-4" />
-              Add Unit Conversion
-            </button>
-          ) : null}
+            ))}
+            {unitConversions.length < 5 ? (
+              <button
+                type="button"
+                onClick={() => setUnitConversions((prev) => [...prev, ''])}
+                className="inline-flex w-fit items-center gap-1 rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <TbPlus className="h-4 w-4" />
+                Add Unit Conversion
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        <div className="mt-auto flex flex-col gap-2 pt-2">
-          {isEditing ? (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isFormSubmitting}
-              className="h-10 rounded-lg border border-red-300 bg-red-50 text-sm font-medium text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Delete
-            </button>
-          ) : null}
-          <button
-            type="submit"
-            disabled={isFormSubmitting}
-            className="h-10 rounded-lg bg-gray-900 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isEditing ? 'Update' : 'Add'}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              resetFormFields()
-              formRef.current?.dispatchEvent(new Event('reset'))
-            }}
-            className="h-10 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-          >
-            Reset
-          </button>
+        <div className="shrink-0 px-2 pb-2 pt-2">
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={isFormSubmitting}
+                onClick={() => {
+                  resetFormFields()
+                  formRef.current?.dispatchEvent(new Event('reset'))
+                }}
+                className="flex-1 h-10 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Reset
+              </button>
+              <button
+                type="submit"
+                disabled={isFormSubmitting || !canSubmit}
+                className="flex-1 h-10 rounded-lg bg-gray-900 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isEditing ? 'Update' : 'Add'}
+              </button>
+            </div>
+          </div>
         </div>
       </form>
 

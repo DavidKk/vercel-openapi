@@ -1,7 +1,7 @@
 import type { MergedMovie } from '@/services/maoyan/types'
 
 /**
- * Movies cache data structure (GIST JSON)
+ * Movies cache data structure (KV JSON)
  */
 export interface MoviesCacheData {
   data: {

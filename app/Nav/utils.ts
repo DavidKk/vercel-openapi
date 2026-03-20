@@ -4,6 +4,14 @@
 const MODULE_SLUGS = new Set(['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'dns', 'finance', 'prices', 'proxy-rule'])
 
 /**
+ * Modules that should show a "manager" page in the global UI.
+ *
+ * When you are on `/{module}/manage` and click a different module icon,
+ * we only keep the `/manage` suffix for modules included here.
+ */
+export const MODULES_WITH_MANAGER_PAGES = new Set(['prices', 'proxy-rule'])
+
+/**
  * Sub-path first segment that is shared across modules (e.g. mcp, api, skill, function-calling).
  * Only these are preserved when switching modules; module-specific paths (e.g. finance/tasi) are not.
  */

@@ -127,7 +127,7 @@ export function ProductFormInput({ label, prefix, required, suggestions = [], cl
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1">
       {label ? (
         <label className="text-xs font-medium text-gray-600">
           {label}
@@ -135,7 +135,7 @@ export function ProductFormInput({ label, prefix, required, suggestions = [], cl
         </label>
       ) : null}
       <div ref={containerRef} className="relative">
-        {prefix ? <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">{prefix}</span> : null}
+        {prefix ? <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-500">{prefix}</span> : null}
         <input
           {...props}
           ref={inputRef}
@@ -155,11 +155,11 @@ export function ProductFormInput({ label, prefix, required, suggestions = [], cl
             props.onChange?.(event)
           }}
           className={classNames(
-            'h-10 w-full rounded-lg border bg-white px-3 text-sm text-gray-900 outline-none transition focus:ring-2 focus:ring-gray-200',
+            'h-9 w-full rounded-lg border bg-white px-2 text-sm text-gray-900 outline-none transition-colors focus:outline-none',
             {
-              'pl-8': prefix,
-              'border-red-300': error && !disabled,
-              'border-gray-300': !error && !disabled,
+              'pl-7': prefix,
+              'border-red-300 focus:border-red-400': error && !disabled,
+              'border-gray-300 focus:border-gray-500': !error && !disabled,
               'cursor-not-allowed bg-gray-100 text-gray-500': disabled,
             },
             className
@@ -171,7 +171,7 @@ export function ProductFormInput({ label, prefix, required, suggestions = [], cl
               <button
                 key={`${suggestion.value}-${index}`}
                 type="button"
-                className={classNames('block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50', {
+                className={classNames('block w-full px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50', {
                   'bg-gray-100': activeIndex === index,
                 })}
                 onMouseDown={(event) => event.preventDefault()}
@@ -183,7 +183,7 @@ export function ProductFormInput({ label, prefix, required, suggestions = [], cl
           </div>
         ) : null}
         {isFocused && error && errorMessage ? (
-          <div className="absolute left-0 right-0 top-full z-40 mt-1 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-600">{errorMessage}</div>
+          <div className="absolute left-0 right-0 top-full z-40 mt-1 rounded-md border border-red-200 bg-red-50 p-1.5 text-xs text-red-600">{errorMessage}</div>
         ) : null}
       </div>
     </div>

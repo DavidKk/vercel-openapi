@@ -1,7 +1,5 @@
-import { getGistInfo } from '@/services/gist'
-
 import { CLASH_DEFAULT_ACTION } from './constants'
-import { fetchClashRules } from './rule'
+import { loadProxyRuleClashBase } from './kv'
 
 /**
  * Resolve distinct Clash rule actions for the overview YAML sample.
@@ -9,11 +7,6 @@ import { fetchClashRules } from './rule'
  * @returns Action names (e.g. Proxy, DIRECT) for RULE-SET entries in the sample config
  */
 export async function loadProxyRuleSnippetActions(): Promise<string[]> {
-  try {
-    const { gistId, gistToken } = getGistInfo()
-    const { actions } = await fetchClashRules({ gistId, gistToken })
-    return actions.length > 0 ? actions : [...CLASH_DEFAULT_ACTION]
-  } catch {
-    return [...CLASH_DEFAULT_ACTION]
-  }
+  const base = await loadProxyRuleClashBase()
+  return base.actions.length > 0 ? base.actions : [...CLASH_DEFAULT_ACTION]
 }

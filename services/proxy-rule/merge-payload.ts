@@ -1,7 +1,6 @@
-import { getGistInfo } from '@/services/gist'
 import { createLogger } from '@/services/logger'
 
-import { fetchClashRules } from './clash/rule'
+import { loadProxyRuleClashBase } from './clash/kv'
 import { type ClashExtendedRule, type ClashMatchRule, type ClashStandardRule, stringifyClashRule } from './clash/types'
 import { convertGfwListToClashRules } from './gfwlist/clash'
 import { fetchGfwListRules } from './gfwlist/fetch-list'
@@ -18,8 +17,7 @@ type MutableRule = ClashMatchRule | ClashExtendedRule | ClashStandardRule
  * @returns Unique rule line prefixes without trailing action segment
  */
 export async function buildMergedClashRulePayload(matchAction: string): Promise<string[]> {
-  const { gistId, gistToken } = getGistInfo()
-  const { rules: baseRules } = await fetchClashRules({ gistId, gistToken })
+  const { rules: baseRules } = await loadProxyRuleClashBase()
   const rules: MutableRule[] = [...baseRules]
 
   const zeroOmega = await loadZeroOmegaConfig()
