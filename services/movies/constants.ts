@@ -5,7 +5,7 @@ export const UPDATE_WINDOWS = [4, 12, 20] as const
 export const UPDATE_WINDOW_DURATION = 1
 export const DATA_VALIDITY_DURATION = 8 * 60 * 60 * 1000
 
-/** GIST file name for movies cache */
-export const GIST_FILE_NAME = 'movies.json'
+/** KV key for movies cache payload */
+export const MOVIES_CACHE_KV_KEY = 'movies:movies.json'
 
 export const RESULT_CACHE_KEY = 'movies-cache:result'

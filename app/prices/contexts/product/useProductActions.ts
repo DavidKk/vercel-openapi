@@ -1,5 +1,7 @@
 'use client'
 
+import { useCallback } from 'react'
+
 import type { ProductType } from '@/app/actions/prices/product'
 import { createProduct, deleteProduct, getAllProducts, updateProduct } from '@/app/actions/prices/product'
 import { useAction } from '@/hooks/useAction'
@@ -12,6 +14,13 @@ import { useProductContext } from './ProductContext'
  */
 export function useProductActions() {
   const { products, loading, dispatch } = useProductContext()
+
+  const setProducts = useCallback(
+    (next: ProductType[]) => {
+      dispatch({ type: 'SET_PRODUCTS', payload: next })
+    },
+    [dispatch]
+  )
 
   const [loadProducts, loadingLoadProducts, errorLoadProducts] = useAction(async () => {
     dispatch({ type: 'SET_LOADING', payload: true })
@@ -77,6 +86,7 @@ export function useProductActions() {
     products,
     loading,
     loadProducts,
+    setProducts,
     addProductAction,
     updateProductAction,
     removeProductAction,

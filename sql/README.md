@@ -13,7 +13,7 @@ Used by `/api/geo` and the china-geo service.
 
 ## Finance – TASI (Turso)
 
-Used by `/api/finance/tasi/*` and cron sync tasi-sync. **Data flow:** today is read from GIST (if not expired) or remote; DB is backup only. New trading days are written to DB then GIST. See **services/finance/tasi/README.md** for full scheme (GIST expiry, write rules, cron as fallback).
+Used by `/api/finance/tasi/*` and cron sync tasi-sync. **Data flow:** today is read from KV snapshot (if not expired) or remote; DB is backup only. New trading days are written to DB then KV snapshot. See **services/finance/tasi/README.md** for full scheme (KV expiry, write rules, cron as fallback).
 
 - **init-tasi-turso.sql** — `tasi_company_daily` (date, code, payload), `tasi_market_summary` (date, payload). Run once via `turso db shell <db-name> < sql/init-tasi-turso.sql` or Turso dashboard.
-- Environment: same Turso as rest of app (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`), plus `TASI_FEED_URL`, `GIST_ID`, `GIST_TOKEN` for today's data and cron.
+- Environment: same Turso as rest of app (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`), plus `TASI_FEED_URL` for today's data and cron.

@@ -3,18 +3,17 @@
 import { closestCenter, DndContext, type DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { RxDragHandleHorizontal } from 'react-icons/rx'
 import { TbFileText } from 'react-icons/tb'
 
-import { type UiClashRuleRow, updateProxyRuleClashRules } from '@/app/actions/proxy-rule/clash'
+import { importProxyRuleClashRulesFromYamlText, type UiClashRuleRow, updateProxyRuleClashRules } from '@/app/actions/proxy-rule/clash'
 import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
-import Alert, { type AlertImperativeHandler } from '@/components/Alert'
 import { EmptyState } from '@/components/EmptyState'
 import { FormSelect } from '@/components/FormSelect'
+import { useNotification } from '@/components/Notification'
 import { Spinner } from '@/components/Spinner'
-import { STANDARD_RULE_TYPES } from '@/services/proxy-rule/clash/types'
-import { fuzzySearch } from '@/utils/find'
+import { type ClashRule, type ClashStandardRule, STANDARD_RULE_TYPES, stringifyClashRule } from '@/services/proxy-rule/clash/types'
 
 /** Text input styling aligned with {@link FormSelect} (site-wide form controls). */
 const FORM_INPUT_CLASS =
@@ -69,12 +68,17 @@ function SortableRuleRow(props: { id: string; disabled: boolean; orderNo: number
  * @returns Manage UI with filter, table editor, and save action
  */
 export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
-  const { initialRows, actions } = props
+  const { initialRows, actions: initialActions } = props
   const [rows, setRows] = useState(initialRows)
+  const [actions, setActions] = useState<string[]>(initialActions)
   const [filter, setFilter] = useState('')
+  const deferredFilter = useDeferredValue(filter)
   const [typeFilter, setTypeFilter] = useState<string>('ALL')
   const [saving, setSaving] = useState(false)
-  const alertRef = useRef<AlertImperativeHandler>(null)
+  const [importing, setImporting] = useState(false)
+  const [draftImported, setDraftImported] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
+  const notification = useNotification()
 
   const typeOptions = useMemo(() => STANDARD_RULE_TYPES.map((t) => ({ value: t, label: t })), [])
   const actionOptions = useMemo(() => actions.map((a) => ({ value: a, label: a })), [actions])
@@ -86,21 +90,26 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
       list = list.filter((row) => row.type === typeFilter)
     }
 
-    const keyword = filter.trim()
+    const keyword = deferredFilter.trim()
     if (!keyword) return list
+
+    // Build regex once per keyword, then test it for all rows.
+    const pattern = keyword.split('').join('.*')
+    const regex = new RegExp(pattern, 'i')
+    const matchesMatchType = regex.test('MATCH')
 
     return list.filter((row) => {
       if (row.type === 'MATCH') {
-        return fuzzySearch(keyword, row.action) || fuzzySearch(keyword, 'MATCH')
+        return regex.test(row.action) || matchesMatchType
       }
 
-      return fuzzySearch(keyword, row.value ?? '') || fuzzySearch(keyword, row.action) || fuzzySearch(keyword, row.type)
+      return regex.test(row.value ?? '') || regex.test(row.action) || regex.test(row.type)
     })
-  }, [rows, filter, typeFilter])
+  }, [rows, deferredFilter, typeFilter])
 
   const isFilterMode = visibleRows.length !== rows.length
 
-  const emptyMessage = rows.length === 0 ? 'No rules found in gist yet.' : 'No matching rules.'
+  const emptyMessage = rows.length === 0 ? 'No rules found yet.' : 'No matching rules.'
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor))
 
@@ -146,13 +155,97 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const payload: UiClashRuleRow[] = rows.map(({ id: _id, ...rest }) => rest)
       await updateProxyRuleClashRules(payload)
-      await alertRef.current?.show('Saved', { type: 'success' })
+      notification.success('Saved successfully')
+      setDraftImported(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Save failed'
-      await alertRef.current?.show(message, { type: 'error' })
+      notification.error(message)
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleImportYamlFile(file: File) {
+    setImporting(true)
+    try {
+      const yamlText = await file.text()
+      const result = await importProxyRuleClashRulesFromYamlText(yamlText)
+      setActions(result.actions)
+
+      const nextRows: Array<UiClashRuleRow & { id: string }> = result.rules.map((rule) => {
+        const id = crypto.randomUUID()
+        if (rule.type === 'MATCH') {
+          return { id, type: rule.type, action: rule.action }
+        }
+        if (rule.type === 'IP-CIDR6') {
+          return { id, type: rule.type, value: rule.value, action: rule.action, ...(rule.flag ? { flag: rule.flag } : {}) }
+        }
+        return { id, type: rule.type, value: rule.value, action: rule.action }
+      })
+
+      setRows(nextRows)
+      setFilter('')
+      setTypeFilter('ALL')
+      setDraftImported(true)
+      notification.success('Imported changes. Click Save to apply.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Import failed'
+      notification.error(message)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  function handleImportClick() {
+    importInputRef.current?.click()
+  }
+
+  function uiRowToClashRule(row: UiClashRuleRow): ClashRule {
+    const { type, action } = row
+    if (type === 'MATCH') {
+      return { type: 'MATCH', action }
+    }
+
+    if (type === 'IP-CIDR6') {
+      return {
+        type: 'IP-CIDR6',
+        value: row.value?.trim() ?? '',
+        action,
+        ...(row.flag ? { flag: row.flag } : {}),
+      }
+    }
+
+    return {
+      type: type as ClashStandardRule['type'],
+      value: row.value?.trim() ?? '',
+      action,
+    } as ClashRule
+  }
+
+  function downloadTextFile(fileName: string, text: string, mimeType: string) {
+    const blob = new Blob([text], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  function yamlQuote(value: string): string {
+    const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    return `"${escaped}"`
+  }
+
+  function handleExportYamlClick() {
+    const ruleStrings = rows
+      .map((r) => uiRowToClashRule(r))
+      .map((r) => stringifyClashRule(r))
+      .filter((s) => !!s)
+    const yamlText = `rules:\n${ruleStrings.map((s) => `  - ${yamlQuote(s)}`).join('\n')}\n`
+    downloadTextFile('clash.rules.yaml', yamlText, 'text/yaml;charset=utf-8')
   }
 
   function updateRow(id: string, patch: Partial<UiClashRuleRow>) {
@@ -161,17 +254,23 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-white">
-      <div className={`${CONTENT_HEADER_CLASS} bg-white`}>
+      <div className={`${CONTENT_HEADER_CLASS} bg-white md:overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="text-sm font-semibold text-gray-900">Manage Clash rules</h2>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex min-w-max items-center gap-2 overflow-x-auto md:overflow-visible whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="shrink-0">
             <FormSelect value={typeFilter} onChange={setTypeFilter} options={typeFilterOptions} wrapperClassName="w-[168px]" className="!text-xs" id="clash-rule-type-filter" />
           </div>
 
-          <input type="text" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search (value/action/type)" className={`${FORM_INPUT_CLASS} w-[240px]`} />
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Search (value/action/type)"
+            className={`${FORM_INPUT_CLASS} w-[200px] shrink-0`}
+          />
 
           <button
             type="button"
@@ -183,8 +282,28 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
 
           <button
             type="button"
-            disabled={saving}
-            onClick={handleSave}
+            disabled={saving || importing}
+            onClick={handleExportYamlClick}
+            className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-xs font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+            title="Export current clash rules as YAML"
+          >
+            Export
+          </button>
+
+          <button
+            type="button"
+            disabled={saving || importing}
+            onClick={handleImportClick}
+            className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-xs font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+            title="Import clash YAML and preview rules"
+          >
+            {importing ? 'Importing…' : 'Import'}
+          </button>
+
+          <button
+            type="button"
+            disabled={saving || !draftImported}
+            onClick={() => void handleSave()}
             className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md bg-gray-900 px-3 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50"
           >
             {saving ? (
@@ -195,15 +314,26 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
                 Saving…
               </>
             ) : (
-              'Save to gist'
+              'Save'
             )}
           </button>
         </div>
       </div>
 
-      <Alert ref={alertRef} />
+      <input
+        ref={importInputRef}
+        type="file"
+        accept="application/x-yaml,text/yaml,.yaml,.yml"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          e.currentTarget.value = ''
+          await handleImportYamlFile(file)
+        }}
+      />
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto md:overflow-hidden">
         {visibleRows.length === 0 ? (
           <div className="flex h-full min-h-[240px] flex-col">
             <EmptyState icon={<TbFileText className="h-12 w-12 text-gray-400/30 opacity-70" />} message={emptyMessage} />

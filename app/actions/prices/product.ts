@@ -1,7 +1,7 @@
 'use server'
 
 import { validateCookie } from '@/services/auth/access'
-import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
+import { getJsonKv, setJsonKv } from '@/services/kv/client'
 import { validateUnit } from '@/utils/validation'
 
 export interface ProductType {
@@ -14,31 +14,24 @@ export interface ProductType {
   remark?: string
 }
 
-const PRODUCTS_FILE_NAME = 'products.json'
+const PRODUCTS_KV_KEY = 'prices:products'
 
 /**
- * Reads all products from gist storage.
- * @returns Product list from gist
+ * Reads all products from KV storage.
+ * @returns Product list from KV
  */
-async function getProductsFromGist(): Promise<ProductType[]> {
-  try {
-    const { gistId, gistToken } = getGistInfo()
-    const content = await readGistFile({ gistId, gistToken, fileName: PRODUCTS_FILE_NAME })
-    return JSON.parse(content) as ProductType[]
-  } catch {
-    return []
-  }
+async function getProductsFromKv(): Promise<ProductType[]> {
+  const cached = await getJsonKv<ProductType[]>(PRODUCTS_KV_KEY)
+  return cached ?? []
 }
 
 /**
- * Persists products into gist storage.
+ * Persists products into KV storage.
  * @param products Products to save
  * @returns Promise resolved when save completes
  */
-async function saveProductsToGist(products: ProductType[]): Promise<void> {
-  const { gistId, gistToken } = getGistInfo()
-  const content = JSON.stringify(products, null, 2)
-  await writeGistFile({ gistId, gistToken, fileName: PRODUCTS_FILE_NAME, content })
+async function saveProductsToKv(products: ProductType[]): Promise<void> {
+  await setJsonKv(PRODUCTS_KV_KEY, products)
 }
 
 /**
@@ -46,7 +39,7 @@ async function saveProductsToGist(products: ProductType[]): Promise<void> {
  * @returns Product list
  */
 export async function getAllProducts(): Promise<ProductType[]> {
-  return getProductsFromGist()
+  return getProductsFromKv()
 }
 
 /**
@@ -59,7 +52,7 @@ export async function getProductById(id: string): Promise<ProductType | undefine
     throw new Error('Not authorized')
   }
 
-  const products = await getProductsFromGist()
+  const products = await getProductsFromKv()
   return products.find((product) => product.id === id)
 }
 
@@ -78,7 +71,7 @@ export async function createProduct(product: Omit<ProductType, 'id'>): Promise<P
     throw new Error(validUnit)
   }
 
-  const products = await getProductsFromGist()
+  const products = await getProductsFromKv()
   const duplicated = products.find((item) => item.name === product.name && (item.brand ?? '') === (product.brand ?? ''))
   if (duplicated) {
     throw new Error(`Product "${product.name}" with brand "${product.brand ?? ''}" already exists`)
@@ -95,7 +88,7 @@ export async function createProduct(product: Omit<ProductType, 'id'>): Promise<P
     id: String(maxId + 1),
   }
   products.push(created)
-  await saveProductsToGist(products)
+  await saveProductsToKv(products)
   return created
 }
 
@@ -117,7 +110,7 @@ export async function updateProduct(id: string, updates: Partial<ProductType>): 
     }
   }
 
-  const products = await getProductsFromGist()
+  const products = await getProductsFromKv()
   const index = products.findIndex((item) => item.id === id)
   if (index < 0) {
     return null
@@ -135,7 +128,7 @@ export async function updateProduct(id: string, updates: Partial<ProductType>): 
   }
 
   products[index] = merged
-  await saveProductsToGist(products)
+  await saveProductsToKv(products)
   return merged
 }
 
@@ -149,12 +142,132 @@ export async function deleteProduct(id: string): Promise<boolean> {
     throw new Error('Not authorized')
   }
 
-  const products = await getProductsFromGist()
+  const products = await getProductsFromKv()
   const nextProducts = products.filter((item) => item.id !== id)
   if (nextProducts.length === products.length) {
     return false
   }
 
-  await saveProductsToGist(nextProducts)
+  await saveProductsToKv(nextProducts)
   return true
+}
+
+export interface ImportProductsResult {
+  imported: number
+  skipped: number
+}
+
+/**
+ * Parse products from JSON text (no KV write).
+ *
+ * Expected formats:
+ * - A root array of product objects
+ * - An object with `products: Product[]`
+ *
+ * The importer validates `unit` using the same validation rules as manual create/update.
+ *
+ * @param jsonText JSON string content
+ * @returns Parsed products including imported/skipped counts
+ */
+export interface ParseProductsResult extends ImportProductsResult {
+  products: ProductType[]
+}
+
+export async function importProductsFromJsonText(jsonText: string): Promise<ParseProductsResult> {
+  if (!(await validateCookie())) {
+    throw new Error('Not authorized')
+  }
+
+  if (!jsonText || !jsonText.trim()) {
+    throw new Error('JSON text is empty')
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonText)
+  } catch {
+    throw new Error('Invalid JSON text')
+  }
+
+  const rawItems: unknown = Array.isArray(parsed) ? parsed : (parsed as any)?.products
+  if (!Array.isArray(rawItems)) {
+    throw new Error('Invalid JSON format: expected an array or { products: Product[] }')
+  }
+
+  const nextProducts: ProductType[] = []
+  let skipped = 0
+  for (const entry of rawItems) {
+    if (!entry || typeof entry !== 'object') {
+      skipped += 1
+      continue
+    }
+
+    const e = entry as Partial<ProductType>
+    const name = typeof e.name === 'string' ? e.name.trim() : ''
+    const unit = typeof e.unit === 'string' ? e.unit.trim() : ''
+    const unitBestPriceNum = typeof e.unitBestPrice === 'number' ? e.unitBestPrice : Number(e.unitBestPrice)
+
+    if (!name || !unit || !Number.isFinite(unitBestPriceNum)) {
+      skipped += 1
+      continue
+    }
+
+    const validUnit = validateUnit(unit)
+    if (validUnit !== true) {
+      skipped += 1
+      continue
+    }
+
+    const nextId = typeof e.id === 'string' && e.id.trim().length > 0 ? e.id.trim() : String(nextProducts.length)
+    const created: ProductType = {
+      id: nextId,
+      name,
+      unit,
+      unitBestPrice: unitBestPriceNum,
+      brand: typeof e.brand === 'string' && e.brand.trim().length > 0 ? e.brand.trim() : undefined,
+      unitConversions: Array.isArray(e.unitConversions) ? e.unitConversions.filter((x) => typeof x === 'string') : undefined,
+      remark: typeof e.remark === 'string' && e.remark.trim().length > 0 ? e.remark.trim() : undefined,
+    }
+    nextProducts.push(created)
+  }
+
+  return { imported: nextProducts.length, skipped, products: nextProducts }
+}
+
+/**
+ * Replace the KV payload for products.
+ *
+ * This is used by the admin import flow: first parse+preview in the UI, then save to KV.
+ *
+ * @param products Parsed products to save
+ * @returns Promise resolved when KV write completes
+ */
+export async function replaceProductsInKv(products: ProductType[]): Promise<void> {
+  if (!(await validateCookie())) {
+    throw new Error('Not authorized')
+  }
+
+  const cleaned: ProductType[] = []
+  for (const p of products) {
+    if (!p || typeof p !== 'object') continue
+    if (typeof p.id !== 'string' || p.id.trim().length === 0) continue
+    if (typeof p.name !== 'string' || p.name.trim().length === 0) continue
+    if (typeof p.unit !== 'string' || p.unit.trim().length === 0) continue
+    if (typeof p.unitBestPrice !== 'number' || !Number.isFinite(p.unitBestPrice)) continue
+
+    const validUnit = validateUnit(p.unit)
+    if (validUnit !== true) continue
+
+    cleaned.push({
+      ...p,
+      id: p.id.trim(),
+      name: p.name.trim(),
+      unit: p.unit.trim(),
+      brand: typeof p.brand === 'string' && p.brand.trim().length > 0 ? p.brand.trim() : undefined,
+      unitConversions: Array.isArray(p.unitConversions) ? p.unitConversions.filter((x) => typeof x === 'string') : undefined,
+      remark: typeof p.remark === 'string' && p.remark.trim().length > 0 ? p.remark.trim() : undefined,
+    })
+  }
+
+  await saveProductsToKv(cleaned)
 }

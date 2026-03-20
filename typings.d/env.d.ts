@@ -1,9 +1,5 @@
 declare namespace NodeJS {
   interface ProcessEnv {
-    /** GitHub Gist Id */
-    GIST_ID: string
-    /** GitHub Gist Token */
-    GIST_TOKEN: string
     /** Admin Username */
     ACCESS_USERNAME: string
     /** Admin Password */

@@ -32,12 +32,15 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
+      '@upstash/redis':
+        specifier: ^1.37.0
+        version: 1.37.0
       '@vercel/analytics':
         specifier: ^2.0.0
-        version: 2.0.0(next@16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(react@19.2.4)(vue-router@4.6.4(vue@3.5.30(typescript@5.7.2)))(vue@3.5.30(typescript@5.7.2))
+        version: 2.0.0(next@16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(react@19.2.4)(vue-router@4.6.4(vue@3.5.30(typescript@5.7.2)))(vue@3.5.30(typescript@5.7.2))
       '@vercel/speed-insights':
         specifier: ^2.0.0
-        version: 2.0.0(next@16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(react@19.2.4)(vue-router@4.6.4(vue@3.5.30(typescript@5.7.2)))(vue@3.5.30(typescript@5.7.2))
+        version: 2.0.0(next@16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(react@19.2.4)(vue-router@4.6.4(vue@3.5.30(typescript@5.7.2)))(vue@3.5.30(typescript@5.7.2))
       ahooks:
         specifier: ^3.8.4
         version: 3.8.4(react@19.2.4)
@@ -2355,6 +2358,9 @@ packages:
     peerDependencies:
       vue: '>=3.5.18'
 
+  '@upstash/redis@1.37.0':
+    resolution: {integrity: sha512-LqOJ3+XWPLSZ2rGSed5DYG3ixybxb8EhZu3yQqF7MdZX1wLBG/FRcI6xcUZXHy/SS7mmXWyadrud0HJHkOc+uw==}
+
   '@vercel/analytics@2.0.0':
     resolution: {integrity: sha512-fP/ASXXz+1K/C2vWTnocd8RsGnkO9f1qOIDrhgQ3DagJtnea1EsM9AV9fDzjXlPIPb2vBQapxOIMCjtGIW8PZw==}
     peerDependencies:
@@ -2381,6 +2387,11 @@ packages:
         optional: true
       vue-router:
         optional: true
+
+  '@vercel/kv@3.0.0':
+    resolution: {integrity: sha512-pKT8fRnfyYk2MgvyB6fn6ipJPCdfZwiKDdw7vB+HL50rjboEBHDVBEcnwfkEpVSp2AjNtoaOUH7zG+bVC/rvSg==}
+    engines: {node: '>=14.6'}
+    deprecated: 'Vercel KV is deprecated. If you had an existing KV store, it should have moved to Upstash Redis which you will see under Vercel Integrations. For new projects, install a Redis integration from Vercel Marketplace: https://vercel.com/marketplace?category=storage&search=redis'
 
   '@vercel/nft@1.3.2':
     resolution: {integrity: sha512-HC8venRc4Ya7vNeBsJneKHHMDDWpQie7VaKhAIOst3MKO+DES+Y/SbzSp8mFkD7OzwAE2HhHkeSuSmwS20mz3A==}
@@ -8613,7 +8624,7 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
-  '@nuxt/nitro-server@4.3.1(@libsql/client@0.14.0)(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0)(magicast@0.5.2)(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(typescript@5.7.2)':
+  '@nuxt/nitro-server@4.3.1(@libsql/client@0.14.0)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0)(magicast@0.5.2)(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(typescript@5.7.2)':
     dependencies:
       '@nuxt/devalue': 2.0.2
       '@nuxt/kit': 4.3.1(magicast@0.5.2)
@@ -8630,8 +8641,8 @@ snapshots:
       impound: 1.1.5
       klona: 2.0.6
       mocked-exports: 0.1.1
-      nitropack: 2.13.1(@libsql/client@0.14.0)
-      nuxt: 4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
+      nitropack: 2.13.1(@libsql/client@0.14.0)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)
+      nuxt: 4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
       ohash: 2.0.11
       pathe: 2.0.3
       pkg-types: 2.3.0
@@ -8639,7 +8650,7 @@ snapshots:
       std-env: 3.10.0
       ufo: 1.6.3
       unctx: 2.5.0
-      unstorage: 1.17.4(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0)
+      unstorage: 1.17.4(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0)
       vue: 3.5.30(typescript@5.7.2)
       vue-bundle-renderer: 2.2.0
       vue-devtools-stub: 0.1.0
@@ -8696,7 +8707,7 @@ snapshots:
       rc9: 3.0.0
       std-env: 3.10.0
 
-  '@nuxt/vite-builder@4.3.1(@types/node@20.17.12)(eslint@9.17.0(jiti@2.6.1))(magicast@0.5.2)(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vue@3.5.30(typescript@5.7.2))(yaml@2.8.2)':
+  '@nuxt/vite-builder@4.3.1(@types/node@20.17.12)(eslint@9.17.0(jiti@2.6.1))(magicast@0.5.2)(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vue@3.5.30(typescript@5.7.2))(yaml@2.8.2)':
     dependencies:
       '@nuxt/kit': 4.3.1(magicast@0.5.2)
       '@rollup/plugin-replace': 6.0.3(rollup@4.59.0)
@@ -8715,7 +8726,7 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.1
       mocked-exports: 0.1.1
-      nuxt: 4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
+      nuxt: 4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
       pathe: 2.0.3
       pkg-types: 2.3.0
       postcss: 8.5.8
@@ -9544,14 +9555,23 @@ snapshots:
       unhead: 2.1.12
       vue: 3.5.30(typescript@5.7.2)
 
-  '@vercel/analytics@2.0.0(next@16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(react@19.2.4)(vue-router@4.6.4(vue@3.5.30(typescript@5.7.2)))(vue@3.5.30(typescript@5.7.2))':
+  '@upstash/redis@1.37.0':
     dependencies:
-      nuxt: 4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
+      uncrypto: 0.1.3
+
+  '@vercel/analytics@2.0.0(next@16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(react@19.2.4)(vue-router@4.6.4(vue@3.5.30(typescript@5.7.2)))(vue@3.5.30(typescript@5.7.2))':
+    dependencies:
+      nuxt: 4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
     optionalDependencies:
       next: 16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react: 19.2.4
       vue: 3.5.30(typescript@5.7.2)
       vue-router: 4.6.4(vue@3.5.30(typescript@5.7.2))
+
+  '@vercel/kv@3.0.0':
+    dependencies:
+      '@upstash/redis': 1.37.0
+    optional: true
 
   '@vercel/nft@1.3.2(rollup@4.59.0)':
     dependencies:
@@ -9572,10 +9592,10 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/speed-insights@2.0.0(next@16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(react@19.2.4)(vue-router@4.6.4(vue@3.5.30(typescript@5.7.2)))(vue@3.5.30(typescript@5.7.2))':
+  '@vercel/speed-insights@2.0.0(next@16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(react@19.2.4)(vue-router@4.6.4(vue@3.5.30(typescript@5.7.2)))(vue@3.5.30(typescript@5.7.2))':
     optionalDependencies:
       next: 16.1.6(@babel/core@7.26.0)(@playwright/test@1.56.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      nuxt: 4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
+      nuxt: 4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
       react: 19.2.4
       vue: 3.5.30(typescript@5.7.2)
       vue-router: 4.6.4(vue@3.5.30(typescript@5.7.2))
@@ -13072,7 +13092,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  nitropack@2.13.1(@libsql/client@0.14.0):
+  nitropack@2.13.1(@libsql/client@0.14.0)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.2
       '@rollup/plugin-alias': 6.0.0(rollup@4.59.0)
@@ -13139,7 +13159,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       unimport: 5.7.0
       unplugin-utils: 0.3.1
-      unstorage: 1.17.4(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0)
+      unstorage: 1.17.4(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0)
       untyped: 2.0.0
       unwasm: 0.5.3
       youch: 4.1.0
@@ -13226,16 +13246,16 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2):
+  nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2):
     dependencies:
       '@dxup/nuxt': 0.3.2(magicast@0.5.2)
       '@nuxt/cli': 3.34.0(@nuxt/schema@4.3.1)(cac@6.7.14)(magicast@0.5.2)
       '@nuxt/devtools': 3.2.3(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.30(typescript@5.7.2))
       '@nuxt/kit': 4.3.1(magicast@0.5.2)
-      '@nuxt/nitro-server': 4.3.1(@libsql/client@0.14.0)(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0)(magicast@0.5.2)(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(typescript@5.7.2)
+      '@nuxt/nitro-server': 4.3.1(@libsql/client@0.14.0)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0)(magicast@0.5.2)(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(typescript@5.7.2)
       '@nuxt/schema': 4.3.1
       '@nuxt/telemetry': 2.7.0(@nuxt/kit@4.3.1(magicast@0.5.2))
-      '@nuxt/vite-builder': 4.3.1(@types/node@20.17.12)(eslint@9.17.0(jiti@2.6.1))(magicast@0.5.2)(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vue@3.5.30(typescript@5.7.2))(yaml@2.8.2)
+      '@nuxt/vite-builder': 4.3.1(@types/node@20.17.12)(eslint@9.17.0(jiti@2.6.1))(magicast@0.5.2)(nuxt@4.3.1(@libsql/client@0.14.0)(@parcel/watcher@2.5.6)(@types/node@20.17.12)(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4(@libsql/client@0.14.0))(eslint@9.17.0(jiti@2.6.1))(ioredis@5.10.0)(magicast@0.5.2)(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vite@7.3.1(@types/node@20.17.12)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2))(optionator@0.9.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.7.2)(vue@3.5.30(typescript@5.7.2))(yaml@2.8.2)
       '@unhead/vue': 2.1.12(vue@3.5.30(typescript@5.7.2))
       '@vue/shared': 3.5.30
       c12: 3.3.3(magicast@0.5.2)
@@ -15019,7 +15039,7 @@ snapshots:
       picomatch: 4.0.3
       webpack-virtual-modules: 0.6.2
 
-  unstorage@1.17.4(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0):
+  unstorage@1.17.4(@upstash/redis@1.37.0)(@vercel/kv@3.0.0)(db0@0.3.4(@libsql/client@0.14.0))(ioredis@5.10.0):
     dependencies:
       anymatch: 3.1.3
       chokidar: 5.0.0
@@ -15030,6 +15050,8 @@ snapshots:
       ofetch: 1.5.1
       ufo: 1.6.3
     optionalDependencies:
+      '@upstash/redis': 1.37.0
+      '@vercel/kv': 3.0.0
       db0: 0.3.4(@libsql/client@0.14.0)
       ioredis: 5.10.0
 

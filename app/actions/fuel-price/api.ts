@@ -1,5 +1,4 @@
-import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
-import { createLogger } from '@/services/logger'
+import { getJsonKv, setJsonKv } from '@/services/kv/client'
 
 import { fetchAndParseFuelPriceData, fetchNextAdjustmentDate } from './sources'
 import type { FuelPrice, FuelPriceList, ProvinceFuelPrice } from './types'
@@ -16,11 +15,9 @@ const MEMORY_CACHE: MemoryCache = {
   timestamp: 0,
 }
 
-const logger = createLogger('fuel-price')
-
 const CACHE_DURATION = 60 * 60 * 1000 // 1 hour cache
-const CURRENT_FUEL_PRICE_FILE = 'current-fuel-price.json'
-const PREVIOUS_FUEL_PRICE_FILE = 'previous-fuel-price.json'
+const CURRENT_FUEL_PRICE_KEY = 'fuel-price:current'
+const PREVIOUS_FUEL_PRICE_KEY = 'fuel-price:previous'
 
 /**
  * Clear the in-memory cache
@@ -56,42 +53,30 @@ export async function getFuelPrice(): Promise<FuelPrice> {
 }
 
 /**
- * Read fuel price data from Gist cache
- * @param fileName File name to read from Gist
+ * Read fuel price data from KV cache.
+ * Returns null on miss or when the stored payload doesn't match the expected type.
+ *
+ * @param key KV key
+ * @returns FuelPrice or null
  */
-async function readFuelPriceFromGist(fileName: string): Promise<FuelPrice | null> {
+async function readFuelPriceFromKv(key: string): Promise<FuelPrice | null> {
   try {
-    const { gistId, gistToken } = getGistInfo()
-    const content = await readGistFile({ gistId, gistToken, fileName })
-    const parsedData = JSON.parse(content)
-
-    // Check if parsed data is of correct type using the type guard
-    if (isFuelPrice(parsedData)) {
-      return parsedData
-    }
-
-    // Return null if data type is incorrect to trigger re-fetching
-    return null
-  } catch (error) {
-    // Return null if file doesn't exist or other error occurred
-    // This is expected as the file may not exist yet
+    const cached = await getJsonKv<FuelPrice>(key)
+    return isFuelPrice(cached) ? cached : null
+  } catch {
     return null
   }
 }
 
 /**
- * Write fuel price data to Gist cache
- * @param fileName File name to write to Gist
- * @param fuelPriceData Fuel price data to write
+ * Write fuel price data to KV cache (upsert).
+ *
+ * @param key KV key
+ * @param fuelPriceData Fuel price payload
+ * @returns Promise resolved when KV write completes
  */
-async function writeFuelPriceToGist(fileName: string, fuelPriceData: FuelPrice) {
-  try {
-    const { gistId, gistToken } = getGistInfo()
-    const content = JSON.stringify(fuelPriceData, null, 2)
-    await writeGistFile({ gistId, gistToken, fileName, content })
-  } catch (error) {
-    logger.fail(`Failed to write fuel price data to Gist file ${fileName}:`, error)
-  }
+async function writeFuelPriceToKv(key: string, fuelPriceData: FuelPrice): Promise<void> {
+  await setJsonKv(key, fuelPriceData)
 }
 
 /**
@@ -130,7 +115,7 @@ function hasFuelPriceChanged(current: FuelPrice, previous: FuelPrice | null): bo
 }
 
 /**
- * Get fuel price data with caching and Gist persistence
+ * Get fuel price data with caching and KV persistence.
  * @returns Promise<FuelPriceList> - Contains previous and current fuel price data arrays with timestamps
  */
 export async function getCachedFuelPrice(): Promise<FuelPriceList> {
@@ -141,11 +126,10 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
     return MEMORY_CACHE.list
   }
 
-  // Read data from Gist
-  const previousData = await readFuelPriceFromGist(PREVIOUS_FUEL_PRICE_FILE)
-  const currentData = await readFuelPriceFromGist(CURRENT_FUEL_PRICE_FILE)
+  // Read data from persistence (KV).
+  const [previousData, currentData] = await Promise.all([readFuelPriceFromKv(PREVIOUS_FUEL_PRICE_KEY), readFuelPriceFromKv(CURRENT_FUEL_PRICE_KEY)])
 
-  // Check if data in Gist is expired
+  // Check if data is expired based on lastUpdated.
   if (currentData && now - new Date(currentData.lastUpdated).getTime() < CACHE_DURATION) {
     const list: FuelPriceList = {
       previous: previousData ? previousData.data : [],
@@ -168,12 +152,12 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
 
     let list: FuelPriceList
 
-    // Only update Gist and logical lastUpdated when data has actually changed
+    // Only update KV when data has actually changed
     if (hasFuelPriceChanged(freshData, currentData)) {
       if (currentData) {
-        await writeFuelPriceToGist(PREVIOUS_FUEL_PRICE_FILE, currentData)
+        await writeFuelPriceToKv(PREVIOUS_FUEL_PRICE_KEY, currentData)
       }
-      await writeFuelPriceToGist(CURRENT_FUEL_PRICE_FILE, freshData)
+      await writeFuelPriceToKv(CURRENT_FUEL_PRICE_KEY, freshData)
 
       list = {
         // For UI diff: compare fresh current vs previous current snapshot
@@ -201,7 +185,7 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
 
     return list
   } catch (error) {
-    // If fetching new data fails but we have cached data, use cached data
+    // If fetching new data fails but we have cached data, use cached data.
     if (currentData) {
       const list: FuelPriceList = {
         previous: previousData ? previousData.data : [],

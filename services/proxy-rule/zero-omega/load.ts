@@ -1,26 +1,32 @@
-import { readGistFile } from '@/services/gist'
 import { createLogger } from '@/services/logger'
 
 import type { ZeroOmega } from './types'
 
 const logger = createLogger('proxy-rule-zero-omega')
 
-const DEFAULT_FILE = 'ZeroOmega.json'
-
 /**
- * Load ZeroOmega JSON from a separate gist when env is configured; otherwise null.
+ * Load ZeroOmega JSON from a raw file URL when env is configured.
+ * @returns Parsed JSON payload, or null when env is missing/invalid or fetch/parsing fails
  */
 export async function loadZeroOmegaConfig(): Promise<ZeroOmega | null> {
-  const gistId = process.env.ZERO_OMEGA_GIST_ID?.trim()
-  const gistToken = process.env.ZERO_OMEGA_GIST_TOKEN?.trim()
-  if (!gistId || !gistToken) {
+  /**
+   * Env contract:
+   * - `ZERO_OMEGA_GIST_URL` is the raw JSON file URL directly
+   *   (e.g. https://gist.githubusercontent.com/.../raw/ZeroOmega.json).
+   */
+  const rawUrl = process.env.ZERO_OMEGA_GIST_URL?.trim()
+  if (!rawUrl) {
     return null
   }
-
-  const fileName = process.env.ZERO_OMEGA_GIST_FILENAME?.trim() || DEFAULT_FILE
+  if (!rawUrl.startsWith('http')) return null
 
   try {
-    const content = await readGistFile({ gistId, gistToken, fileName })
+    const res = await fetch(rawUrl)
+    if (!res.ok) {
+      logger.warn('loadZeroOmegaConfig fetch failed', { status: res.status, url: rawUrl })
+      return null
+    }
+    const content = await res.text()
     return JSON.parse(content) as ZeroOmega
   } catch (error) {
     logger.warn('loadZeroOmegaConfig failed', { error })

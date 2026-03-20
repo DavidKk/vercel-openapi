@@ -1,4 +1,4 @@
-import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
+import { getJsonKv, setJsonKv } from '@/services/kv/client'
 import { createLogger } from '@/services/logger'
 
 import { fetchAndParseHolidayData } from './timor'
@@ -18,9 +18,13 @@ interface MemoryCache {
 const MEMORY_CACHE: MemoryCache = {}
 const logger = createLogger('holiday')
 
+function getHolidayKvKey(year: number): string {
+  return `holiday:${year}`
+}
+
 /**
  * 获取当前年份的节假日列表
- * 优先从内存缓存读取，其次从Gist缓存读取，最后从远程API获取
+ * 优先从内存缓存读取，其次从 KV 缓存读取，最后从远程 API 获取
  */
 export async function listHoliday(year = new Date().getFullYear()) {
   // 优先从内存缓存读取
@@ -70,21 +74,22 @@ async function requestHoliday(year = new Date().getFullYear()) {
 }
 
 /**
- * 从Gist缓存加载节假日数据
- * @param currentYear 当前年份，用于生成缓存文件名
+ * Load holiday data from KV cache
+ * @param currentYear Current year used to derive the KV key
  */
 async function loadHolidayFromCache(year = new Date().getFullYear()) {
-  const holidays = await readHolidaysFromGist('holidays.json', year)
-  return holidays
+  const cached = await getJsonKv<Holiday[]>(getHolidayKvKey(year))
+  return Array.isArray(cached) ? cached : []
 }
 
 /**
- * 将节假日数据保存到Gist缓存
- * @param holidays 节假日数据数组
- * @param currentYear 当前年份，用于生成缓存文件名
+ * Save holiday data to KV cache
+ * @param holidays Holiday array
+ * @param currentYear Current year used to derive the KV key
  */
 async function saveHolidayToCache(year = new Date().getFullYear(), holidays: Holiday[]) {
-  await writeHolidaysToGist('holidays.json', holidays, year)
+  if (!holidays?.length) return
+  await setJsonKv(getHolidayKvKey(year), holidays)
 }
 
 /**
@@ -110,33 +115,4 @@ export function isWorkday(date: Date, holidays: Holiday[]): boolean {
 
   // 默认情况下，周六周日是非工作日
   return date.getDay() !== 0 && date.getDay() !== 6
-}
-
-/**
- * 从Gist读取节假日数据
- * @param fileName 文件名
- * @param year 可选年份，用于生成带年份的文件名
- */
-export async function readHolidaysFromGist(fileName: string, year?: number): Promise<Holiday[]> {
-  const { gistId, gistToken } = getGistInfo()
-  const yearFileName = year ? `holidays-${year}.json` : fileName
-  const content = await readGistFile({ gistId, gistToken, fileName: yearFileName })
-  return JSON.parse(content) as Holiday[]
-}
-
-/**
- * 将节假日数据写入Gist
- * @param fileName 文件名
- * @param holidays 节假日数据数组
- * @param year 可选年份，用于生成带年份的文件名
- */
-export async function writeHolidaysToGist(fileName: string, holidays: Holiday[], year?: number): Promise<void> {
-  if (!holidays?.length) {
-    return
-  }
-
-  const { gistId, gistToken } = getGistInfo()
-  const yearFileName = year ? `holidays-${year}.json` : fileName
-  const content = JSON.stringify(holidays, null, 2)
-  await writeGistFile({ gistId, gistToken, fileName: yearFileName, content })
 }

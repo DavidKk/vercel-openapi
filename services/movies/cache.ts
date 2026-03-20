@@ -1,8 +1,8 @@
-import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
+import { getJsonKv, setJsonKv } from '@/services/kv/client'
 import { createLogger } from '@/services/logger'
 import type { MergedMovie } from '@/services/maoyan/types'
 
-import { DATA_VALIDITY_DURATION, GIST_FILE_NAME, RESULT_CACHE_KEY, UPDATE_WINDOW_DURATION, UPDATE_WINDOWS } from './constants'
+import { DATA_VALIDITY_DURATION, MOVIES_CACHE_KV_KEY, RESULT_CACHE_KEY, UPDATE_WINDOW_DURATION, UPDATE_WINDOWS } from './constants'
 import type { MoviesCacheData } from './types'
 
 const logger = createLogger('movies-cache')
@@ -25,7 +25,9 @@ function getUpdateWindowIndex(timestamp: number): number | null {
 }
 
 /**
- * Whether cache should be updated (stale or in new window)
+ * Whether the cached movies snapshot should be refreshed (stale or outside the current update window).
+ * @param currentTimestamp Epoch milliseconds of the cached data
+ * @returns True when the cache is stale and should be refreshed
  */
 export function shouldUpdate(currentTimestamp: number): boolean {
   const now = Date.now()
@@ -38,47 +40,46 @@ export function shouldUpdate(currentTimestamp: number): boolean {
 }
 
 /**
- * Read movies cache from GIST
- * @returns Cache data or null if file not found
+ * Read movies cache snapshot from KV.
+ * @returns Cache data loaded from KV, or null when missing/invalid
  */
 export async function getMoviesFromGist(): Promise<MoviesCacheData | null> {
-  const { gistId, gistToken } = getGistInfo()
   try {
-    const content = await readGistFile({ gistId, gistToken, fileName: GIST_FILE_NAME })
-    const data = JSON.parse(content) as MoviesCacheData
-    if (!data.data) {
+    const data = await getJsonKv<MoviesCacheData>(MOVIES_CACHE_KV_KEY)
+    if (!data?.data) {
       logger.warn('Invalid movies cache data structure')
       return null
     }
-    logger.info('Movies cache loaded from GIST')
+    logger.info('Movies cache loaded from KV')
     return data
   } catch (err) {
-    if (err instanceof Error && err.message.includes('not found')) {
-      logger.info('Movies cache file not found in GIST')
-      return null
-    }
     throw err
   }
 }
 
 /**
- * Save movies cache to GIST
+ * Save movies cache snapshot to KV.
+ * @param data Cache payload to save
+ * @returns Promise resolved when the write completes
  */
 export async function saveMoviesToGist(data: MoviesCacheData): Promise<void> {
-  const { gistId, gistToken } = getGistInfo()
   const content = JSON.stringify(data, null, 2)
   const size = new Blob([content]).size
   if (size > 1024 * 1024) {
     logger.warn(`Movies cache size ${(size / 1024).toFixed(2)}KB exceeds 1MB`)
     throw new Error('Movies cache content too large')
   }
-  await writeGistFile({ gistId, gistToken, fileName: GIST_FILE_NAME, content })
-  logger.info('Movies cache saved to GIST')
+  await setJsonKv(MOVIES_CACHE_KV_KEY, data)
+  logger.info('Movies cache saved to KV')
 }
 
 /** In-memory result cache (per-instance) */
 const resultCache = new Map<string, { data: MergedMovie[]; timestamp: number }>()
 
+/**
+ * Get memoized results from the in-memory cache.
+ * @returns Cached movies, or null when missing/stale
+ */
 export function getResultFromCache(): MergedMovie[] | null {
   const entry = resultCache.get(RESULT_CACHE_KEY)
   if (!entry) return null
@@ -89,11 +90,21 @@ export function getResultFromCache(): MergedMovie[] | null {
   return entry.data
 }
 
+/**
+ * Memoize movies results in the in-memory cache.
+ * @param movies Movies list to memoize
+ * @returns void
+ */
 export function setResultToCache(movies: MergedMovie[]): void {
   resultCache.set(RESULT_CACHE_KEY, { data: movies, timestamp: Date.now() })
 }
 
-/** Find existing movie by maoyanId / tmdbId / name */
+/**
+ * Find an existing movie in a list by maoyanId / tmdbId / name.
+ * @param existing Existing movies list
+ * @param newMovie Candidate movie to match
+ * @returns The matched movie, or undefined when not found
+ */
 function findExistingMovie(existing: MergedMovie[], newMovie: MergedMovie): MergedMovie | undefined {
   for (const e of existing) {
     if (newMovie.maoyanId != null && e.maoyanId != null && String(newMovie.maoyanId) === String(e.maoyanId)) return e
@@ -103,6 +114,11 @@ function findExistingMovie(existing: MergedMovie[], newMovie: MergedMovie): Merg
   return undefined
 }
 
+/**
+ * Compute a stable cache id for a movie.
+ * @param movie Movie object used to compute its id
+ * @returns Stable id string
+ */
 export function getMovieId(movie: MergedMovie): string {
   if (movie.maoyanId != null) {
     const s = String(movie.maoyanId)
@@ -113,6 +129,12 @@ export function getMovieId(movie: MergedMovie): string {
   return `name:${movie.name.toLowerCase().trim()}`
 }
 
+/**
+ * Apply insertedAt/updatedAt timestamps to movies based on existing entries.
+ * @param existing Previously cached movies
+ * @param newMovies Newly fetched movies
+ * @returns Movies list with insertedAt/updatedAt applied
+ */
 export function processMoviesWithInsertTime(existing: MergedMovie[], newMovies: MergedMovie[]): MergedMovie[] {
   const now = Date.now()
   return newMovies.map((movie) => {
@@ -122,6 +144,11 @@ export function processMoviesWithInsertTime(existing: MergedMovie[], newMovies: 
   })
 }
 
+/**
+ * Sort movies by insertedAt ascending/descending logic (latest first).
+ * @param movies Movies list
+ * @returns Sorted movies list
+ */
 export function sortMoviesByInsertTime(movies: MergedMovie[]): MergedMovie[] {
   return [...movies].sort((a, b) => {
     if (!a.insertedAt && !b.insertedAt) return 0
@@ -137,6 +164,8 @@ function hasMaoyanSource(movie: MergedMovie): boolean {
 
 /**
  * Sort movies: Maoyan (topRated/mostExpected) first, then by insertedAt descending.
+ * @param movies Movies list
+ * @returns Sorted movies list
  */
 export function sortMoviesMaoyanFirstThenByInsertTime(movies: MergedMovie[]): MergedMovie[] {
   return [...movies].sort((a, b) => {
@@ -150,6 +179,11 @@ export function sortMoviesMaoyanFirstThenByInsertTime(movies: MergedMovie[]): Me
   })
 }
 
+/**
+ * Create the initial KV payload for a freshly built movies cache.
+ * @param movies Movies list
+ * @returns Initial cache payload with metadata and empty notified list
+ */
 export function createInitialCacheData(movies: MergedMovie[]): MoviesCacheData {
   const now = Date.now()
   const processed = processMoviesWithInsertTime([], movies)
@@ -165,6 +199,13 @@ export function createInitialCacheData(movies: MergedMovie[]): MoviesCacheData {
   }
 }
 
+/**
+ * Update an existing KV cache payload with a new movies list.
+ * @param existing Previous cache data (data section)
+ * @param newMovies New movies list
+ * @param previousNotified Movie ids that were previously notified
+ * @returns Updated cache payload
+ */
 export function updateCacheData(existing: MoviesCacheData['data'], newMovies: MergedMovie[], previousNotified: string[] = []): MoviesCacheData {
   const now = Date.now()
   const processed = processMoviesWithInsertTime(existing.movies, newMovies)

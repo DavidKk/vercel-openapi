@@ -1,8 +1,10 @@
 /**
- * Finance (TASI) daily snapshot in GIST for compare-before-write. Only write Turso when data changed.
+ * Finance (TASI) daily snapshot cache for compare-before-write.
+ *
+ * We store the "today snapshot" in KV (and still write Turso only when data changed).
  */
 
-import { getGistInfo, readGistFile, writeGistFile } from '@/services/gist'
+import { getJsonKv, setJsonKv } from '@/services/kv/client'
 import { createLogger } from '@/services/logger'
 
 import { TASI_GIST_FILE_NAME, TASI_GIST_TTL_MS } from './constants'
@@ -10,16 +12,27 @@ import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 
 const logger = createLogger('finance-tasi-gist')
 
+/**
+ * KV key for TASI daily snapshot.
+ *
+ * We keep the exported function names (getTasiSnapshotFromGist/saveTasiSnapshotToGist)
+ * to avoid touching the rest of the codebase, but the storage backend is KV now.
+ */
+const TASI_SNAPSHOT_KV_KEY = `finance:tasi:${TASI_GIST_FILE_NAME}`
+
 export interface TasiDailySnapshot {
   date: string
   company: TasiCompanyDailyRecord[]
   summary: TasiMarketSummary
-  /** ISO timestamp when snapshot was saved. Used for GIST expiry. */
+  /** ISO timestamp when snapshot was saved. Used for cache expiry. */
   updatedAt?: string
 }
 
 /**
- * Whether the GIST snapshot is expired (older than TASI_GIST_TTL_MS). Missing updatedAt counts as expired.
+ * Whether the cached snapshot is expired (older than `TASI_GIST_TTL_MS`).
+ * Missing `updatedAt` counts as expired.
+ * @param snapshot Cached snapshot (or null)
+ * @returns True when snapshot is missing or expired
  */
 export function isGistSnapshotExpired(snapshot: TasiDailySnapshot | null): boolean {
   if (!snapshot?.updatedAt) return true
@@ -29,41 +42,33 @@ export function isGistSnapshotExpired(snapshot: TasiDailySnapshot | null): boole
 }
 
 /**
- * Read last TASI daily snapshot from GIST. Returns null if file missing or invalid.
- *
- * @returns Snapshot or null
+ * Read last TASI daily snapshot from KV.
+ * @returns Cached snapshot or null when missing/invalid
  */
 export async function getTasiSnapshotFromGist(): Promise<TasiDailySnapshot | null> {
-  const { gistId, gistToken } = getGistInfo()
   try {
-    const content = await readGistFile({ gistId, gistToken, fileName: TASI_GIST_FILE_NAME })
-    const data = JSON.parse(content) as TasiDailySnapshot
+    const data = await getJsonKv<TasiDailySnapshot>(TASI_SNAPSHOT_KV_KEY)
+    if (!data) return null
     if (!data?.date || !Array.isArray(data.company) || !data.summary) {
-      logger.warn('GIST snapshot invalid structure')
+      logger.warn('TASI snapshot invalid structure')
       return null
     }
-    logger.info('GIST snapshot read', { date: data.date, companyCount: data.company.length })
+    logger.info('TASI snapshot read', { date: data.date, companyCount: data.company.length })
     return data
-  } catch (err) {
-    if (err instanceof Error && err.message.includes('not found')) {
-      logger.info('GIST snapshot not found')
-      return null
-    }
-    throw err
+  } catch {
+    return null
   }
 }
 
 /**
- * Save TASI daily snapshot to GIST.
- *
+ * Save TASI daily snapshot to KV.
  * @param snapshot Snapshot to save
+ * @returns Promise resolved when the write completes
  */
 export async function saveTasiSnapshotToGist(snapshot: TasiDailySnapshot): Promise<void> {
-  const { gistId, gistToken } = getGistInfo()
   const toSave: TasiDailySnapshot = { ...snapshot, updatedAt: new Date().toISOString() }
-  const content = JSON.stringify(toSave, null, 2)
-  await writeGistFile({ gistId, gistToken, fileName: TASI_GIST_FILE_NAME, content })
-  logger.info('GIST snapshot saved', { date: snapshot.date, companyCount: snapshot.company.length })
+  await setJsonKv(TASI_SNAPSHOT_KV_KEY, toSave)
+  logger.info('TASI snapshot saved', { date: snapshot.date, companyCount: snapshot.company.length })
 }
 
 /**
@@ -72,7 +77,7 @@ export async function saveTasiSnapshotToGist(snapshot: TasiDailySnapshot): Promi
  *
  * @param prev Previous snapshot or null
  * @param next New snapshot
- * @returns true when should write
+ * @returns True when Turso write should happen
  */
 export function tasiSnapshotChanged(prev: TasiDailySnapshot | null, next: TasiDailySnapshot): boolean {
   if (!prev) return true

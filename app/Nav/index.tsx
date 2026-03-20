@@ -10,7 +10,7 @@ import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbFilter,
 import { Tooltip } from '@/components/Tooltip'
 
 import { AuthEntry } from './AuthEntry'
-import { getModuleSubPath } from './utils'
+import { getModuleSubPath, MODULES_WITH_MANAGER_PAGES } from './utils'
 
 const RESIZE_DEBOUNCE_MS = 150
 
@@ -76,6 +76,10 @@ export function Nav() {
   const pathname = usePathname()
   const subPath = getModuleSubPath(pathname ?? null)
 
+  const segments = (pathname ?? '').split('/').filter(Boolean)
+  const currentModuleSlug = segments[0]
+  const isOnManagePage = segments[1] === 'manage' && !!currentModuleSlug
+
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 py-2">
       <Link href="/" className="flex shrink-0 items-center gap-2 text-sm font-semibold text-gray-900 hover:text-gray-700">
@@ -90,7 +94,14 @@ export function Nav() {
         <div className="flex min-w-max flex-nowrap items-center justify-end gap-1 pr-2">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname?.startsWith(item.href) ?? false
-            const href = subPath ? `${item.href}${subPath}` : item.href
+            const targetModuleSlug = item.href.replace(/^\/+/, '').split('/')[0]
+
+            let href = item.href
+            if (isOnManagePage && MODULES_WITH_MANAGER_PAGES.has(targetModuleSlug)) {
+              href = `${item.href}/manage`
+            } else if (subPath) {
+              href = `${item.href}${subPath}`
+            }
             return (
               <Tooltip key={item.href} content={item.title}>
                 <Link

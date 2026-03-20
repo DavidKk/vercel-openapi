@@ -8,9 +8,9 @@ export const runtime = 'nodejs'
 const logger = createLogger('cron-tasi-sync')
 
 /**
- * Finance (TASI) sync cron: writes DB (Turso) then GIST.
- * Fetches today from cf-feed-bridge, compares with GIST; if changed writes Turso, runs 2-year retention, then writes GIST.
- * Auth: CRON_SECRET (Bearer or ?secret=). Requires GIST_ID, GIST_TOKEN, TASI_FEED_URL, TURSO_*.
+ * Finance (TASI) sync cron: writes DB (Turso) then KV snapshot.
+ * Fetches today from cf-feed-bridge, compares with KV snapshot; if changed writes Turso, runs 2-year retention, then updates KV snapshot.
+ * Auth: CRON_SECRET (Bearer or ?secret=). Requires TASI_FEED_URL, TURSO_*.
  */
 export const GET = cron(async () => {
   logger.info('tasi-sync cron start')
