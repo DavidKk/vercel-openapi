@@ -13,6 +13,10 @@ export interface ProxyRuleClashYamlSnippetProps {
   secret: string
   /** Rule-set names / actions from gist or defaults */
   actions: string[]
+  /** When false, omit the YAML top-level `dns:` block. Defaults to true. */
+  includeDns?: boolean
+  /** When false, omit the YAML top-level `tun:` block. Defaults to true. */
+  includeTun?: boolean
   /** When true, hides the floating copy button (e.g. parent header provides Copy). */
   hideCopyButton?: boolean
   /** Called when computed YAML changes (after base URL is known). */
@@ -23,11 +27,14 @@ export interface ProxyRuleClashYamlSnippetProps {
  * Renders a compact, syntax-highlighted sample Clash client YAML using this deployment's public rule-set URLs.
  * @param props.secret External controller secret placeholder
  * @param props.actions Action names used for RULE-SET providers and rules
+ * @param props.includeDns When false, omit the YAML top-level `dns:` block. Defaults to true.
+ * @param props.includeTun When false, omit the YAML top-level `tun:` block. Defaults to true.
  * @param props.hideCopyButton Omit floating copy control
  * @param props.onYamlTextChange Notify parent of YAML text updates
+ * @returns JSX element rendering the YAML snippet
  */
 export function ProxyRuleClashYamlSnippet(props: ProxyRuleClashYamlSnippetProps) {
-  const { secret, actions, hideCopyButton = false, onYamlTextChange } = props
+  const { secret, actions, includeDns = true, includeTun = true, hideCopyButton = false, onYamlTextChange } = props
   const { success } = useNotification()
   const [baseUrl, setBaseUrl] = useState('')
 
@@ -37,7 +44,10 @@ export function ProxyRuleClashYamlSnippet(props: ProxyRuleClashYamlSnippetProps)
     setBaseUrl(`${protocol}//${host}`)
   }, [])
 
-  const yamlText = useMemo(() => (baseUrl ? buildClashYamlSnippetText({ baseUrl, secret, actions }) : ''), [actions, baseUrl, secret])
+  const yamlText = useMemo(
+    () => (baseUrl ? buildClashYamlSnippetText({ baseUrl, secret, actions, includeDns, includeTun }) : ''),
+    [actions, baseUrl, secret, includeDns, includeTun]
+  )
 
   useEffect(() => {
     onYamlTextChange?.(yamlText)

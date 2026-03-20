@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { ImCheckboxChecked, ImCheckboxUnchecked } from 'react-icons/im'
 
 import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
 import { useNotification } from '@/components/Notification'
@@ -22,6 +23,8 @@ export interface ProxyRuleOverviewClientProps {
 export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
   const { secret, actions } = props
   const [yamlText, setYamlText] = useState('')
+  const [includeDns, setIncludeDns] = useState(true)
+  const [includeTun, setIncludeTun] = useState(true)
   const { success } = useNotification()
 
   const handleCopyHeader = useCallback(() => {
@@ -52,6 +55,34 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setIncludeDns((v) => !v)}
+            aria-pressed={includeDns}
+            className={`inline-flex h-9 items-center rounded-lg border px-3 text-[11px] font-medium transition-colors ${
+              includeDns ? 'border-gray-400 bg-gray-100 text-gray-800' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+            title="Toggle DNS block"
+          >
+            <span className="flex items-center gap-1.5">
+              <span>DNS</span>
+              {includeDns ? <ImCheckboxChecked className="h-3 w-3" /> : <ImCheckboxUnchecked className="h-3 w-3 text-gray-400" />}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIncludeTun((v) => !v)}
+            aria-pressed={includeTun}
+            className={`inline-flex h-9 items-center rounded-lg border px-3 text-[11px] font-medium transition-colors ${
+              includeTun ? 'border-gray-400 bg-gray-100 text-gray-800' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+            title="Toggle TUN block"
+          >
+            <span className="flex items-center gap-1.5">
+              <span>TUN</span>
+              {includeTun ? <ImCheckboxChecked className="h-3 w-3" /> : <ImCheckboxUnchecked className="h-3 w-3 text-gray-400" />}
+            </span>
+          </button>
+          <button
+            type="button"
             onClick={handleCopyHeader}
             className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
             title="Copy sample YAML"
@@ -71,7 +102,7 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
         </div>
       </div>
 
-      <ProxyRuleClashYamlSnippet secret={secret} actions={actions} hideCopyButton onYamlTextChange={setYamlText} />
+      <ProxyRuleClashYamlSnippet secret={secret} actions={actions} includeDns={includeDns} includeTun={includeTun} hideCopyButton onYamlTextChange={setYamlText} />
     </div>
   )
 }
