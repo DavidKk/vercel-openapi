@@ -1,5 +1,9 @@
 import { THIRD_PARTY_REJECT_RULE_PROVIDERS } from './clash-overview-constants'
 
+/**
+ * Parameters for building the sample Clash YAML shown in the UI.
+ * Controls the base URL for rule-provider URLs and optional inclusion of `dns` / `tun` blocks.
+ */
 export interface BuildClashYamlSnippetTextParams {
   /** Origin + host, e.g. https://example.com */
   baseUrl: string
@@ -7,6 +11,10 @@ export interface BuildClashYamlSnippetTextParams {
   secret: string
   /** Rule-set names / actions from gist or defaults */
   actions: string[]
+  /** When false, omit the YAML top-level `dns:` block. Defaults to true. */
+  includeDns?: boolean
+  /** When false, omit the YAML top-level `tun:` block. Defaults to true. */
+  includeTun?: boolean
 }
 
 /**
@@ -15,7 +23,7 @@ export interface BuildClashYamlSnippetTextParams {
  * @returns Trimmed YAML string
  */
 export function buildClashYamlSnippetText(params: BuildClashYamlSnippetTextParams): string {
-  const { baseUrl, secret, actions } = params
+  const { baseUrl, secret, actions, includeDns = true, includeTun = true } = params
   const rules = actions.map((name) => ({ type: 'RULE-SET', name, value: name }))
   const ruleProviders = actions.map((name) => ({
     name,
@@ -52,13 +60,7 @@ export function buildClashYamlSnippetText(params: BuildClashYamlSnippetTextParam
 
   const thirdPartyRejectLines = THIRD_PARTY_REJECT_RULE_PROVIDERS.map(({ name }) => `  - RULE-SET,${name},REJECT`).join('\n')
 
-  return `
-mixed-port: 7890
-allow-lan: true
-mode: Rule
-external-controller: 127.0.0.1:51498
-secret: ${secret}
-log-level: info
+  const dnsBlock = `
 dns:
   enable: true
   listen: 127.0.0.1:53
@@ -83,6 +85,9 @@ dns:
       - 198.18.0.0/15
       - 224.0.0.0/4
       - 240.0.0.0/4
+`
+
+  const tunBlock = `
 tun:
   enable: true
   auto-route: true
@@ -90,6 +95,16 @@ tun:
     - 10.0.0.0/8
     - 172.16.0.0/12
     - 192.168.0.0/16
+`
+
+  return `
+mixed-port: 7890
+allow-lan: true
+mode: Rule
+external-controller: 127.0.0.1:51498
+secret: ${secret}
+log-level: info
+${includeDns ? dnsBlock : ''}${includeTun ? tunBlock : ''}
 proxies:
   - name: Proxy
     server: my.server.com
