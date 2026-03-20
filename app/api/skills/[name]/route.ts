@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import type { NextRequest } from 'next/server'
 
+import packageJson from '@/package.json'
 import { createLogger } from '@/services/logger'
 import { skillBundles } from '@/skills'
 
@@ -38,20 +39,64 @@ export async function GET(req: NextRequest, context: { params: Promise<{ name: s
   }
 
   const includes = getIncludesFromRequest(req)
-  if (bundle.name === 'all' && includes !== null) {
-    const filteredFiles = bundle.files.filter((file) => includes.some((inc) => file.path.includes(inc)))
+  let bundleName = bundle.name
+  let bundleFiles = bundle.files
+
+  if (bundleName === 'all' && includes !== null) {
+    const filteredFiles = bundleFiles.filter((file) => includes.some((inc) => file.path.includes(inc)))
     if (filteredFiles.length === 0) {
       return new Response('No skill files for given includes. Use ?includes=exchange-rate,fuel-price,geo etc.', {
         status: 400,
       })
     }
-    bundle = { name: 'all', files: filteredFiles }
+    bundleFiles = filteredFiles
   }
 
   const origin = req.nextUrl.origin
   const zip = new JSZip()
 
-  for (const file of bundle.files) {
+  const fileMetaByPath = new Map<
+    string,
+    {
+      name: string
+      description: string
+    }
+  >()
+  for (const b of skillBundles) {
+    for (const f of b.files) {
+      const prev = fileMetaByPath.get(f.path)
+      if (prev) continue
+
+      const nextMetadata = b.metadata ?? null
+      if (!nextMetadata) continue
+
+      const name = typeof nextMetadata.name === 'string' ? nextMetadata.name : ''
+      const description = typeof nextMetadata.description === 'string' ? nextMetadata.description : ''
+      if (!name || !description) continue
+
+      fileMetaByPath.set(f.path, { name, description })
+    }
+  }
+
+  const manifest = {
+    version: packageJson.version,
+    /**
+     * File list inside the ZIP (use this to decide which skill docs to load into LLM context).
+     * Note: this is intentionally small and does not include markdown contents.
+     */
+    files: bundleFiles.map((file) => {
+      const meta = fileMetaByPath.get(file.path)
+      return {
+        path: file.path,
+        name: meta?.name ?? '',
+        description: meta?.description ?? '',
+      }
+    }),
+  }
+
+  zip.file('index.json', JSON.stringify(manifest, null, 2))
+
+  for (const file of bundleFiles) {
     const resolvedContent = file.content.replace(/BASE_URL/g, origin)
     zip.file(file.path, resolvedContent)
   }
@@ -62,7 +107,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ name: s
     status: 200,
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="${bundle.name}.zip"`,
+      'Content-Disposition': `attachment; filename="unbnd-${bundleName}.zip"`,
       'Cache-Control': 'public, max-age=600',
     },
   })

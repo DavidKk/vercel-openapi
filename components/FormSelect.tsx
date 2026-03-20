@@ -13,8 +13,13 @@ interface FormSelectProps {
   options: FormSelectOption[]
   /** Optional placeholder when value is empty */
   placeholder?: string
-  /** Optional extra class for the select (e.g. min-w-[...]) */
+  /** Optional extra class for the native select (typography, borders) */
   className?: string
+  /**
+   * Optional class for the outer wrapper. Put width constraints here (e.g. max-w-[168px]) so the
+   * chevron stays inside the visible field; the icon is positioned relative to this wrapper.
+   */
+  wrapperClassName?: string
   id?: string
   disabled?: boolean
 }
@@ -24,10 +29,10 @@ interface FormSelectProps {
  * Uses a custom chevron icon instead of the browser default arrow to avoid arrow misalignment.
  */
 export function FormSelect(props: FormSelectProps) {
-  const { value, onChange, options, placeholder, className = '', id, disabled } = props
+  const { value, onChange, options, placeholder, className = '', wrapperClassName = '', id, disabled } = props
 
   return (
-    <div className="relative">
+    <div className={`relative w-full min-w-0 ${wrapperClassName}`}>
       <select
         id={id}
         disabled={disabled}

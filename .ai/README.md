@@ -6,18 +6,18 @@ One place for rules, schemas, generators, skills, specs, plans, tasks, context, 
 
 ## Dirs
 
-| Dir             | Read first / use                                                                                                                                                                   |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **context/**    | Aggregated context: `context/current.md` (current focus), `context/summary.md` (one-page project). Load first to minimize tokens.                                                  |
-| **rules/**      | `rules/global.md` (index: do X → read Y). Layout: `rules/layout/`. Logging: `rules/logging.md`. Generator: `module-layout.yaml`.                                                   |
-| **specs/**      | Requirements. `specs/api-semantics.md`; per-module under `specs/modules/`.                                                                                                         |
-| **knowledge/**  | Terms: `knowledge/glossary.md`. ADR: `docs/adr/`.                                                                                                                                  |
-| **plans/**      | Product planning. `plans/roadmap.md`; optional `plans/releases/`.                                                                                                                  |
-| **tasks/**      | Execution. `tasks/active/current.md` (in progress); `tasks/backlog/`, `tasks/done/`. See `tasks/README.md`.                                                                        |
-| **workflow/**   | Process steps. New module → `workflow/module-development.md` (five phases: requirements confirmation → customize → breakdown → generate → raise issues). See `workflow/README.md`. |
-| **schemas/**    | One YAML per module. Field contract: `schemas/README.md`. Copy existing YAML, edit, then run generator.                                                                            |
-| **generators/** | Commands: `generators/README.md`. Produces `app/<id>/layout.tsx`, `page.tsx`, `api/page.tsx`, `mcp/page.tsx`.                                                                      |
-| **skills/**     | `skills/<name>/SKILL.md`. New module → `skills/module-generator/SKILL.md` (after reading workflow).                                                                                |
+| Dir             | Read first / use                                                                                                                                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **context/**    | Aggregated context: `context/current.md` (current focus), `context/summary.md` (one-page project). Load first to minimize tokens.                                                                                   |
+| **rules/**      | `rules/global.md` (index: do X → read Y). Layout: `rules/layout/`. Logging: `rules/logging.md`. Generator: `module-layout.yaml`.                                                                                    |
+| **specs/**      | Requirements. `specs/api-semantics.md`; per-module under `specs/modules/`.                                                                                                                                          |
+| **knowledge/**  | Terms: `knowledge/glossary.md`. ADR: `docs/adr/`.                                                                                                                                                                   |
+| **plans/**      | Product planning. `plans/roadmap.md`; optional `plans/releases/`.                                                                                                                                                   |
+| **tasks/**      | Execution. `tasks/active/current.md` (in progress); `tasks/backlog/`, `tasks/done/`. See `tasks/README.md`.                                                                                                         |
+| **workflow/**   | Process steps. New module → `workflow/module-development.md` (five phases: requirements confirmation → customize → breakdown → generate → raise issues). See `workflow/README.md`.                                  |
+| **schemas/**    | One YAML per module. Field contract: `schemas/README.md`. Copy existing YAML, edit, then run generator.                                                                                                             |
+| **generators/** | Commands: `generators/README.md`. Produces `app/<id>/layout.tsx`, `page.tsx`, `api/page.tsx`, `mcp/page.tsx`.                                                                                                       |
+| **skills/**     | `skills/<name>/SKILL.md`. New module → `skills/module-generator/SKILL.md` (after reading workflow). Agent-ready **API** skill doc template → `skills/api-agent-skill-template/SKILL.md` + `specs/skill-writing.md`. |
 
 Outside `.ai/` (optional; create when needed): **`docs/specs/overview.md`** (product scope, modules); **`docs/adr/`** (architecture decision records). If missing, product scope is still in `.ai/specs/` and plans.
 
@@ -51,5 +51,5 @@ Outside `.ai/` (optional; create when needed): **`docs/specs/overview.md`** (pro
 - **Task** → Edit `tasks/active/current.md`; move to `tasks/backlog/` or `tasks/done/` when status changes.
 - **Context** → Update `context/current.md` when switching work; keep `context/summary.md` as one-page overview.
 - **Module** → Follow `workflow/module-development.md` (requirements → customize → split → generate; raise issues when blocked). Add `schemas/<id>.yaml` per `schemas/README.md`; run generator.
-- **Skill** → Add `skills/<name>/SKILL.md`; point IDE to `.ai/skills/`.
+- **Skill** → Add `skills/<name>/SKILL.md`; follow `.ai/specs/skill-writing.md` for an agent-ready doc; point IDE to `.ai/skills/`.
 - **ADR** → Add under `docs/adr/`; link from specs or rules when relevant.

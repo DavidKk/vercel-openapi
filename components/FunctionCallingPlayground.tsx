@@ -33,6 +33,7 @@ const PRESET_PROMPTS_BY_CATEGORY: Record<string, { label: string; value: string 
     { label: '搜索可乐', value: '帮我搜索可乐相关的商品。' },
     { label: '按总价总量计算', value: '可乐总价12.5元，总量1.5L，帮我算每个品牌单价对比。' },
   ],
+  'proxy-rule': [{ label: '导出 Proxy 规则集', value: '帮我列出 Clash 里 action 为 Proxy 的合并 RULE-SET 行。' }],
   '': [],
 }
 
@@ -46,6 +47,7 @@ const TOOL_NAMES_BY_CATEGORY: Record<string, string[]> = {
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
   prices: ['list_price_lists', 'search_prices', 'calc_prices', 'create_product', 'update_product', 'delete_product'],
+  'proxy-rule': ['get_clash_rule_config'],
 }
 
 /** Province names for fuel-price tool param extraction (match order for .at(0)) */
@@ -75,6 +77,7 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
   const isExchange = !isModuleScoped || category === 'exchange-rate'
   const isFuel = !isModuleScoped || category === 'fuel-price'
   const isPrices = !isModuleScoped || category === 'prices'
+  const isProxyRule = !isModuleScoped || category === 'proxy-rule'
 
   if (isHoliday && /今天|今日/.test(m) && /节假|假期|放假/.test(m)) {
     calls.push({ name: 'get_today_holiday', params: {} })
@@ -160,6 +163,10 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
     }
   }
 
+  if (isProxyRule && /代理|规则|Clash|RULE|Proxy/i.test(m)) {
+    calls.push({ name: 'get_clash_rule_config', params: { type: 'Proxy' } })
+  }
+
   if (calls.length === 0 && isHoliday) {
     calls.push({ name: 'get_today_holiday', params: {} })
   }
@@ -172,6 +179,12 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
   if (calls.length === 0 && isPrices) {
     calls.push({ name: 'list_price_lists', params: {} })
   }
+  if (calls.length === 0 && isProxyRule) {
+    calls.push({ name: 'get_clash_rule_config', params: { type: 'Proxy' } })
+  }
+  /**
+   * iOS bundle id module intentionally disabled upstream; do not infer its tool calls here.
+   */
 
   /** Module-scoped: only return tools that belong to this category (no cross-module) */
   const allowed = isModuleScoped ? TOOL_NAMES_BY_CATEGORY[category] : undefined

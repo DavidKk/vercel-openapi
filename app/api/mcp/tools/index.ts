@@ -21,6 +21,7 @@ import { delete_product } from './prices/delete_product'
 import { list_price_lists } from './prices/list_price_lists'
 import { search_prices } from './prices/search_prices'
 import { update_product } from './prices/update_product'
+import { get_clash_rule_config } from './proxy-rule/get_clash_rule_config'
 import { get_point_forecast } from './weather/get_point_forecast'
 import { get_point_weather } from './weather/get_point_weather'
 
@@ -47,6 +48,7 @@ const ALL_TOOLS: Tool[] = [
   create_product,
   update_product,
   delete_product,
+  get_clash_rule_config,
 ]
 
 const TOOLS_MAP = new Map<string, Tool>(ALL_TOOLS.map((t) => [t.name, t]))
@@ -66,6 +68,7 @@ const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
   weather: ['get_point_weather', 'get_point_forecast'],
   finance: ['get_tasi_company_daily', 'get_tasi_summary_daily'],
   prices: ['list_price_lists', 'search_prices', 'calc_prices', 'create_product', 'update_product', 'delete_product'],
+  'proxy-rule': ['get_clash_rule_config'],
 }
 
 /**
