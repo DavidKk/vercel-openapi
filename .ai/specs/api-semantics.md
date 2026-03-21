@@ -13,6 +13,7 @@
 - `/api/exchange-rate`
 - `/api/geo`
 - `/api/movies`
+- `/api/news/sources`, `/api/news/feed`
 - `/api/weather`
 - `/api/dns`
 - `/api/finance/...` (e.g. TASI company/summary daily) <!-- policy-exempt:finance-tasi-history --> — approved exception; registry: `.ai/specs/policy-exceptions.md`
@@ -70,7 +71,7 @@ Server-side callers (e.g. other API routes, MCP tools, Server Components that ne
 
 ## Per-module specs (split requirements)
 
-Each **module** (holiday, fuel-price, exchange-rate, geo, movies, weather, dns, finance, prices, proxy-rule, …) should normally have its own **module spec** that defines:
+Each **module** (holiday, fuel-price, exchange-rate, geo, movies, news, weather, dns, finance, prices, proxy-rule, …) should normally have its own **module spec** that defines:
 
 - Purpose and scope of that module’s public API
 - Endpoints: method, path, query/body params, response shape

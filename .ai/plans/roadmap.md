@@ -49,7 +49,7 @@ Product development plan for the openapi project. This document describes the **
 | ---- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | P2-1 | MCP server and tool registry                                         | `app/api/mcp/`, `app/api/mcp/tools/index.ts`, tools per category.                |
 | P2-2 | Function Calling: chat + tools by category                           | `app/api/function-calling/chat`, `tools`, `[category]/tools`; module pages.      |
-| P2-3 | Movies module (example): latest list, API, MCP, Overview, all 5 tabs | `app/api/movies`, `app/movies/`, cron sync (e.g. movies-gist).                   |
+| P2-3 | Movies module (example): latest list, API, MCP, Overview, all 5 tabs | `app/api/movies`, `app/movies/`, cron sync (e.g. movies-sync).                   |
 | P2-4 | Skill install and Skill pages                                        | `app/api/install-skill`, `app/api/skills/[name]`; `app/<module>/skill/page.tsx`. |
 | P2-5 | E2E tests for critical public API and flows                          | Playwright; `pnpm test:e2e`.                                                     |
 

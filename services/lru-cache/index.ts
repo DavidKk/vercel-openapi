@@ -21,6 +21,12 @@ export interface LruCache<K, V> {
   set(key: K, value: V): void
 
   /**
+   * Remove a key if present (e.g. drop TTL-expired entries).
+   * @param key Cache key
+   */
+  delete(key: K): void
+
+  /**
    * Snapshot of all [key, value] pairs for iteration (e.g. point-in-bbox lookup).
    * Does not mutate LRU order.
    * @returns Array of [key, value] pairs
@@ -53,6 +59,10 @@ export function createLruCache<K, V>(maxSize: number): LruCache<K, V> {
         if (firstKey !== undefined) cache.delete(firstKey)
       }
       cache.set(key, value)
+    },
+
+    delete(key: K): void {
+      cache.delete(key)
     },
 
     entries(): Array<[K, V]> {

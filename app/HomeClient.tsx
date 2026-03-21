@@ -24,12 +24,13 @@ const TOOL_CATEGORY_LABELS: Record<string, string> = {
   'exchange-rate': 'Exchange Rate',
   weather: 'Weather',
   movies: 'Movies',
+  news: 'News',
   dns: 'DNS',
   finance: 'Finance',
   prices: 'Prices',
 }
 
-const MODULE_OPTIONS_ORDER: string[] = ['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'dns', 'finance']
+const MODULE_OPTIONS_ORDER: string[] = ['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'news', 'dns', 'finance']
 
 const MODULE_OPTIONS: { id: string; label: string }[] = [
   ...MODULE_OPTIONS_ORDER.filter((id) => id === 'geo' || (TOOL_CATEGORIES as readonly string[]).includes(id)).map((id) => ({

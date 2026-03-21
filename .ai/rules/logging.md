@@ -14,7 +14,7 @@
    const logger = createLogger('module-name')
    ```
 
-   Use a short, stable name (e.g. `api-dns`, `api-finance-tasi-company-daily`, `cron-movies-gist`, `finance-tasi-fetch`, `gist`).
+   Use a short, stable name (e.g. `api-dns`, `api-finance-tasi-company-daily`, `cron-movies-sync`, `finance-tasi-fetch`, `gist`).
 
 2. **Use the logger instead of `console`**  
    Do not use `console.log` / `console.warn` / `console.error` in server code. Use `logger.info`, `logger.warn`, `logger.fail` so output is consistent and traceable.
