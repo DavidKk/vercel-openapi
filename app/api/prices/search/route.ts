@@ -1,6 +1,6 @@
 import { getAllProducts } from '@/app/actions/prices/product'
 import { api } from '@/initializer/controller'
-import { invalidParameters, jsonSuccess } from '@/initializer/response'
+import { CACHE_CONTROL_GIST_CATALOG, CACHE_CONTROL_NO_STORE, invalidParameters, jsonSuccess } from '@/initializer/response'
 
 export const runtime = 'edge'
 
@@ -12,7 +12,9 @@ export const runtime = 'edge'
 export const GET = api(async (req, context) => {
   const q = (context.searchParams.get('q') ?? '').trim().toLowerCase()
   if (!q) {
-    return invalidParameters('Missing query parameter "q"').toJsonResponse(400)
+    return invalidParameters('Missing query parameter "q"').toJsonResponse(400, {
+      headers: new Headers({ 'Cache-Control': CACHE_CONTROL_NO_STORE }),
+    })
   }
 
   const products = await getAllProducts()
@@ -23,10 +25,19 @@ export const GET = api(async (req, context) => {
 
   const matchedNames = Array.from(new Set(matched.map((item) => item.name))).sort((a, b) => a.localeCompare(b))
 
-  return jsonSuccess({
-    query: q,
-    matchedLists: matchedNames,
-    products: matched,
-    total: matched.length,
-  })
+  return jsonSuccess(
+    {
+      query: q,
+      matchedLists: matchedNames,
+      products: matched,
+      total: matched.length,
+    },
+    {
+      headers: new Headers({
+        Charset: 'utf-8',
+        'Content-Type': 'application/json',
+        'Cache-Control': CACHE_CONTROL_GIST_CATALOG,
+      }),
+    }
+  )
 })

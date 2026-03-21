@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
+import { applyNoStoreCache } from '@/initializer/mcp/response'
 import { getAuthSession } from '@/services/auth/session'
 import { createLogger } from '@/services/logger'
 
@@ -34,7 +35,7 @@ export const GET = async (req: NextRequest, context: RouteContext) => {
   const session = moduleSlug === 'prices' ? await getAuthSession() : { authenticated: false }
   const tools = getMCPToolsByCategory(moduleSlug)
   if (!tools || tools.size === 0) {
-    return NextResponse.json({ type: 'error', error: { code: 'NOT_FOUND', message: `Unknown or empty MCP module: ${moduleSlug}` } }, { status: 404 })
+    return applyNoStoreCache(NextResponse.json({ type: 'error', error: { code: 'NOT_FOUND', message: `Unknown or empty MCP module: ${moduleSlug}` } }, { status: 404 }))
   }
 
   const filteredTools = moduleSlug === 'prices' ? filterProtectedPricesTools(tools, session.authenticated) : tools
@@ -53,7 +54,7 @@ export const POST = async (req: NextRequest, context: RouteContext) => {
   const session = moduleSlug === 'prices' ? await getAuthSession() : { authenticated: false }
   const tools = getMCPToolsByCategory(moduleSlug)
   if (!tools || tools.size === 0) {
-    return NextResponse.json({ type: 'error', error: { code: 'NOT_FOUND', message: `Unknown or empty MCP module: ${moduleSlug}` } }, { status: 404 })
+    return applyNoStoreCache(NextResponse.json({ type: 'error', error: { code: 'NOT_FOUND', message: `Unknown or empty MCP module: ${moduleSlug}` } }, { status: 404 }))
   }
 
   const filteredTools = moduleSlug === 'prices' ? filterProtectedPricesTools(tools, session.authenticated) : tools

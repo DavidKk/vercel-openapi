@@ -1,5 +1,5 @@
 import { cron } from '@/initializer/controller'
-import { jsonSuccess } from '@/initializer/response'
+import { cacheControlNoStoreHeaders, jsonSuccess } from '@/initializer/response'
 import { runIngest } from '@/services/finance/tasi'
 import { createLogger } from '@/services/logger'
 
@@ -16,5 +16,5 @@ export const GET = cron(async () => {
   logger.info('tasi-sync cron start')
   const result = await runIngest()
   logger.info('tasi-sync cron done', result)
-  return jsonSuccess(result)
+  return jsonSuccess(result, { headers: cacheControlNoStoreHeaders() })
 })

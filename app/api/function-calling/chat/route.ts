@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 
 import { getMCPTools, getMCPToolsByIncludes } from '@/app/api/mcp/tools'
 import type { Tool } from '@/initializer/mcp/tool'
+import { cacheControlNoStoreHeaders } from '@/initializer/response'
 import { createLogger } from '@/services/logger'
 import { mcpToolsToOpenAITools } from '@/utils/function-calling'
 
@@ -12,6 +13,15 @@ const logger = createLogger('api-function-calling-chat')
 
 /** Max rounds of tool calls to prevent infinite loops */
 const MAX_TOOL_ROUNDS = 10
+
+/**
+ * Build a JSON response that must not be stored in shared caches (LLM + tool output).
+ * @param body Response JSON body
+ * @param status HTTP status
+ */
+function jsonChat(body: unknown, status = 200) {
+  return NextResponse.json(body, { status, headers: cacheControlNoStoreHeaders() })
+}
 
 /**
  * Parse ?includes=holiday,fuel-price from request (same semantics as /api/mcp).
@@ -116,26 +126,26 @@ async function executeTool(toolsMap: Map<string, Tool>, name: string, argsJson: 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY is not set. Set it in environment to use Function Calling chat.' }, { status: 503 })
+    return jsonChat({ error: 'OPENAI_API_KEY is not set. Set it in environment to use Function Calling chat.' }, 503)
   }
 
   let body: ChatRequestBody
   try {
     body = await req.json()
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    return jsonChat({ error: 'Invalid JSON body' }, 400)
   }
 
   const { messages: initialMessages, model = 'gpt-4o-mini' } = body
   if (!Array.isArray(initialMessages) || initialMessages.length === 0) {
-    return NextResponse.json({ error: 'messages must be a non-empty array' }, { status: 400 })
+    return jsonChat({ error: 'messages must be a non-empty array' }, 400)
   }
 
   logger.info('chat request', { model, messageCount: initialMessages.length })
 
   const toolsMap = getToolsForRequest(req)
   if (toolsMap.size === 0) {
-    return NextResponse.json({ error: 'No tools for given includes. Use ?includes=holiday,fuel-price etc.' }, { status: 400 })
+    return jsonChat({ error: 'No tools for given includes. Use ?includes=holiday,fuel-price etc.' }, 400)
   }
   const tools = mcpToolsToOpenAITools(toolsMap)
   const messages: ChatMessage[] = [...initialMessages]
@@ -160,7 +170,7 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const err = await res.text()
       logger.fail('OpenAI API error', { status: res.status, detail: err })
-      return NextResponse.json({ error: 'OpenAI API error', status: res.status, detail: err }, { status: 502 })
+      return jsonChat({ error: 'OpenAI API error', status: res.status, detail: err }, 502)
     }
 
     const data = (await res.json()) as {
@@ -169,7 +179,7 @@ export async function POST(req: NextRequest) {
     }
     const choice = data.choices?.[0]?.message
     if (!choice) {
-      return NextResponse.json({ error: 'No completion in OpenAI response' }, { status: 502 })
+      return jsonChat({ error: 'No completion in OpenAI response' }, 502)
     }
 
     const assistantMessage: ChatMessage = {
@@ -186,7 +196,7 @@ export async function POST(req: NextRequest) {
     messages.push(assistantMessage)
 
     if (!assistantMessage.tool_calls?.length) {
-      return NextResponse.json({
+      return jsonChat({
         message: { role: 'assistant', content: assistantMessage.content ?? '' },
         usage: data.usage,
       })
@@ -202,5 +212,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ error: `Exceeded max tool rounds (${MAX_TOOL_ROUNDS}). Last assistant message returned more tool_calls.` }, { status: 429 })
+  return jsonChat({ error: `Exceeded max tool rounds (${MAX_TOOL_ROUNDS}). Last assistant message returned more tool_calls.` }, 429)
 }

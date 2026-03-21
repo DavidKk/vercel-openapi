@@ -1,5 +1,5 @@
 import { api } from '@/initializer/controller'
-import { jsonSuccess } from '@/initializer/response'
+import { cacheControlNoStoreHeaders, jsonSuccess } from '@/initializer/response'
 import { resolveDns } from '@/services/dns'
 import { createLogger } from '@/services/logger'
 
@@ -20,11 +20,11 @@ export const GET = api(async (req) => {
   const dns = searchParams.get('dns')?.trim() || undefined
 
   if (!domain) {
-    return jsonSuccess({ error: 'Missing or empty query parameter: domain' }, { status: 400 })
+    return jsonSuccess({ error: 'Missing or empty query parameter: domain' }, { status: 400, headers: cacheControlNoStoreHeaders() })
   }
 
   if (domain.length > 253) {
-    return jsonSuccess({ error: 'Invalid domain' }, { status: 400 })
+    return jsonSuccess({ error: 'Invalid domain' }, { status: 400, headers: cacheControlNoStoreHeaders() })
   }
 
   try {
@@ -35,6 +35,6 @@ export const GET = api(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'DNS lookup failed'
     logger.fail('DNS lookup failed', { domain, dns: dns ?? '1.1.1.1', message })
-    return jsonSuccess({ error: message, records: [], domain, dns: dns ?? '1.1.1.1' }, { status: 502 })
+    return jsonSuccess({ error: message, records: [], domain, dns: dns ?? '1.1.1.1' }, { status: 502, headers: cacheControlNoStoreHeaders() })
   }
 })

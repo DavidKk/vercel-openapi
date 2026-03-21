@@ -1,6 +1,6 @@
 import { getAllProducts } from '@/app/actions/prices/product'
 import { api } from '@/initializer/controller'
-import { jsonSuccess } from '@/initializer/response'
+import { CACHE_CONTROL_GIST_CATALOG, jsonSuccess } from '@/initializer/response'
 
 export const runtime = 'edge'
 
@@ -20,10 +20,19 @@ export const GET = api(async () => {
     item.count += 1
   }
 
-  return jsonSuccess({
-    lists: Array.from(listMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
-    products,
-    totalLists: listMap.size,
-    totalProducts: products.length,
-  })
+  return jsonSuccess(
+    {
+      lists: Array.from(listMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
+      products,
+      totalLists: listMap.size,
+      totalProducts: products.length,
+    },
+    {
+      headers: new Headers({
+        Charset: 'utf-8',
+        'Content-Type': 'application/json',
+        'Cache-Control': CACHE_CONTROL_GIST_CATALOG,
+      }),
+    }
+  )
 })

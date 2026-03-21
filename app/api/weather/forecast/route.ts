@@ -1,6 +1,6 @@
 import { getPointWeatherForecast } from '@/app/actions/weather'
 import { api } from '@/initializer/controller'
-import { invalidParameters, jsonSuccess } from '@/initializer/response'
+import { cacheControlNoStoreHeaders, invalidParameters, jsonSuccess } from '@/initializer/response'
 import { createLogger } from '@/services/logger'
 
 const logger = createLogger('api-weather-forecast')
@@ -19,7 +19,7 @@ export const POST = api(async (req) => {
     const { latitude, longitude, granularity, hours, days } = body ?? {}
 
     if (typeof latitude !== 'number' || typeof longitude !== 'number' || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      return invalidParameters('Invalid latitude or longitude').toJsonResponse(400)
+      return invalidParameters('Invalid latitude or longitude').toJsonResponse(400, { headers: cacheControlNoStoreHeaders() })
     }
 
     let normalizedGranularity: 'hourly' | 'daily' = 'hourly'
@@ -27,7 +27,9 @@ export const POST = api(async (req) => {
     if (granularity === 'daily' || granularity === 'hourly') {
       normalizedGranularity = granularity
     } else if (typeof granularity !== 'undefined' && granularity !== null) {
-      return invalidParameters('Invalid granularity. Expected "hourly" or "daily".').toJsonResponse(400)
+      return invalidParameters('Invalid granularity. Expected "hourly" or "daily".').toJsonResponse(400, {
+        headers: cacheControlNoStoreHeaders(),
+      })
     }
 
     let normalizedHours: number | undefined
@@ -35,14 +37,18 @@ export const POST = api(async (req) => {
 
     if (typeof hours !== 'undefined') {
       if (typeof hours !== 'number' || !Number.isFinite(hours) || hours <= 0) {
-        return invalidParameters('Invalid hours parameter. Expected a positive number.').toJsonResponse(400)
+        return invalidParameters('Invalid hours parameter. Expected a positive number.').toJsonResponse(400, {
+          headers: cacheControlNoStoreHeaders(),
+        })
       }
       normalizedHours = hours
     }
 
     if (typeof days !== 'undefined') {
       if (typeof days !== 'number' || !Number.isFinite(days) || days <= 0) {
-        return invalidParameters('Invalid days parameter. Expected a positive number.').toJsonResponse(400)
+        return invalidParameters('Invalid days parameter. Expected a positive number.').toJsonResponse(400, {
+          headers: cacheControlNoStoreHeaders(),
+        })
       }
       normalizedDays = days
     }
@@ -68,9 +74,11 @@ export const POST = api(async (req) => {
     const message = error instanceof Error ? error.message : 'Unknown error'
 
     if (error instanceof Error && error.message.includes('This area is not supported')) {
-      return invalidParameters('This area is not supported for this service.').toJsonResponse(404)
+      return invalidParameters('This area is not supported for this service.').toJsonResponse(404, {
+        headers: cacheControlNoStoreHeaders(),
+      })
     }
 
-    return invalidParameters(`Invalid request: ${message}`).toJsonResponse(400)
+    return invalidParameters(`Invalid request: ${message}`).toJsonResponse(400, { headers: cacheControlNoStoreHeaders() })
   }
 })

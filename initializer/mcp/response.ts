@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server'
 
+import { CACHE_CONTROL_NO_STORE } from '../response/cache-control'
 import { MCP_ERRORS } from './errors'
+
+/**
+ * Ensure MCP responses are not stored at shared caches (manifest/tools vary by route and auth).
+ * @param res NextResponse from this module or creator
+ * @returns Same response with Cache-Control set
+ */
+export function applyNoStoreCache<T>(res: NextResponse<T>): NextResponse<T> {
+  res.headers.set('Cache-Control', CACHE_CONTROL_NO_STORE)
+  return res
+}
 
 export type MCPResponseType = 'result' | 'error'
 
@@ -17,11 +28,11 @@ export type MCPResponse<T> = NextResponse<{
 }>
 
 export function mcpResponse<T>(result?: T): MCPResponse<T> {
-  return NextResponse.json({ type: 'result', result })
+  return applyNoStoreCache(NextResponse.json({ type: 'result', result }))
 }
 
 export function mcpError(error: MCPResponseError): MCPResponse<any> {
-  return NextResponse.json({ type: 'error', error })
+  return applyNoStoreCache(NextResponse.json({ type: 'error', error }))
 }
 
 export function mcpErrorinvalidArguments(message?: string): MCPResponse<any> {
@@ -51,7 +62,7 @@ export const JSONRPC = {
  * @param result Result payload
  */
 export function jsonRpcSuccess(id: string | number | null, result: unknown) {
-  return NextResponse.json({ jsonrpc: '2.0', id, result })
+  return applyNoStoreCache(NextResponse.json({ jsonrpc: '2.0', id, result }))
 }
 
 /**
@@ -61,5 +72,5 @@ export function jsonRpcSuccess(id: string | number | null, result: unknown) {
  * @param message Human-readable message
  */
 export function jsonRpcError(id: string | number | null, code: number, message: string) {
-  return NextResponse.json({ jsonrpc: '2.0', id, error: { code, message } })
+  return applyNoStoreCache(NextResponse.json({ jsonrpc: '2.0', id, error: { code, message } }))
 }

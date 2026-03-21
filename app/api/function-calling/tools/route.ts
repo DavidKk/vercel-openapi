@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 import { getMCPTools, getMCPToolsByIncludes } from '@/app/api/mcp/tools'
+import { applyNoStoreCache } from '@/initializer/mcp/response'
 import { getAuthSession } from '@/services/auth/session'
 import { createLogger } from '@/services/logger'
 import { mcpToolsToOpenAITools } from '@/utils/function-calling'
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
   logger.info('request')
   const toolsMap = getToolsForRequest(req) ?? getMCPTools()
   if (toolsMap.size === 0) {
-    return NextResponse.json({ error: 'No tools for given includes. Use ?includes=holiday,fuel-price etc.' }, { status: 400 })
+    return applyNoStoreCache(NextResponse.json({ error: 'No tools for given includes. Use ?includes=holiday,fuel-price etc.' }, { status: 400 }))
   }
 
   const session = await getAuthSession()
@@ -51,5 +52,5 @@ export async function GET(req: NextRequest) {
       })()
     : toolsMap
   const tools = mcpToolsToOpenAITools(filteredTools)
-  return NextResponse.json({ tools })
+  return applyNoStoreCache(NextResponse.json({ tools }))
 }

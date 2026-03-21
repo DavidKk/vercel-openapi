@@ -1,6 +1,6 @@
 import { getAllProducts } from '@/app/actions/prices/product'
 import { api } from '@/initializer/controller'
-import { invalidParameters, jsonSuccess } from '@/initializer/response'
+import { CACHE_CONTROL_NO_STORE, invalidParameters, jsonSuccess } from '@/initializer/response'
 import { getPriceLevelText } from '@/utils/price/calculatePriceLevel'
 import { calculateProductComparisons } from '@/utils/price/calculateProductComparisons'
 
@@ -27,13 +27,17 @@ export const POST = api(async (req) => {
   try {
     body = (await req.json()) as CalcRequestBody
   } catch {
-    return invalidParameters('Invalid JSON body').toJsonResponse(400)
+    return invalidParameters('Invalid JSON body').toJsonResponse(400, {
+      headers: new Headers({ 'Cache-Control': CACHE_CONTROL_NO_STORE }),
+    })
   }
 
   const productId = typeof body.productId === 'string' ? body.productId.trim() : ''
   const productName = typeof body.productName === 'string' ? body.productName.trim() : ''
   if (!productId && !productName) {
-    return invalidParameters('Either productId or productName is required').toJsonResponse(400)
+    return invalidParameters('Either productId or productName is required').toJsonResponse(400, {
+      headers: new Headers({ 'Cache-Control': CACHE_CONTROL_NO_STORE }),
+    })
   }
 
   const totalPrice = typeof body.totalPrice === 'number' ? String(body.totalPrice) : String(body.totalPrice ?? '')
@@ -44,7 +48,9 @@ export const POST = api(async (req) => {
   const products = await getAllProducts()
   const anchor = productId ? products.find((item) => item.id === productId) : products.find((item) => item.name === productName)
   if (!anchor) {
-    return invalidParameters('Target product not found').toJsonResponse(404)
+    return invalidParameters('Target product not found').toJsonResponse(404, {
+      headers: new Headers({ 'Cache-Control': CACHE_CONTROL_NO_STORE }),
+    })
   }
 
   const relatedProducts = products.filter((item) => item.name === anchor.name)
@@ -60,16 +66,25 @@ export const POST = api(async (req) => {
     levelText: getPriceLevelText(item.level),
   }))
 
-  return jsonSuccess({
-    target: {
-      productId: anchor.id,
-      productName: anchor.name,
-      unit: anchor.unit,
+  return jsonSuccess(
+    {
+      target: {
+        productId: anchor.id,
+        productName: anchor.name,
+        unit: anchor.unit,
+      },
+      input: {
+        totalPrice,
+        totalQuantity,
+      },
+      comparisons,
     },
-    input: {
-      totalPrice,
-      totalQuantity,
-    },
-    comparisons,
-  })
+    {
+      headers: new Headers({
+        Charset: 'utf-8',
+        'Content-Type': 'application/json',
+        'Cache-Control': CACHE_CONTROL_NO_STORE,
+      }),
+    }
+  )
 })
