@@ -1,0 +1,173 @@
+import {
+  type NewsFeedPoolCachePayload,
+  reconcileNewsFeedPoolAfterFailedSourceRetry,
+  reconcileNewsFeedPoolAfterRssFetch,
+  sliceNewsFeedPageFromPool,
+} from '@/services/news/aggregate-feed'
+import type { NewsSourceConfig } from '@/services/news/types'
+
+const mockSources: NewsSourceConfig[] = [
+  {
+    id: 'src-a',
+    label: 'A',
+    category: 'general-news',
+    region: 'cn',
+    rsshubPath: '/a',
+  },
+  {
+    id: 'src-b',
+    label: 'B',
+    category: 'general-news',
+    region: 'cn',
+    rsshubPath: '/b',
+  },
+]
+
+function basePayload(pool: NewsFeedPoolCachePayload['pool']): NewsFeedPoolCachePayload {
+  const now = Date.now()
+  return {
+    pool,
+    baseUrl: 'https://rss.test',
+    facets: { categories: [], keywords: [], sources: [] },
+    errors: [],
+    fetchedAt: new Date(now).toISOString(),
+    windowAtMs: now,
+    sourcesRequested: 2,
+    sourcesWithItems: 2,
+    sourcesEmptyOrFailed: 0,
+    rawItemCount: pool.length,
+    droppedMissingLink: 0,
+    duplicateDropped: 0,
+    duplicateDroppedByTitle: 0,
+    droppedOutsideRecentWindow: 0,
+    recentWindowHours: 24,
+  }
+}
+
+describe('aggregate-feed pool slice + reconcile', () => {
+  it('should slice page with offset and limit', () => {
+    const now = Date.now()
+    const pool = [1, 2, 3].map((i) => ({
+      title: `T${i}`,
+      link: `https://ex.test/${i}`,
+      publishedAt: new Date(now).toISOString(),
+      summary: null,
+      sourceId: 'src-a',
+      sourceLabel: 'A',
+      category: 'general-news' as const,
+      region: 'cn' as const,
+    }))
+    const payload = basePayload(pool)
+    const page = sliceNewsFeedPageFromPool(payload, { itemOffset: 1, itemLimit: 2 })
+    expect(page.items.map((x) => x.title)).toEqual(['T2', 'T3'])
+    expect(page.mergeStats.hasMore).toBe(false)
+    expect(page.mergeStats.uniqueAfterDedupe).toBe(3)
+  })
+
+  it('should reconcile previous pool with fresh merge and dedupe by URL', () => {
+    const now = Date.now()
+    const iso = new Date(now).toISOString()
+    const sharedLink = 'https://dup.example/post'
+    const previousItems = [
+      {
+        title: 'Old title',
+        link: sharedLink,
+        publishedAt: iso,
+        summary: null,
+        sourceId: 'src-a',
+        sourceLabel: 'A',
+        category: 'general-news' as const,
+        region: 'cn' as const,
+      },
+    ]
+    const fresh = {
+      pool: [
+        {
+          title: 'New title same url',
+          link: sharedLink,
+          publishedAt: iso,
+          summary: null,
+          sourceId: 'src-b',
+          sourceLabel: 'B',
+          category: 'general-news' as const,
+          region: 'cn' as const,
+        },
+      ],
+      facets: { categories: [], keywords: [], sources: [] },
+      errors: [] as { sourceId: string; message: string }[],
+      fetchedAt: iso,
+      windowAtMs: now,
+      sourcesRequested: 2,
+      sourcesWithItems: 1,
+      sourcesEmptyOrFailed: 0,
+      rawItemCount: 1,
+      droppedMissingLink: 0,
+      duplicateDropped: 0,
+      duplicateDroppedByTitle: 0,
+      droppedOutsideRecentWindow: 0,
+      recentWindowHours: 24,
+    }
+    const merged = reconcileNewsFeedPoolAfterRssFetch({
+      previousItems,
+      fresh,
+      sources: mockSources,
+      itemCategory: undefined,
+    })
+    expect(merged.pool.length).toBe(1)
+    expect(merged.duplicateDropped).toBe(1)
+  })
+
+  it('should merge partial retry errors and drop retried ids from previous errors when fixed', () => {
+    const now = Date.now()
+    const iso = new Date(now).toISOString()
+    const previousItems = [
+      {
+        title: 'From A',
+        link: 'https://ex.test/a',
+        publishedAt: iso,
+        summary: null,
+        sourceId: 'src-a',
+        sourceLabel: 'A',
+        category: 'general-news' as const,
+        region: 'cn' as const,
+      },
+    ]
+    const freshPartial = {
+      pool: [
+        {
+          title: 'From B now',
+          link: 'https://ex.test/b',
+          publishedAt: iso,
+          summary: null,
+          sourceId: 'src-b',
+          sourceLabel: 'B',
+          category: 'general-news' as const,
+          region: 'cn' as const,
+        },
+      ],
+      facets: { categories: [], keywords: [], sources: [] },
+      errors: [] as { sourceId: string; message: string }[],
+      fetchedAt: iso,
+      windowAtMs: now,
+      sourcesRequested: 1,
+      sourcesWithItems: 1,
+      sourcesEmptyOrFailed: 0,
+      rawItemCount: 1,
+      droppedMissingLink: 0,
+      duplicateDropped: 0,
+      duplicateDroppedByTitle: 0,
+      droppedOutsideRecentWindow: 0,
+      recentWindowHours: 24,
+    }
+    const out = reconcileNewsFeedPoolAfterFailedSourceRetry({
+      previousItems,
+      previousErrors: [{ sourceId: 'src-b', message: 'timeout' }],
+      freshPartial,
+      retriedSourceIds: ['src-b'],
+      allSources: mockSources,
+      itemCategory: undefined,
+    })
+    expect(out.errors.some((e) => e.sourceId === 'src-b')).toBe(false)
+    expect(out.pool.some((r) => r.link === 'https://ex.test/b')).toBe(true)
+  })
+})

@@ -16,7 +16,7 @@ declare namespace NodeJS {
     TMDB_LANGUAGE?: string
     /** TMDB region */
     TMDB_REGION?: string
-    /** Secret for cron routes (e.g. /api/cron/sync/movies-gist, tasi-sync) */
+    /** Secret for cron routes (e.g. /api/cron/sync/movies-sync, tasi-sync) */
     CRON_SECRET?: string
     /** Finance feed (TASI) base URL: GET .../api/finance/tasi/company/daily (array), .../summary/daily (object) */
     TASI_FEED_URL?: string

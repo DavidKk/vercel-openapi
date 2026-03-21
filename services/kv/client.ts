@@ -73,3 +73,22 @@ export async function setJsonKv<T>(key: string, value: T): Promise<void> {
     // ignore
   }
 }
+
+/**
+ * Upsert JSON into KV with a TTL (seconds). No-op when KV is not configured.
+ *
+ * @param key KV key
+ * @param value Serializable value
+ * @param ttlSeconds Expiry in seconds (Upstash `EX`)
+ */
+export async function setJsonKvEx<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+  const kv = getKvClient()
+  if (!kv) return
+
+  const ex = Math.max(1, Math.floor(ttlSeconds))
+  try {
+    await kv.set(key, JSON.stringify(value), { ex })
+  } catch {
+    // ignore
+  }
+}

@@ -57,6 +57,11 @@ modules:
     spec: modules/movies.md
     schema: schemas/movies.yaml
 
+  - id: news
+    title: News
+    spec: modules/news.md
+    schema: schemas/news.yaml
+
   - id: prices
     title: Prices
     spec: modules/prices.md

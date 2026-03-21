@@ -15,6 +15,8 @@ import { is_holiday } from './holiday/is_holiday'
 import { is_workday } from './holiday/is_workday'
 import { list_holiday } from './holiday/list_holiday'
 import { list_latest_movies } from './movies/list_latest_movies'
+import { get_news_feed } from './news/get_news_feed'
+import { list_news_sources } from './news/list_news_sources'
 import { calc_prices } from './prices/calc_prices'
 import { create_product } from './prices/create_product'
 import { delete_product } from './prices/delete_product'
@@ -38,6 +40,8 @@ const ALL_TOOLS: Tool[] = [
   is_workday,
   is_holiday,
   list_latest_movies,
+  list_news_sources,
+  get_news_feed,
   get_point_weather,
   get_point_forecast,
   get_tasi_company_daily,
@@ -65,6 +69,7 @@ const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
   'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'get_next_fuel_price_adjustment', 'calc_fuel_recharge_promo'],
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
+  news: ['list_news_sources', 'get_news_feed'],
   weather: ['get_point_weather', 'get_point_forecast'],
   finance: ['get_tasi_company_daily', 'get_tasi_summary_daily'],
   prices: ['list_price_lists', 'search_prices', 'calc_prices', 'create_product', 'update_product', 'delete_product'],

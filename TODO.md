@@ -1,111 +1,113 @@
-# Holiday 日历模块改造 TODO
+# News / RSS aggregation — category scope (phase 1)
 
-> 设计参考：macOS 系统日历应用。目标为单页全屏月历，无页头，左侧退出返回首页，整块区域为日历并支持节日下拉搜索与跳转。
-
----
-
-## 一、布局与壳子
-
-- [x] **移除页头**
-
-  - 在 `app/Nav/constants.ts` 的 `HIDDEN_ROUTES` 中加入 `'/holiday'`，使 Nav 在 holiday 页不渲染（已有 `useLayoutVisibility` 逻辑）。
-  - 验收：访问 `/holiday` 时顶部导航栏不可见。
-
-- [x] **左侧退出按钮**
-
-  - 在页面最左侧固定宽度（如 48px）放置一个「返回/退出」图标（如 `ArrowLeftIcon` 或 `XMarkIcon`），点击使用 `<Link href="/">` 回到首页。
-  - 验收：点击后跳转至 `/`，且该按钮在 holiday 页始终可见、可聚焦。
-
-- [x] **全窗口给日历**
-  - 页面根容器：`flex h-screen`（或 `min-h-screen`）；第一列退出按钮，第二列 `flex-1 min-w-0 overflow-auto` 给日历区域。
-  - 验收：日历区域占满除左侧窄条外的全部视口，无多余留白。
+Handle these **content categories** first. Each is orthogonal to **`region`**: `cn` | `hk_tw` | `international` (international deferred in implementation).  
+Service names below are **RSSHub route namespaces / doc labels** (verify paths on your instance).  
+**Current manifest:** `services/news/news-sources.manifest.ts` (`newsSourcesManifest`) includes **cn only** (no `hk_tw` rows).
 
 ---
 
-## 二、日历展示（月视图）
+## general-news — 综合新闻
 
-- [x] **仅保留月视图**
-
-  - 不提供「周」「年」视图的 Tab 或入口，仅渲染单月。
-  - 验收：页面内无周/年视图切换控件。
-
-- [x] **年月标题 + 左右切换 + 今天**
-
-  - 工具栏一行：`YYYY年M月` 文案；左侧 `<`、右侧 `>` 切换上/下月（可跨年）；「今天」按钮点击将当前视图切回本月。
-  - 验收：切换后标题与网格同步；「今天」一次回到当前年月。
-
-- [x] **星期标题行**
-
-  - 固定一行：周日～周六（与现有一致），字体略小、灰色，不参与 flex 拉伸。
-  - 验收：7 列与下方日期格对齐。
-
-- [x] **日期网格站满并自适应**
-
-  - 日期区域：`grid grid-cols-7`，行数 `repeat(6, 1fr)`（约 6 行足够单月），父级 `flex-1 min-h-0` 使该 grid 占满剩余高度；列等分。
-  - 验收：改变窗口大小时，日期格随高度/宽度均匀缩放，无固定 `h-16` 导致的留白或挤压。
-
-- [x] **日期格内容与样式**
-  - 保持语义：今日（强调色/红圈）、节假日/调休（红/橙底）、调班工作日（绿底）、非当月日期弱化（灰）；格内日期数字 + 节日/调休短文案。
-  - 验收：与当前 Calendar 语义一致，仅布局改为弹性。
+- **cn**  
+  央视新闻、澎湃新闻、南方周末、人民网、环球网、观察者网、参考消息、新浪、界面新闻（兼财经要闻时可双挂）
+- **hk_tw**（未写入当前 manifest）  
+  联合早报、端传媒、中央通讯社 等
+- **international**（暂缓接入）  
+  Reuters、BBC、The New York Times、The Washington Post、The Atlantic、New Yorker、AP News、NPR、CNBC、The Nikkei、Yahoo、DW Deutsche Welle、Caixin Global、Foreign Affairs、The White House、维基新闻、Canadian Broadcasting Corporation、Sputnik News、Russian News Agency TASS（是否启用由编辑政策决定）
 
 ---
 
-## 三、节日下拉与搜索
+## tech-internet — 科技互联网
 
-- [x] **节日下拉控件**
-
-  - 在年月工具栏同一行（或下一行）增加「节日」下拉入口（按钮 + 弹出层），选项来自当前已加载的 `holidays`（按当前展示年加载，跨年时用 `listHoliday(year)` 再取）。
-  - 验收：下拉中列出该年所有有名称的节日/调休项。
-
-- [x] **下拉内支持搜索**
-
-  - 弹出层内带一输入框，输入后按节日名称过滤选项（前端过滤，大小写不敏感、含关键词即可）。
-  - 验收：输入「清明」仅显示含「清明」的项。
-
-- [x] **选中节日自动跳转**
-  - 选中某一项后：将 `currentYear` / `currentMonth` 设为该节日日期所在年月，关闭下拉；可选高亮该日或滚动到该格。
-  - 验收：选「清明节」后日历切到对应月份且该日期在视区内。
+- **cn**  
+  36kr、品玩、爱范儿、少数派 sspai、InfoQ 中文、量子位、掘金、开源中国、Solidot、cnBeta、CSDN、博客园、HelloGitHub、Readhub、人人都是产品经理、鸟哥笔记、快科技、太平洋科技、威锋、宝玉、bestblogs.dev、电鸭社区、51CTO、牛客网、印记中文、Go 语言中文网、Rust 语言中文社区、PKMer、语雀、方格子、V2EX、阿里云、华为开发者联盟、腾讯（科技/开发者相关路由）、北京智源人工智能研究院、ModelScope 魔搭社区、Open Github 社区、Deepseek、白鲸出海、Amz123、通信人家园、钛媒体（兼创投时可双挂）、创业邦（兼商业科技）
+- **hk_tw**（未写入当前 manifest）  
+  iThome 台灣 等
+- **international**（暂缓接入）  
+  TechCrunch、WIRED、DEV Community、CSS-Tricks、Phoronix、web.dev、Docker Hub、GitHub、Huggingface、Ollama、LangChain Blog、DeepLearning.AI、Google、OpenAI、Anthropic、DeepMind、Meta、Apple、Node.js、React、Apache、CNCF、Notion、Obsidian、Zotero、Raycast、Elastic 中文社区、Augment Code、Windsurf、Kiro、Manus、Civitai、Fediverse、Plurk、Mastodon、Bluesky（亦见 social-platform）、LearnKu、iDaily、Digital Camera World（偏硬件可双挂）
 
 ---
 
-## 四、数据与路由
+## social-platform — 社交与平台热点
 
-- [x] **日历数据**
-
-  - 首屏使用 `listHoliday(currentYear)`；切换月份导致年份变化时，客户端调用 `listHoliday(newYear)`（通过 server action）更新节日列表。
-  - 验收：跨年切换后当月节日显示正确。
-
-- [x] **首页与退出**
-  - 退出按钮使用 `<Link href="/">`，不依赖站点公共 header。
-  - 验收：从 `/holiday` 可一键回首页。
+- **cn / cross-region**  
+  抖音、哔哩哔哩 bilibili、微博、即刻、小宇宙、SoundOn、斗鱼直播、豆瓣、简书、搜狐号、微信小程序、腾讯网（号/动态类路由）、Lofter、淘宝（内容号类路由若存在）、逛逛/导购类（如 逛丢）
+- **hk_tw**（未写入当前 manifest）  
+  （按 RSSHub 文档补充账号/频道级路由）
+- **international**（暂缓接入）  
+  Instagram、Telegram、YouTube、Threads、Bluesky (bsky)、Twitch、Pinterest、LinkedIn、LINE、GETTR、Mastodon、Fediverse
 
 ---
 
-## 五、样式与体验（macOS 日历风格）
+## game-entertainment — 游戏文娱
 
-- [x] **视觉风格**
-
-  - 背景浅灰/白，网格线细、圆角适中；今日用强调色（如红圈或蓝底），整体简洁。
-  - 验收：观感接近 macOS 日历，无多余装饰。
-
-- [x] **响应式**
-
-  - 小屏下工具栏与星期行可缩小字号/间距，日期格仍尽量填满；退出按钮固定可见。
-  - 验收：手机/窄屏下日历仍可用、可读。
-
-- [x] **无障碍**
-  - 退出、上月/下月、「今天」、节日下拉均 `focusable`，并带 `aria-label` 或 `title`。
-  - 验收：仅用键盘可完成切换月份与返回首页。
+- **cn**  
+  小黑盒、游民星空、3DMGame、游戏打折情报、机核网、游侠网、电玩巴士 TGBUS、遊戲基地 Gamebase、游戏日报、米哈游、HoYoLAB、完美世界电竞、二柄 APP、A9VG 电玩部落、indienova 独立游戏、Bangumi 番组计划、虎扑、直播吧、AcFun、pixivision、PLAYNO.1 玩樂達人、GQ、起点、晋江文学城、「ONE · 一个」、dcfever（偏摄影硬件时可双挂）
+- **hk_tw**（未写入当前 manifest）  
+  巴哈姆特電玩資訊站 等
+- **international**（暂缓接入）  
+  Steam、Epic Games Store、Nintendo、Blizzard、Minecraft、ESPN、IMDb、The Movie Database、Komiic
 
 ---
 
-## 六、实现顺序与涉及文件
+## science-academic — 科学学术
 
-| 步骤 | 内容                                               | 主要文件                                                |
-| ---- | -------------------------------------------------- | ------------------------------------------------------- |
-| 1    | 隐藏 Nav、左侧退出、全屏壳子                       | `Nav/constants.ts`, `app/holiday/page.tsx`              |
-| 2    | 月视图：年月 + 左右 + 今天 + 星期行 + 日期网格全屏 | `components/Calendar.tsx`                               |
-| 3    | 节日下拉（含搜索 + 选中跳转）                      | `components/Calendar.tsx`（或独立 `HolidayPicker.tsx`） |
-| 4    | 跨年数据加载、macOS 风格与 a11y                    | `Calendar.tsx`, `app/holiday/page.tsx`                  |
+- **cn**  
+  科学网、果壳网、中国科技网、北京天文馆、中国气象局、中国疾病预防控制中心、梅斯医学 MedSci、中国研究生招生信息网、中国教育考试网、领研、社科期刊网、北京大学（校讯类路由）、中国计算机学会、Cool Papers（arXiv 聚合向）
+- **hk_tw**（未写入当前 manifest）  
+  （按 RSSHub 文档补充）
+- **international**（暂缓接入）  
+  NASA、Nature Journal、National Geographic、麻省理工科技评论、IEEE Xplore、IEEE Computer Society、NBER、Academia、AEON、Penguin Random House、日本語多読道場、Corona Virus Disease 2019、Codeforces、USENIX、ACM Special Interest Group on Security Audit and Control、穆迪评级、NPR（兼大众新闻时可双挂）
 
-完成以上后，holiday 页为：左侧退出 → 首页；整页为以月为单位的日历，支持节日下拉搜索与选中跳转，风格贴近 macOS 日历。
+---
+
+## Later
+
+- Map each enabled source to **concrete RSSHub paths** + `category` + `region` + `tier`; **dedupe / cluster** within `category` (and optionally across `region` after translation).
+- **Excluded** from all lists above: NSFW、盗版影视、极小众与高风险政治源（见对话约定）；需要时单独维护 blocklist。
+
+---
+
+## RSSHub doc index — 热点 / 持续信息流筛选
+
+目标：从 `[[显示名, docs 页 URL], ...]` 中保留 **更像「要闻栏目 / 热榜 / 行业信息流」** 的 namespace，剔除 **高校通知、单产品更新、工具发行版、NSFW/盗版** 等不适合做 OpenAPI 资讯聚合的项。  
+**仍为启发式**：每个 namespace 下请在文档里选 `热门` / `头条` / `trending` 等具体 path。
+
+1. 将完整 JSON 数组保存为 **`data/rsshub-doc-index.full.json`**（格式：与此前内嵌在本文档中的二维数组相同）。
+2. 在项目根目录执行：  
+   `pnpm run rsshub:filter`  
+   或：  
+   `node scripts/filter-rsshub-hot-feeds.mjs data/rsshub-doc-index.full.json`  
+   （若 `full.json` 为 `[]`，筛选与 registry 会**自动改用** `data/rsshub-doc-index.fixture.json`，避免生成空输出。）
+3. 生成文件：
+   - **`data/rsshub-hot-capable.json`** — 保留项（仍为 `[label, url]`）
+   - **`data/rsshub-hot-dropped.json`** — 剔除项，含 `slug` 与 `reason`
+4. 小样本见 **`data/rsshub-doc-index.fixture.json`**；当前仓库里的 `rsshub-hot-*.json` 可由该 fixture 生成，供联调格式。
+5. **与 OpenAPI 项目 HTTP 层对齐的汇总表**（启发式 + `TODO.md` 阶段 1 分类）：
+   - 维护 slug → 业务分类见 **`data/rsshub-todo-slug-map.json`**
+   - 执行：`pnpm run rsshub:registry` → **`data/rsshub-openapi-registry.json`**（含拟议的 `/api/news/*` 路由说明与各 namespace 元数据）
+   - 说明文档：**`.ai/specs/integrations/rsshub-openapi.md`**
+6. **资讯模块最终用的「热门源」白名单**（仅阶段 1 列表 + 去掉工具链/NSFW/校讯招考等）：
+   - 展示名见 **`data/rsshub-todo-slug-labels.json`**（与 slug 一一对应，供分类器与文档）
+   - 策略（招考/校讯排除等）见 **`data/rsshub-phase1-hot-policy.json`**
+   - 生成：`pnpm run rsshub:phase1-hot` → **`data/rsshub-phase1-hot-allowlist.json`**
+     - `byCategoryAndRegion`：当前实现波次 **`cn` / `hk_tw`** 下按 `general-news` 等类型分组的服务与接口占位（`rsshubPathPattern` + `docsUrl`）
+     - `internationalDeferredHotEligible`：`international`（TODO 暂缓）但已通过筛选的源，供后续接入
+     - `excludedFromHot`：被剔除项及原因
+     - `eligibleForHotApiNowFlat`：扁平列表，便于 `GET /api/news/hot-sources` 直接加载
+7. **从 RSSHub 上游源码为每个 slug 选一条「热点/今日/滚动」路由**（无则剔除该服务）：
+   - 生成：`pnpm run rsshub:pick-hot-routes`（未设置 `RSSHUB_ROUTES_DIR` 时会自动浅克隆到 **`.tmp/rsshub-src`**，已加入 `.gitignore`）→ **`data/rsshub-phase1-hot-routes-resolved.json`**
+   - 确认输出无误后删除克隆：`pnpm run rsshub:clean-rsshub-clone`
+   - 手工纠正：`data/rsshub-hot-route-overrides.json`（`rsshubPath` 或 `forceDrop`）；自定义克隆目录：`RSSHUB_ROUTES_DIR=...`；禁止自动克隆：`RSSHUB_AUTO_CLONE=0`
+
+**剔除原因 `reason` 含义简述**
+
+| reason                                   | 含义                                                    |
+| ---------------------------------------- | ------------------------------------------------------- |
+| `slug_blocklist_nsfw_or_piracy`          | NSFW、盗版、羊毛站等                                    |
+| `slug_blocklist_tool_or_infrastructure`  | 包管理器、单框架发行说明、基础设施状态等                |
+| `title_blocklist_single_entity_or_niche` | 标题像高校、律所、单一 IP/艺人官网等                    |
+| `no_obvious_rolling_or_hot_feed`         | 标题/ slug 均未命中「媒体/社交/市场」启发式，默认不保留 |
+| `bad_url`                                | 无法从 URL 解析出 namespace                             |
+
+调整规则请改 **`scripts/lib/rsshub-classify.mjs`** 中的 `BLOCK_*`、`EXTRA_ALLOW_SLUG`、`MEDIA_TITLE_RE`（`filter-rsshub-hot-feeds.mjs` 仅调用该模块）。阶段 1 热门白名单的招考/校讯排除改 **`data/rsshub-phase1-hot-policy.json`**。

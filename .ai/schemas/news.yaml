@@ -1,0 +1,91 @@
+# News module schema (RSS aggregation by category / region)
+
+id: news
+name: News
+routePrefix: /news
+
+sidebarItems:
+  - key: overview
+    title: Overview
+    ariaLabel: Overview
+  - key: api
+    title: API
+    ariaLabel: API
+  - key: mcp
+    title: MCP tools
+    ariaLabel: MCP tools
+  - key: functionCalling
+    title: Function Calling
+    ariaLabel: Function Calling
+  - key: skill
+    title: Skill
+    ariaLabel: Skill
+
+apiPage:
+  title: News API
+  subtitle: List RSS sources and aggregate latest items by category and region (RSSHub-compatible feeds). HTTP paths are under `/api/news/…` (below); `/news/…` is the App Router UI.
+  endpoints:
+    - method: GET
+      path: /api/news/sources
+      description: Returns configured sources and the resolved RSSHub base URL. Optional query category, region.
+      exampleResponse: |
+        {
+          "sources": [
+            {
+              "id": "thepaper",
+              "label": "澎湃新闻",
+              "category": "general-news",
+              "region": "cn",
+              "rsshubPath": "/thepaper/featured",
+              "defaultUrl": "https://www.thepaper.cn"
+            }
+          ],
+          "baseUrl": "https://rsshub.app"
+        }
+    - method: GET
+      path: /api/news/feed
+      description: Fetches RSS for all matching sources (unified merge), optional manifest category filters items after merge; optional at most one of feedCategory, feedKeyword, feedSourceId filters the merged list before pagination; facets always over full pool. Query category, region, limit, offset, maxFeeds, feedAnchor.
+      exampleResponse: |
+        {
+          "items": [
+            {
+              "title": "Example headline",
+              "link": "https://example.com/a",
+              "publishedAt": "2025-03-21T08:00:00.000Z",
+              "summary": null,
+              "sourceId": "thepaper",
+              "sourceLabel": "澎湃新闻",
+              "category": "general-news",
+              "region": "cn",
+              "feedCategories": ["国内", "时政"],
+              "feedKeywords": ["国务院", "政策"],
+              "alsoFromSources": [
+                { "sourceId": "other", "sourceLabel": "另一媒体", "href": "https://other.example" }
+              ],
+              "platformTags": [
+                { "sourceId": "thepaper", "sourceLabel": "澎湃新闻", "href": "https://www.thepaper.cn/news/1" },
+                { "sourceId": "other", "sourceLabel": "另一媒体", "href": "https://other.example" }
+              ]
+            }
+          ],
+          "fetchedAt": "2025-03-21T10:00:00.000Z",
+          "facets": {
+            "categories": [{ "value": "国内", "count": 12 }],
+            "keywords": [{ "value": "政策", "count": 3 }],
+            "sources": [{ "sourceId": "thepaper", "label": "澎湃新闻", "count": 5 }]
+          }
+        }
+  playgroundComponentName: NewsApiPlayground
+  playgroundImportPath: '@/app/news/api/components'
+
+mcpPage:
+  title: News MCP tools
+  subtitle: List configured news sources and fetch aggregated feeds through MCP.
+  tools:
+    - name: list_news_sources
+      description: List RSS sources from the manifest (optional category and region filters).
+    - name: get_news_feed
+      description: Aggregate latest news items from RSS feeds; optional category, region, limit, maxFeeds; optional feedCategory, feedKeyword, or feedSourceId (at most one) filters before pagination.
+      paramsDescription: 'category (optional), region (optional cn|hk_tw), limit (optional item cap), maxFeeds (optional source cap).'
+  playgroundComponentName: NewsMcpPlayground
+  playgroundImportPath: '@/app/news/mcp/components'

@@ -6,7 +6,7 @@ import { getMoviesListWithAutoUpdate } from '@/services/movies'
 
 export const runtime = 'nodejs'
 
-const logger = createLogger('cron-movies-gist')
+const logger = createLogger('cron-movies-sync')
 
 /**
  * Count movies by source (Maoyan topRated/mostExpected, TMDB popular/upcoming).
@@ -27,18 +27,18 @@ function getSourceSummary(movies: MergedMovie[]): { topRated: number; mostExpect
 }
 
 /**
- * Movies GIST sync cron job.
- * Refreshes movies cache (Maoyan only → GIST). Call from external cron (e.g. GitHub Actions)
+ * Movies KV sync cron job.
+ * Refreshes movies cache (Maoyan + TMDB merge → KV). Call from external cron (e.g. GitHub Actions)
  * at e.g. UTC 04:00, 12:00, 20:00.
  * Auth: cron() wrapper enforces CRON_SECRET (Bearer or ?secret=).
  * Query: ?force=1 to force refresh (ignore cache freshness).
  */
 export const GET = cron(async (_req, context) => {
   const force = context.searchParams.get('force') === '1'
-  logger.info('movies-gist sync start (Maoyan apis.netstart.cn → GIST)', { forceRefresh: force })
+  logger.info('movies-sync start (Maoyan + TMDB → KV)', { forceRefresh: force })
   const movies = await getMoviesListWithAutoUpdate({ forceRefresh: force })
   const summary = getSourceSummary(movies)
-  logger.info('movies-gist sync done', {
+  logger.info('movies-sync done', {
     count: movies.length,
     sources: {
       maoyanTopRated: summary.topRated,
