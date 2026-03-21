@@ -1,0 +1,73 @@
+# Modules registry — single source of truth for feature module ids and doc paths.
+#
+# === AI AGENTS (Cursor, Codex, etc.) — REQUIRED WHEN ADDING A MODULE ===
+# First pass `.ai/workflow/requirements-audit.md` and get explicit developer approval.
+# Then do NOT create `app/<id>/`, `.ai/schemas/<id>.yaml`, or run `pnpm run generate:module`
+# until this file has a new row for that `id` (and `modules` stays sorted by `id`).
+# Also add `.ai/specs/modules/<id>.md` unless you set `spec: null` and explain in `notes`.
+# After implementation: `pnpm run validate:ai` (fails if registry, schemas, and `app/<id>/layout.tsx` drift).
+# Read: `.ai/specs/README.md`, `.ai/rules/global.md`, `.ai/INDEX.md`, `skills/module-generator/SKILL.md`.
+#
+# When ADDING a module:
+# 1. Insert an entry in the correct place so the `modules` list stays sorted by `id` ascending.
+# 2. Create files pointed to by `spec` and `schema` (use `spec: null` only if the per-module spec is intentionally deferred — add `notes`).
+# 3. Implement `app/<id>/` (with `layout.tsx`) and `app/api/<id>/` per `.ai/workflow/module-development.md`.
+# 4. Run from repo root: `pnpm run validate:ai` (includes registry + drift checks).
+#
+# When REMOVING a module: delete its entry here, then remove or archive code and specs.
+#
+# Human-readable index (no second table to maintain): this file + `.ai/specs/README.md` intro.
+
+version: 1
+
+modules:
+  - id: dns
+    title: DNS Query
+    spec: modules/dns.md
+    schema: schemas/dns.yaml
+
+  - id: exchange-rate
+    title: Exchange Rate
+    spec: modules/exchange-rate.md
+    schema: schemas/exchange-rate.yaml
+
+  - id: finance
+    title: Finance
+    spec: null
+    schema: schemas/finance.yaml
+    notes: Per-module spec file not added yet; see schema and app/api/finance/.
+
+  - id: fuel-price
+    title: Fuel Price
+    spec: modules/fuel-price.md
+    schema: schemas/fuel-price.yaml
+
+  - id: geo
+    title: Geo (China)
+    spec: modules/geo.md
+    schema: schemas/geo.yaml
+
+  - id: holiday
+    title: Holiday
+    spec: modules/holiday.md
+    schema: schemas/holiday.yaml
+
+  - id: movies
+    title: Movies
+    spec: modules/movies.md
+    schema: schemas/movies.yaml
+
+  - id: prices
+    title: Prices
+    spec: modules/prices.md
+    schema: schemas/prices.yaml
+
+  - id: proxy-rule
+    title: Proxy rule
+    spec: modules/proxy-rule.md
+    schema: schemas/proxy-rule.yaml
+
+  - id: weather
+    title: Weather
+    spec: modules/weather.md
+    schema: schemas/weather.yaml

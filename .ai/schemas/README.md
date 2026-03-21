@@ -50,6 +50,12 @@ One YAML per module. Only **variable** content; layout and sidebar order come fr
 
 ---
 
+## Registry (which modules exist)
+
+Every **`.ai/schemas/<id>.yaml`** must have a matching **`id`** row in **`.ai/specs/modules-registry.yaml`**. Add the registry row **before** or **when** you add the schema, then run **`pnpm run validate:ai`**.
+
+---
+
 ## Examples
 
 Copy `holiday.yaml`, `fuel-price.yaml`, `exchange-rate.yaml`, or `geo.yaml`; change fields; run generator.

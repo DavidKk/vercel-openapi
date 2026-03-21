@@ -1,6 +1,6 @@
 # Fuel Price module (Spec)
 
-Per-module spec for the Fuel Price public API. Global convention: [api-semantics.md](../api-semantics.md) (read-only, latest credit/data).
+Per-module spec for the Fuel Price public API. Global convention: [api-semantics.md](../api-semantics.md) (anonymous read-only + latest credit/data; authenticated routes and policy exceptions per that spec).
 
 ---
 

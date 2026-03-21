@@ -5,10 +5,14 @@ globs:
 
 # Rules: .ai/rules (single source of truth)
 
-**Always read first:** **`.ai/rules/global.md`** — minimal global rules (code style, structure, where to look). Keep under ~1000 tokens so AI can load it every time.
+**Quick map (optional first):** **`.ai/INDEX.md`** — task/topic → which file to open; avoids scanning the whole `.ai` tree.
+
+**Always read:** **`.ai/rules/global.md`** — minimal global rules (code style, structure, where to look). Keep under ~1000 tokens so AI can load it every time.
+
+**New feature module:** Before schema or `app/<id>/`, edit **`.ai/specs/modules-registry.yaml`** (see **`.ai/specs/README.md`**). Run **`pnpm run validate:ai`** when done.
 
 Then, when touching layout or components:
-- **`.ai/rules/module-layout.md`** – Module layout, sidebar, API/MCP pages, styling.
-- **`.ai/rules/component-structure.md`** – Component placement, folder layout, imports.
+- **`.ai/rules/layout/module-layout.md`** – Module layout, sidebar, API/MCP pages, styling.
+- **`.ai/rules/layout/component-structure.md`** – Component placement, folder layout, imports.
 
 Do not rely on IDE-specific rule files; **`.ai/rules/`** is the authority. New rules go under `.ai/rules/` and are referenced here if needed.

@@ -1,6 +1,6 @@
 # Movies module (Spec)
 
-Per-module spec for the Movies public API. Global convention: [api-semantics.md](../api-semantics.md) (read-only, latest credit/data). This module is an **example** (latest list from cache; no write or external live fetch from public API).
+Per-module spec for the Movies public API. Global convention: [api-semantics.md](../api-semantics.md) (anonymous read-only + latest credit/data; authenticated routes and policy exceptions per that spec). This module is an **example** (latest list from cache; no write or external live fetch from public API).
 
 ---
 

@@ -97,6 +97,6 @@ Constraint: Do not add a third column or change the left/right layout.
 
 - Route: `app/api/<module>/route.ts` (or nested, e.g. `app/api/<module>/<sub>/route.ts`).
 - Use: `export const runtime = 'edge'`; `export const GET/POST = api(async (req) => { ... })`; return with `jsonSuccess(...)` and headers.
-- Semantics: Public APIs are **read-only** and return **latest credit/data** only. See `.ai/specs/api-semantics.md`. History or write operations require a separate spec and path.
+- Semantics: **Anonymous** public API use is **read-only** and returns **latest credit/data** unless excepted. Session-guarded writes or history: see `.ai/specs/api-semantics.md` and the module spec (e.g. prices, finance).
 
 Constraint: New module REST endpoints must follow the above pattern and semantics for consistent caching and response shape.

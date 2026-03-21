@@ -1,5 +1,7 @@
 # Proxy rule module
 
+**Global convention:** [api-semantics.md](../api-semantics.md) defines anonymous read-only **public** data APIs. This module also exposes **session admin** routes; those are **not** covered by the public API definition in that spec (see **Authenticated admin API** below).
+
 ## Scope
 
 Clash-oriented proxy rules: load custom rules from the KV cache, optionally merge ZeroOmega backup and gfwlist, expose merged RULE-SET compatible line prefixes for clients.

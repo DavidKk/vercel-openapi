@@ -1,6 +1,6 @@
 ---
 name: module-generator
-description: Scaffolds or extends feature modules in this Next.js app using the project generator when possible; otherwise follows .ai/rules and .ai/schemas to implement by hand. Use when the user wants to add a new module, create a new feature module, scaffold module layout/pages, or implement overview component / API route / MCP tools / Playground for a module.
+description: Scaffolds or extends feature modules in this Next.js app using the project generator when possible; otherwise follows .ai/rules and .ai/schemas to implement by hand. Mandatory for new modules edit .ai/specs/modules-registry.yaml (sorted by id) before schema or generator; then validate with pnpm run validate:ai. Use when the user wants to add a new module, create a new feature module, scaffold module layout/pages, or implement overview component / API route / MCP tools / Playground for a module.
 ---
 
 # Module generator skill
@@ -9,9 +9,22 @@ When adding or extending a **feature module** (e.g. holiday, fuel-price, exchang
 
 ---
 
+## Modules registry (mandatory for AI)
+
+**Every new feature module** must be registered so docs and CI stay aligned with code:
+
+1. Add one entry to **`.ai/specs/modules-registry.yaml`**: `id`, `title`, `spec` (path under `specs/`, e.g. `modules/foo.md`), `schema` (path under `.ai/`, e.g. `schemas/foo.yaml`). Keep the `modules` array **sorted by `id`** (ASCII).
+2. Add **`.ai/specs/modules/<id>.md`** unless you intentionally set **`spec: null`** and document why in **`notes`** (e.g. spec deferred like finance).
+
+Do **not** add only `app/<id>/` or `.ai/schemas/<id>.yaml` without updating the registry — **`pnpm run validate:ai`** will fail (orphan schema or orphan `app/<id>/layout.tsx`). **Removing** a module: delete its registry row when removing code/schemas.
+
+**Authority / checklist:** **`.ai/specs/README.md`**.
+
+---
+
 ## Development workflow (mandatory)
 
-**Before** creating schema or code for a new module, follow the **module development workflow** in order. Do not skip to “generate module” until the previous phase has a clear, confirmed outcome.
+**Before** creating schema or code for a new module, complete the **requirements audit** (`.ai/workflow/requirements-audit.md`): checklist, work-type classification, explicit developer approval. Then follow the **module development workflow** in order. Do not skip to “generate module” until the previous phase has a clear, confirmed outcome.
 
 | Phase | Name                      | What to do                                                                                       | Done when                                   |
 | ----- | ------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------- |
@@ -72,7 +85,7 @@ The generator does **not** create the following. Implement them by hand followin
 ### API route handler
 
 - **Where**: `app/api/<id>/route.ts` (and optional dynamic segments, e.g. `app/api/fuel-price/[province]/route.ts`).
-- **Semantics first:** Read **`.ai/specs/api-semantics.md`**. Public APIs are **read-only** and return **latest credit/data** only; do not add history or write behavior unless a separate spec exists and uses a distinct path.
+- **Semantics first:** Read **`.ai/specs/api-semantics.md`**. **Anonymous** public APIs are **read-only** and return **latest credit/data**; auth writes or history only per module spec / policy exceptions / distinct paths.
 - **Rules** (from **`.ai/rules/layout/module-layout.md`**):
   - `export const runtime = 'edge'`
   - Use the shared wrapper: `export const GET/POST = api(async (req) => { ... })`
@@ -111,15 +124,17 @@ The generator does **not** create the following. Implement them by hand followin
 
 ## 3. End-to-end flow for a new module
 
-1. **Schema**: Add `.ai/schemas/<new-module>.yaml` (see `.ai/schemas/README.md` and existing YAMLs).
-2. **Generator**: Run `pnpm run generate:module .ai/schemas/<new-module>.yaml` (or call `createModuleFromSchema` and write the four files).
-3. **Overview**: Ask the developer how the Overview should be displayed. If not specified, leave empty. Otherwise implement `app/<new-module>/components/<OverviewComponent>.tsx`, re-export from `app/<new-module>/components/index.ts`, and use it in `app/<new-module>/page.tsx` (e.g. make page async and pass props if server data is needed).
-4. **API**: Implement `app/api/<new-module>/route.ts` (and any nested routes) with `api()`, `jsonSuccess`, and `runtime = 'edge'`.
-5. **Playgrounds**: Implement API and MCP playground components under `app/<new-module>/api/components/` and `app/<new-module>/mcp/components/` and re-export.
-6. **MCP**: Implement tools under `app/api/mcp/tools/` and register them.
-7. **Nav**: Add the module to `app/Nav/index.tsx` (e.g. `NAV_ITEMS`).
-8. **Optional**: Add `function-calling/page.tsx` and `skill/page.tsx` plus content if needed.
-9. **Tests**: Add test cases for new code. Unit tests: `__tests__/**/*.spec.ts` (mirror source structure); naming: `should [expected behavior] [conditions]` (see `.cursorrules`). E2E: `__webtests__/` or Playwright as needed. Cover API routes, services, and non-trivial components.
-10. **Quality gate**: Run **`pnpm ok`** (format, lint, typecheck, test, test:e2e). Fix any failure until `pnpm ok` passes before considering the module done.
+1. **Registry**: Add a row to **`.ai/specs/modules-registry.yaml`** (keep `modules` sorted by `id`). Add **`.ai/specs/modules/<id>.md`** unless **`spec: null`** is intentional (use **`notes`**).
+2. **Schema**: Add `.ai/schemas/<new-module>.yaml` (see `.ai/schemas/README.md` and existing YAMLs).
+3. **Generator**: Run `pnpm run generate:module .ai/schemas/<new-module>.yaml` (or call `createModuleFromSchema` and write the four files).
+4. **Overview**: Ask the developer how the Overview should be displayed. If not specified, leave empty. Otherwise implement `app/<new-module>/components/<OverviewComponent>.tsx`, re-export from `app/<new-module>/components/index.ts`, and use it in `app/<new-module>/page.tsx` (e.g. make page async and pass props if server data is needed).
+5. **API**: Implement `app/api/<new-module>/route.ts` (and any nested routes) with `api()`, `jsonSuccess`, and `runtime = 'edge'`.
+6. **Playgrounds**: Implement API and MCP playground components under `app/<new-module>/api/components/` and `app/<new-module>/mcp/components/` and re-export.
+7. **MCP**: Implement tools under `app/api/mcp/tools/` and register them.
+8. **Nav**: Add the module to `app/Nav/index.tsx` (e.g. `NAV_ITEMS`).
+9. **Optional**: Add `function-calling/page.tsx` and `skill/page.tsx` plus content if needed.
+10. **Verify**: Run **`pnpm run validate:ai`** (registry + schemas + generator).
+11. **Tests**: Add test cases for new code. Unit tests: `__tests__/**/*.spec.ts` (mirror source structure); naming: `should [expected behavior] [conditions]` (see `.cursorrules`). E2E: `__webtests__/` or Playwright as needed. Cover API routes, services, and non-trivial components.
+12. **Quality gate**: Run **`pnpm ok`** (format, lint, typecheck, test, test:e2e). Fix any failure until `pnpm ok` passes before considering the module done.
 
-Whenever a step can be driven by the generator (step 2), use it; for the rest, follow **`.ai/rules`** and **`.ai/schemas/README.md`** and implement by description. Do not skip tests or the quality gate (step 9–10).
+Whenever a step can be driven by the generator (step 3), use it; for the rest, follow **`.ai/rules`** and **`.ai/schemas/README.md`** and implement by description. Do not skip tests or the quality gate (steps 11–12).
