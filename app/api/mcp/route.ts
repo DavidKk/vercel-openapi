@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
+import { applyNoStoreCache } from '@/initializer/mcp/response'
 import { createLogger } from '@/services/logger'
 
 import { createMCPServerWithTools, execute, manifest } from './server'
@@ -30,7 +31,7 @@ export const GET = async (req: NextRequest, context: { params: Promise<Record<st
   const tools = getToolsForRequest(req)
   if (tools !== null) {
     if (tools.size === 0) {
-      return NextResponse.json({ type: 'error', error: { code: 'INVALID_ARGUMENT', message: 'No tools for given includes' } }, { status: 400 })
+      return applyNoStoreCache(NextResponse.json({ type: 'error', error: { code: 'INVALID_ARGUMENT', message: 'No tools for given includes' } }, { status: 400 }))
     }
     const { manifest: manifestHandler } = createMCPServerWithTools(tools)
     return manifestHandler(req, context)
@@ -49,7 +50,7 @@ export const POST = async (req: NextRequest, context: { params: Promise<Record<s
   const tools = getToolsForRequest(req)
   if (tools !== null) {
     if (tools.size === 0) {
-      return NextResponse.json({ type: 'error', error: { code: 'INVALID_ARGUMENT', message: 'No tools for given includes' } }, { status: 400 })
+      return applyNoStoreCache(NextResponse.json({ type: 'error', error: { code: 'INVALID_ARGUMENT', message: 'No tools for given includes' } }, { status: 400 }))
     }
     const { execute: executeHandler } = createMCPServerWithTools(tools)
     return executeHandler(req, context)

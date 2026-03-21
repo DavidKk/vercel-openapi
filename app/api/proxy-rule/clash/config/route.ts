@@ -1,5 +1,5 @@
 import { api } from '@/initializer/controller'
-import { jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
+import { cacheControlNoStoreHeaders, jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import { createLogger } from '@/services/logger'
 import { buildMergedClashRulePayload } from '@/services/proxy-rule/merge-payload'
 
@@ -14,7 +14,9 @@ const logger = createLogger('api-proxy-rule-clash-config')
 export const GET = api(async (req) => {
   const type = req.nextUrl.searchParams.get('type')?.trim()
   if (!type) {
-    return jsonInvalidParameters('type query parameter is required (e.g. type=Proxy)')
+    return jsonInvalidParameters('type query parameter is required (e.g. type=Proxy)', {
+      headers: cacheControlNoStoreHeaders(),
+    })
   }
 
   try {
@@ -32,6 +34,8 @@ export const GET = api(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     logger.fail('buildMergedClashRulePayload failed', { message })
-    return jsonSuccess({ error: message, payload: [] as string[] }, { status: 503 })
+    const failHeaders = cacheControlNoStoreHeaders()
+    failHeaders.set('Content-Type', 'application/json')
+    return jsonSuccess({ error: message, payload: [] as string[] }, { status: 503, headers: failHeaders })
   }
 })

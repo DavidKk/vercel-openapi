@@ -163,4 +163,12 @@ export function jsonForbidden(message = 'forbidden', options: ErrorResponseInit 
   return forbidden(message).toJsonResponse(403, options)
 }
 
-export { CACHE_CONTROL_LONG_LIVED, CACHE_MAX_AGE_ONE_YEAR_S } from './cache-control'
+export {
+  CACHE_CONTROL_GIST_CATALOG,
+  CACHE_CONTROL_LONG_LIVED,
+  CACHE_CONTROL_NO_STORE,
+  CACHE_CONTROL_PROXY_REDIRECT,
+  CACHE_CONTROL_SKILLS_INDEX,
+  CACHE_MAX_AGE_ONE_YEAR_S,
+  cacheControlNoStoreHeaders,
+} from './cache-control'

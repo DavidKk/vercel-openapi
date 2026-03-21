@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getMCPToolsByCategory } from '@/app/api/mcp/tools'
+import { applyNoStoreCache } from '@/initializer/mcp/response'
 import { getAuthSession } from '@/services/auth/session'
 import { TOOL_CATEGORIES } from '@/services/function-calling/categories'
 import { createLogger } from '@/services/logger'
@@ -24,7 +25,7 @@ export async function GET(_request: Request, context: { params: Promise<{ catego
   logger.info('request', { category })
   const toolsMap = getMCPToolsByCategory(category)
   if (!toolsMap) {
-    return NextResponse.json({ error: 'Unknown category', allowed: TOOL_CATEGORIES }, { status: 404 })
+    return applyNoStoreCache(NextResponse.json({ error: 'Unknown category', allowed: TOOL_CATEGORIES }, { status: 404 }))
   }
 
   const session = category === 'prices' ? await getAuthSession() : { authenticated: false }
@@ -40,5 +41,5 @@ export async function GET(_request: Request, context: { params: Promise<{ catego
       : toolsMap
 
   const tools = mcpToolsToOpenAITools(filteredTools)
-  return NextResponse.json({ tools })
+  return applyNoStoreCache(NextResponse.json({ tools }))
 }

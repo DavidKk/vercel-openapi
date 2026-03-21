@@ -1,7 +1,7 @@
 import { serialize } from 'cookie'
 
 import { api } from '@/initializer/controller'
-import { jsonSuccess } from '@/initializer/response'
+import { CACHE_CONTROL_NO_STORE, jsonSuccess } from '@/initializer/response'
 import { AUTH_TOKEN_NAME } from '@/services/auth/constants'
 import { getAuthSession } from '@/services/auth/session'
 import { createLogger } from '@/services/logger'
@@ -17,13 +17,15 @@ export const POST = api(async (req) => {
 
   const headers = new Headers()
   headers.append('Set-Cookie', cookie)
+  headers.set('Cache-Control', CACHE_CONTROL_NO_STORE)
 
   return jsonSuccess(null, { headers })
 })
 
 export const GET = api(async () => {
   const session = await getAuthSession()
-  return jsonSuccess(session)
+  const headers = new Headers({ 'Cache-Control': CACHE_CONTROL_NO_STORE })
+  return jsonSuccess(session, { headers })
 })
 
 export const DELETE = api(async () => {
@@ -38,5 +40,6 @@ export const DELETE = api(async () => {
       sameSite: 'lax',
     })
   )
+  headers.set('Cache-Control', CACHE_CONTROL_NO_STORE)
   return jsonSuccess(null, { headers })
 })

@@ -1,5 +1,5 @@
 import { api } from '@/initializer/controller'
-import { CACHE_CONTROL_LONG_LIVED, jsonSuccess } from '@/initializer/response'
+import { CACHE_CONTROL_LONG_LIVED, cacheControlNoStoreHeaders, jsonSuccess } from '@/initializer/response'
 import { reverseGeocodeWithMeta } from '@/services/china-geo'
 import { createLogger } from '@/services/logger'
 
@@ -14,10 +14,13 @@ async function handleGeocode(latitude: number, longitude: number) {
   logger.info('request', { latitude, longitude })
   const { location: result, cacheLayer } = await reverseGeocodeWithMeta(latitude, longitude)
   if (!result) {
-    return jsonSuccess({ error: 'This area is not supported for this service.' }, { status: 404 })
+    return jsonSuccess({ error: 'This area is not supported for this service.' }, { status: 404, headers: cacheControlNoStoreHeaders() })
   }
   if (!result.polygon) {
-    return jsonSuccess({ error: 'Geo RPC must return polygon (real boundary). Run sql/init-china-geo.sql and ensure china_geo.polygon is populated.' }, { status: 503 })
+    return jsonSuccess(
+      { error: 'Geo RPC must return polygon (real boundary). Run sql/init-china-geo.sql and ensure china_geo.polygon is populated.' },
+      { status: 503, headers: cacheControlNoStoreHeaders() }
+    )
   }
 
   const headers = new Headers({ 'Cache-Control': CACHE_CONTROL_LONG_LIVED })
@@ -38,7 +41,7 @@ export const GET = api(async (req) => {
   const longitude = lng != null ? Number(lng) : NaN
 
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    return jsonSuccess({ error: 'Invalid latitude or longitude' }, { status: 400 })
+    return jsonSuccess({ error: 'Invalid latitude or longitude' }, { status: 400, headers: cacheControlNoStoreHeaders() })
   }
 
   return handleGeocode(latitude, longitude)
@@ -48,7 +51,7 @@ export const POST = api(async (req) => {
   const { latitude, longitude } = await req.json()
 
   if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-    return jsonSuccess({ error: 'Invalid latitude or longitude' }, { status: 400 })
+    return jsonSuccess({ error: 'Invalid latitude or longitude' }, { status: 400, headers: cacheControlNoStoreHeaders() })
   }
 
   return handleGeocode(latitude, longitude)

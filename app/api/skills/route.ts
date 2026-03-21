@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 
+import { CACHE_CONTROL_SKILLS_INDEX } from '@/initializer/response'
 import packageJson from '@/package.json'
 import { createLogger } from '@/services/logger'
 import { skillBundles } from '@/skills'
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     }
   }
 
-  return Response.json({
+  const body = {
     version: packageJson.version,
     bundles: skillBundles.map((bundle) => ({
       name: bundle.name,
@@ -57,5 +58,13 @@ export async function GET(req: NextRequest): Promise<Response> {
         }
       }),
     })),
+  }
+
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': CACHE_CONTROL_SKILLS_INDEX,
+    },
   })
 }

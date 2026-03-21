@@ -44,7 +44,9 @@ Per-module spec for the Prices feature area. Global convention: [api-semantics.m
 
 ## Caching
 
-- Routes do not set aggressive `Cache-Control` in code today; data changes when gist updates. If adding HTTP cache later, use **minute-level or coarser** unless registered as a policy exception.
+- **HTTP (CDN/browser):** Anonymous gist-backed **GET** reads (`/api/prices`, `/api/prices/products` list, `/api/prices/search`, `/api/prices/products/search`) use `CACHE_CONTROL_GIST_CATALOG` (~2 min `max-age`/`s-maxage`, `stale-while-revalidate=300`). See `initializer/response/cache-control.ts`.
+- **No shared cache:** `GET ?id=…`, all **POST/PUT/DELETE** on products, and **POST /api/prices/calc** use `private, no-store` (auth-sensitive or body-dependent).
+- **Clearing HTTP cache:** wait for TTL, change URL (e.g. query bust), or Vercel/CDN purge; see file comment on `cache-control.ts`.
 - Optional: document L1/L2 if introduced for `getAllProducts()`.
 
 ---

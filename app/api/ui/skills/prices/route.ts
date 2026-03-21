@@ -1,6 +1,6 @@
 import { PRICES_API_SKILL_PROTECTED, PRICES_API_SKILL_PUBLIC } from '@/app/prices/skill-content'
 import { api } from '@/initializer/controller'
-import { jsonSuccess } from '@/initializer/response'
+import { CACHE_CONTROL_NO_STORE, jsonSuccess } from '@/initializer/response'
 import { getAuthSession } from '@/services/auth/session'
 
 export const runtime = 'edge'
@@ -14,5 +14,10 @@ export const GET = api(async () => {
   const session = await getAuthSession()
   const content = session.authenticated ? PRICES_API_SKILL_PROTECTED : PRICES_API_SKILL_PUBLIC
 
-  return jsonSuccess({ content })
+  const headers = new Headers({
+    Charset: 'utf-8',
+    'Content-Type': 'application/json',
+    'Cache-Control': CACHE_CONTROL_NO_STORE,
+  })
+  return jsonSuccess({ content }, { headers })
 })

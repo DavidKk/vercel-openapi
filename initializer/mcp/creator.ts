@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import type { ContextWithParams } from '@/initializer/controller'
 import { api } from '@/initializer/controller'
 
-import { JSONRPC, jsonRpcError, jsonRpcSuccess, mcpErrorinvalidArguments, mcpErrorMethodNotAllowed, mcpErrorToolNotFound, mcpResponse } from './response'
+import { applyNoStoreCache, JSONRPC, jsonRpcError, jsonRpcSuccess, mcpErrorinvalidArguments, mcpErrorMethodNotAllowed, mcpErrorToolNotFound, mcpResponse } from './response'
 import type { Tool } from './tool'
 
 /** MCP Tool interface */
@@ -95,7 +95,7 @@ function withMCPHandler<P = any>(handler: (req: NextRequest, context: ContextWit
 function createManifestHandler(name: string, version: string, description: string, tools: Map<string, Tool>) {
   return withMCPHandler(async () => {
     const manifest = generateMCPManifest(name, version, description, tools)
-    return NextResponse.json({ type: 'result', result: manifest })
+    return applyNoStoreCache(NextResponse.json({ type: 'result', result: manifest }))
   }, ['GET'])
 }
 

@@ -1,5 +1,5 @@
 import { cron } from '@/initializer/controller'
-import { jsonSuccess } from '@/initializer/response'
+import { cacheControlNoStoreHeaders, jsonSuccess } from '@/initializer/response'
 import { createLogger } from '@/services/logger'
 import type { MergedMovie } from '@/services/maoyan/types'
 import { getMoviesListWithAutoUpdate } from '@/services/movies'
@@ -47,5 +47,5 @@ export const GET = cron(async (_req, context) => {
       tmdbUpcoming: summary.tmdbUpcoming,
     },
   })
-  return jsonSuccess({ ok: true, count: movies.length, sources: summary })
+  return jsonSuccess({ ok: true, count: movies.length, sources: summary }, { headers: cacheControlNoStoreHeaders() })
 })

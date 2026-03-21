@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
+import { CACHE_CONTROL_NO_STORE, CACHE_CONTROL_PROXY_REDIRECT } from '@/initializer/response'
 import { MAOYAN } from '@/services/maoyan/constants'
 import { TMDB } from '@/services/tmdb/constants'
 
@@ -19,10 +20,14 @@ const REDIRECTS: Record<string, (path: string[]) => string | null> = {
 export async function GET(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path: pathSegments } = await context.params
   if (pathSegments.length < 2) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': CACHE_CONTROL_NO_STORE } })
   }
   const [provider, ...rest] = pathSegments
   const redirect = REDIRECTS[provider]?.(rest)
-  if (!redirect) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.redirect(redirect)
+  if (!redirect) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': CACHE_CONTROL_NO_STORE } })
+  }
+  return NextResponse.redirect(redirect, {
+    headers: { 'Cache-Control': CACHE_CONTROL_PROXY_REDIRECT },
+  })
 }
