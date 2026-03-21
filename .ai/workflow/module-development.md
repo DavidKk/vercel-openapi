@@ -2,19 +2,33 @@
 
 When adding or generating a **new feature module**, follow these phases **in order**. Do not skip to schema or code until the previous phase has a clear outcome. If anything is unclear or blocked, **ask the developer** (Phase 5) and wait for a reply before continuing.
 
+**AI / humans — order matters:** First pass **`.ai/workflow/requirements-audit.md`** and obtain explicit developer approval. **After the audit passes**, before **`.ai/schemas/<id>.yaml`**, the **generator**, or **`app/<id>/`**, add a row to **`.ai/specs/modules-registry.yaml`** (sorted by `id`) and add **`.ai/specs/modules/<id>.md`** unless **`spec: null`** + **`notes`**. Details: **`.ai/specs/README.md`**. Run **`pnpm run validate:ai`** before considering the module complete.
+
+---
+
+## Requirements audit (mandatory — before Phase 1)
+
+**Before** starting Phase 1 below for any **new module**, **new public `/api` behavior**, or **material feature request**:
+
+1. Read and apply **`.ai/workflow/requirements-audit.md`** (checklist + work-type classification).
+2. Record outcome: **pass**, **spec-first**, **defer**, or **reject**. If **spec-first**, add or update `.ai/specs/modules/<module>.md` and get developer confirmation **before** schema or code.
+3. Obtain **explicit developer approval** on the short summary and classification (not only silence).
+
+Phases 1–5 assume the audit has **passed** or **spec-first** documentation is already agreed. Skipping the audit to “save time” is not allowed.
+
 ---
 
 ## Quick reference (for AI)
 
-| Phase | Name                      | Key action                                                | Done when                                                                        |
-| ----- | ------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 1     | Requirements confirmation | Confirm scope & success criteria with developer           | You have a short written summary **confirmed** by developer                      |
-| 2     | Customize requirements    | Agree API, Overview, MCP concretely                       | You have a concrete list **confirmed** by developer                              |
-| 3     | Requirements breakdown    | Produce implementation checklist                          | Checklist written; open questions listed; no unraised conflicts with rules/specs |
-| 4     | Generate module           | Schema → generator → implement → tests → format/lint/test | Module works; tests added; `pnpm ok` passes                                      |
-| 5     | Raise issues              | When blocked: stop, ask, wait                             | Developer has answered; then resume from the step where you stopped              |
+| Phase | Name                      | Key action                                                                                                             | Done when                                                                        |
+| ----- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1     | Requirements confirmation | Confirm scope & success criteria with developer                                                                        | You have a short written summary **confirmed** by developer                      |
+| 2     | Customize requirements    | Agree API, Overview, MCP concretely                                                                                    | You have a concrete list **confirmed** by developer                              |
+| 3     | Requirements breakdown    | Produce implementation checklist                                                                                       | Checklist written; open questions listed; no unraised conflicts with rules/specs |
+| 4     | Generate module           | **Registry** (`modules-registry.yaml`) → schema → generator → implement → tests → **`validate:ai`** → format/lint/test | Module works; tests added; `pnpm ok` passes; **`pnpm run validate:ai`** passes   |
+| 5     | Raise issues              | When blocked: stop, ask, wait                                                                                          | Developer has answered; then resume from the step where you stopped              |
 
-**Entry:** User says “add a module” or “generate a module” → start at **Phase 1**. Do not create schema or code until Phase 2–3 are complete and confirmed.
+**Entry:** User says “add a module” or “generate a module” → complete **`.ai/workflow/requirements-audit.md`** first, then start at **Phase 1**. Do not create schema or code until Phase 2–3 are complete and confirmed. **Phase 4 step 1** is still **`.ai/specs/modules-registry.yaml`** (see Phase 4 actions).
 
 ---
 
@@ -25,7 +39,7 @@ When adding or generating a **new feature module**, follow these phases **in ord
 
 ### Actions (do in order)
 
-1. **Read** `.ai/specs/api-semantics.md` to know project constraints (public APIs read-only, latest data only).
+1. **Read** `.ai/specs/api-semantics.md` to know project constraints (anonymous public reads: read-only, latest data; session writes only where module spec allows).
 2. **If the developer already gave a clear brief** (scope + success criteria in one message): summarize it in 2–4 sentences and **present it back** for confirmation before continuing.
 3. **If the developer only gave a name or vague idea:** ask for clarification using the questions below. Do not assume scope or start writing schema/code.
 
@@ -43,7 +57,7 @@ When adding or generating a **new feature module**, follow these phases **in ord
 ### Completion criteria
 
 - You have a written summary.
-- Developer has confirmed it (explicitly or by not objecting after you presented it).
+- Developer has confirmed it **explicitly**.
 - You have **not** started writing schema or code.
 
 ### When to use Phase 5 (raise an issue)
@@ -64,7 +78,7 @@ When adding or generating a **new feature module**, follow these phases **in ord
    - Endpoints: path(s), method(s) (GET/POST).
    - Request shape (query params or body).
    - Response shape (fields, example).
-   - Semantics: read-only, latest data only (per `.ai/specs/api-semantics.md`) unless a separate spec exists.
+   - Semantics: anonymous read-only + latest data (per `.ai/specs/api-semantics.md`) unless module spec documents auth writes or a separate history spec exists.
 2. **Overview:** Ask: “How should the Overview tab be displayed (e.g. calendar, table, form, list)? Or leave it empty for now?” If no answer, plan **empty placeholder**.
 3. **MCP:** Agree on tool names, parameters, and return shape. Match existing style in `app/api/mcp/tools/`.
 4. **Optional:** Function Calling and Skill pages needed? Any caching, auth, or special rules?
@@ -117,6 +131,7 @@ When adding or generating a **new feature module**, follow these phases **in ord
 ### Checklist template (output this in Phase 3)
 
 ```text
+[ ] Registry: .ai/specs/modules-registry.yaml (new row, sorted by id) + specs/modules/<id>.md (or spec: null + notes)
 [ ] Schema: .ai/schemas/<module-id>.yaml (id, name, routePrefix, apiPage, mcpPage, optional sidebarItems)
 [ ] Generator: pnpm run generate:module .ai/schemas/<module-id>.yaml
 [ ] Overview: <empty | component name and path>
@@ -150,18 +165,19 @@ Open questions: <list or "None">
 
 ### Actions (do in order)
 
-1. **Schema:** Create or edit `.ai/schemas/<module-id>.yaml` per Phase 2–3. Copy an existing schema (e.g. `.ai/schemas/holiday.yaml`) and adapt; do not add `overview`.
-2. **Generator:** Run `pnpm run generate:module .ai/schemas/<module-id>.yaml` from repo root (or use `createModuleFromSchema` from `.ai/generators/skill.ts` and write the four files). If it fails, go to Phase 5 and report the error.
-3. **Overview:** If Phase 2 said “empty”, leave `app/<id>/page.tsx` as the generated placeholder. If Phase 2 specified UI, implement the component under `app/<id>/components/`, re-export from `index.ts`, and use it in `app/<id>/page.tsx` (async + fetch if needed).
-4. **API:** Implement `app/api/<id>/route.ts` (and nested routes if any) with `runtime = 'edge'`, `api()`, `jsonSuccess()`. Follow `.ai/rules/layout/module-layout.md` and `.ai/specs/api-semantics.md`.
-5. **MCP:** Implement tools under `app/api/mcp/tools/`, register in `app/api/mcp/tools/index.ts`. Match schema `mcpPage.tools`.
-6. **Playgrounds:** Implement API and MCP Playground components under `app/<id>/api/components/` and `app/<id>/mcp/components/`; re-export; names and import paths must match schema.
-7. **Nav:** Add the module to `app/Nav/index.tsx` (e.g. `NAV_ITEMS`): href, title, icon.
-8. **Optional:** Add `app/<id>/function-calling/page.tsx` and `app/<id>/skill/page.tsx` if agreed in Phase 2.
-9. **Verify:** Run `pnpm run validate:ai` if available; fix any schema or generator issues. Do not silently work around generator or rule conflicts—escalate to Phase 5.
-10. **Tests:** Add test cases to cover new or modified code. See **Quality gate** below for locations and naming. At minimum: unit tests for API routes, services, and non-trivial components; add e2e (e.g. `__webtests__/<module>/` or Playwright) if the module has critical user flows. Fix or add tests until the new code is covered.
-11. **Quality gate:** Run format, lint, typecheck, and tests so the project passes the full check. From repo root run:
-    - **`pnpm ok`** — runs `pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e`. Use this to verify there are no issues before considering the module done. If any step fails, fix the cause (format, fix lint errors, fix types, add or fix tests) and re-run until `pnpm ok` passes.
+1. **Registry:** Add or update **`.ai/specs/modules-registry.yaml`** (keep `modules` sorted by `id`). Add **`.ai/specs/modules/<id>.md`** unless **`spec: null`** is intentional (document in **`notes`**).
+2. **Schema:** Create or edit `.ai/schemas/<module-id>.yaml` per Phase 2–3. Copy an existing schema (e.g. `.ai/schemas/holiday.yaml`) and adapt; do not add `overview`.
+3. **Generator:** Run `pnpm run generate:module .ai/schemas/<module-id>.yaml` from repo root (or use `createModuleFromSchema` from `.ai/generators/skill.ts` and write the four files). If it fails, go to Phase 5 and report the error.
+4. **Overview:** If Phase 2 said “empty”, leave `app/<id>/page.tsx` as the generated placeholder. If Phase 2 specified UI, implement the component under `app/<id>/components/`, re-export from `index.ts`, and use it in `app/<id>/page.tsx` (async + fetch if needed).
+5. **API:** Implement `app/api/<id>/route.ts` (and nested routes if any) with `runtime = 'edge'`, `api()`, `jsonSuccess()`. Follow `.ai/rules/layout/module-layout.md` and `.ai/specs/api-semantics.md`.
+6. **MCP:** Implement tools under `app/api/mcp/tools/`, register in `app/api/mcp/tools/index.ts`. Match schema `mcpPage.tools`.
+7. **Playgrounds:** Implement API and MCP Playground components under `app/<id>/api/components/` and `app/<id>/mcp/components/`; re-export; names and import paths must match schema.
+8. **Nav:** Add the module to `app/Nav/index.tsx` (e.g. `NAV_ITEMS`): href, title, icon.
+9. **Optional:** Add `app/<id>/function-calling/page.tsx` and `app/<id>/skill/page.tsx` if agreed in Phase 2.
+10. **Verify:** Run **`pnpm run validate:ai`**; it checks schemas, the generator, and **modules-registry** drift. Fix any failures. Do not silently work around generator or rule conflicts—escalate to Phase 5.
+11. **Tests:** Add test cases to cover new or modified code. See **Quality gate** below for locations and naming. At minimum: unit tests for API routes, services, and non-trivial components; add e2e (e.g. `__webtests__/<module>/` or Playwright) if the module has critical user flows. Fix or add tests until the new code is covered.
+12. **Quality gate:** Run format, lint, typecheck, and tests so the project passes the full check. From repo root run:
+    - **`pnpm ok`** — runs `pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e`. Use this to verify there are no issues before considering the module done. If any step fails, fix the cause (format, fix lint errors, fix types, add or fix tests) and re-run until `pnpm ok` passes. (Run **`pnpm run validate:ai`** before or with release prep — it is not part of **`pnpm ok`** by default.)
 
 ### Quality gate (format, lint, test)
 
@@ -229,7 +245,7 @@ Open questions: <list or "None">
 1. **Requirements confirmation** — Get a short written summary of scope and success criteria; **confirm with developer**; do not assume.
 2. **Customize requirements** — Agree on API (paths, shapes), Overview (or empty), MCP (tools, params); **confirm with developer**; resolve ambiguities by asking.
 3. **Requirements breakdown** — Produce implementation checklist and open questions; raise conflicts with rules/specs; **do not** run generator or implement yet.
-4. **Generate module** — Schema → generator → implement → **add tests** → run **`pnpm ok`** (format, lint, typecheck, test, test:e2e); if stuck, go to Phase 5.
+4. **Generate module** — **Registry** → schema → generator → implement → **add tests** → run **`pnpm run validate:ai`** → run **`pnpm ok`** (format, lint, typecheck, test, test:e2e); if stuck, go to Phase 5.
 5. **Raise issues** — When blocked or ambiguous: stop, state the issue, ask the developer, wait for reply, then resume.
 
-**Entry point:** When the user says “add a module” or “generate a module”, start with **Phase 1**. Present the workflow briefly and confirm requirements before creating any schema or code.
+**Entry point:** When the user says “add a module” or “generate a module”, complete the **requirements audit** (`.ai/workflow/requirements-audit.md`), then start with **Phase 1**. Present the workflow briefly and confirm requirements before creating any schema or code.

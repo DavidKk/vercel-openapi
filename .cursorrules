@@ -267,6 +267,7 @@ it('merge', () => {
 1. **Before starting to code**:
    - Read the project's README documentation
    - Understand the project structure and environment variable configuration
+   - **New feature module:** Update **`.ai/specs/modules-registry.yaml`** (and **`.ai/specs/modules/<id>.md`** unless deferred) **before** adding **`.ai/schemas/<id>.yaml`**, running **`pnpm run generate:module`**, or creating **`app/<id>/`**. See **`.ai/specs/README.md`**. When the module is ready, run **`pnpm run validate:ai`**.
 
 2. **When writing code**:
    - All comments must be in English

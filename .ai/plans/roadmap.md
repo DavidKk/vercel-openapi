@@ -10,21 +10,21 @@ Product development plan for the openapi project. This document describes the **
 
 ### Deliverables
 
-| ID   | Target                                                             | Outcome (current)                                                                       |
-| ---- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| P0-1 | Product spec: public API layer, read-only, latest credit/data only | `docs/specs/overview.md`; out-of-scope clearly stated.                                  |
-| P0-2 | API semantics and glossary                                         | `.ai/specs/api-semantics.md`, `.ai/knowledge/glossary.md`; rules reference them.        |
-| P0-3 | Platform: Next.js App Router, Vercel; JWT auth, optional 2FA       | `app/api/auth`, env (JWT*SECRET, 2FA, ACCESS*\*).                                       |
-| P0-4 | API pattern: edge runtime, `api()`, `jsonSuccess`, Cache-Control   | `initializer/controller`, `initializer/response`; used by all public API routes.        |
-| P0-5 | Module layout and rules                                            | `.ai/rules/layout/module-layout.md` (shell, sidebar 5 entries, API/MCP doc+playground). |
-| P0-6 | Module generator and schemas                                       | `.ai/generators/`, `.ai/schemas/*.yaml`; one schema per module.                         |
-| P0-7 | ADR for "public API = latest only"                                 | `docs/adr/0001-public-api-latest-only.md`.                                              |
+| ID   | Target                                                                                          | Outcome (current)                                                                       |
+| ---- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| P0-1 | Product spec: public API layer; anonymous reads read-only + latest; writes only per module spec | `docs/specs/overview.md`; out-of-scope clearly stated.                                  |
+| P0-2 | API semantics and glossary                                                                      | `.ai/specs/api-semantics.md`, `.ai/knowledge/glossary.md`; rules reference them.        |
+| P0-3 | Platform: Next.js App Router, Vercel; JWT auth, optional 2FA                                    | `app/api/auth`, env (JWT*SECRET, 2FA, ACCESS*\*).                                       |
+| P0-4 | API pattern: edge runtime, `api()`, `jsonSuccess`, Cache-Control                                | `initializer/controller`, `initializer/response`; used by all public API routes.        |
+| P0-5 | Module layout and rules                                                                         | `.ai/rules/layout/module-layout.md` (shell, sidebar 5 entries, API/MCP doc+playground). |
+| P0-6 | Module generator and schemas                                                                    | `.ai/generators/`, `.ai/schemas/*.yaml`; one schema per module.                         |
+| P0-7 | ADR for "public API = latest only"                                                              | `docs/adr/0001-public-api-latest-only.md`.                                              |
 
 ---
 
 ## Phase 1: Core data modules
 
-**Goal:** Deliver the four core modules (Holiday, Fuel Price, Exchange Rate, Geolocation), each with REST API, Overview UI, API doc + Playground, MCP tools, and optional Function Calling / Skill pages. All APIs comply with "query latest credit/data only".
+**Goal:** Deliver the four core modules (Holiday, Fuel Price, Exchange Rate, Geolocation), each with REST API, Overview UI, API doc + Playground, MCP tools, and optional Function Calling / Skill pages. Public anonymous usage complies with **read-only + latest credit/data** per `.ai/specs/api-semantics.md`.
 
 ### Deliverables
 
@@ -57,7 +57,7 @@ Product development plan for the openapi project. This document describes the **
 
 ## Phase 3: Extensions (ongoing)
 
-**Goal:** New modules or features added only per spec and task; each addition follows the same semantics (public API = latest credit/data) and layout (schema → generator, API, MCP, Playgrounds).
+**Goal:** New modules or features added only per spec and task; each addition follows the same semantics (**anonymous** public API = read-only + latest credit/data unless excepted) and layout (schema → generator, API, MCP, Playgrounds).
 
 ### How to use this phase
 
@@ -66,9 +66,9 @@ Product development plan for the openapi project. This document describes the **
 
 ### P3-DNS: DNS Query module
 
-| ID     | Target                                                                       | Spec / Task                                                                          |
-| ------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| P3-DNS | DNS Query: GET `/api/dns`, optional L0 cache; Overview form + API Playground | `.ai/specs/modules/dns.md`; task breakdown in `.ai/tasks/active/current.md` (T-DNS). |
+| ID     | Target                                                                       | Spec / Task                                                                        |
+| ------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| P3-DNS | DNS Query: GET `/api/dns`, optional L0 cache; Overview form + API Playground | `.ai/specs/modules/dns.md`; completed tasks in `.ai/tasks/done/README.md` (T-DNS). |
 
 ---
 

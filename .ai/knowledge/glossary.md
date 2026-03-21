@@ -6,7 +6,7 @@ Definitions used across Spec, Plan, Task, and Rules. Keep entries short.
 
 ## Public API
 
-Stable, developer-facing HTTP endpoints under `/api/<module>/...`. Examples: `/api/holiday`, `/api/fuel-price`, `/api/exchange-rate`, `/api/geo`, `/api/movies`, `/api/weather`, `/api/dns`, `/api/finance/...`. Excludes auth, cron, MCP server, and other internal endpoints. Public APIs are **read-only** and return **latest credit/data** unless a separate spec says otherwise. Use this term consistently; do not mix with "REST API" for these same endpoints unless in a generic sentence.
+Stable, developer-facing HTTP endpoints under `/api/<module>/...`. Valid `<module>` ids are listed in **`.ai/specs/modules-registry.yaml`** (e.g. `holiday`, `geo`, `prices`, `finance/...`). Excludes auth, cron, MCP server, and other internal endpoints. **Anonymous** access is **read-only** and returns **latest credit/data** unless a separate spec or **policy exception** says otherwise; some modules add **session-authenticated writes** (e.g. prices product CRUD) per module spec. Use this term consistently; do not mix with "REST API" for these same endpoints unless in a generic sentence.
 
 ---
 
@@ -18,7 +18,7 @@ Here **"credit"** means the current trustworthy state of data (not payment or qu
 
 ## Module
 
-A feature area with its own route prefix (e.g. `holiday`, `fuel-price`, `geo`, `movies`, `weather`, `dns`, `finance`), five sidebar entries (Overview, API, MCP, Function Calling, Skill), and optional **module schema** under `.ai/schemas/<id>.yaml`. Layout and structure are defined in `.ai/rules/layout/module-layout.md`. In this repo, "module" always means this UI+API feature area; the **module id** is the route segment (e.g. `geo`, not "china-geo").
+A feature area with its own route prefix, five sidebar entries (Overview, API, MCP, Function Calling, Skill), and **module schema** under `.ai/schemas/<id>.yaml` for generator-driven shells. **Canonical list of ids:** **`.ai/specs/modules-registry.yaml`**. Layout and structure are defined in `.ai/rules/layout/module-layout.md`. In this repo, "module" always means this UI+API feature area; the **module id** is the route segment (e.g. `geo`, not "china-geo").
 
 ---
 

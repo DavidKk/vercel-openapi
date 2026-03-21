@@ -1,18 +1,23 @@
 # Specs index
 
-Global: **api-semantics.md**. Per-module: **modules/** (one file per module; inherit read-only, latest credit/data from api-semantics).
+Global: **api-semantics.md**. **Approved overrides (tags + registry):** [policy-exceptions.md](./policy-exceptions.md).
 
-| Module        | File                                                                |
-| ------------- | ------------------------------------------------------------------- |
-| Holiday       | [modules/holiday.md](./modules/holiday.md)                          |
-| Fuel Price    | [modules/fuel-price.md](./modules/fuel-price.md)                    |
-| Exchange Rate | [modules/exchange-rate.md](./modules/exchange-rate.md)              |
-| Geo (China)   | [modules/geo.md](./modules/geo.md)                                  |
-| Movies        | [modules/movies.md](./modules/movies.md)                            |
-| Weather       | [modules/weather.md](./modules/weather.md)                          |
-| DNS Query     | [modules/dns.md](./modules/dns.md)                                  |
-| Finance       | No spec yet; see `.ai/schemas/finance.yaml` and `app/api/finance/`. |
-| Prices        | [modules/prices.md](./modules/prices.md)                            |
-| Proxy rule    | [modules/proxy-rule.md](./modules/proxy-rule.md)                    |
+## Module list (single source of truth)
 
-New module: add `modules/<id>.md`; copy an existing file and adjust. Do not override "read-only, latest only" unless the spec states an exception and uses a distinct path (e.g. `/api/holiday/history`). Module **id** in specs and schema is the route name (e.g. `geo`, not `china-geo`).
+**For AI:** Treat [`modules-registry.yaml`](./modules-registry.yaml) as **mandatory** for every new `app/<id>/` module, but only **after** the request has passed **`workflow/requirements-audit.md`** and the developer has explicitly approved the scope. The YAML file header repeats this; **`INDEX.md`** and **`rules/global.md`** also point here.
+
+**Authoritative list:** [`modules-registry.yaml`](./modules-registry.yaml) — each row has `id`, `title`, `spec` (path under `specs/` or `null`), and `schema` (path under `.ai/`). Keep `modules` **sorted by `id`**. After edits, run **`pnpm run validate:ai`** (or **`pnpm run validate:modules-registry`**) to verify paths and catch drift vs `app/<id>/layout.tsx` and `.ai/schemas/*.yaml`.
+
+Per-module behavior: **modules/** (one file per module when `spec` is set; inherit anonymous read-only + latest credit/data from api-semantics unless the module documents auth writes or exceptions).
+
+New module:
+
+1. Run **`workflow/requirements-audit.md`** first and get explicit developer approval.
+2. Add a row to **`modules-registry.yaml`** (insert in **sorted `id` order**; do not just append).
+3. Add **`modules/<id>.md`** unless you intentionally set **`spec: null`** (use **`notes`**).
+4. Add **`.ai/schemas/<id>.yaml`** and run the generator per **`schemas/README.md`**.
+5. Run **`pnpm run validate:ai`**.
+
+Do not override anonymous read-only + latest defaults unless the spec states an exception (`policy-exceptions.md`, `policy-exempt` marker, auth writes, or a distinct path such as `/api/holiday/history`). Module **id** in specs and schema is the route name (e.g. `geo`, not `china-geo`).
+
+**AI quick path map:** **`.ai/INDEX.md`**.
