@@ -1,12 +1,12 @@
 /**
  * Phase-1 news categories (orthogonal to region). See TODO.md / modules/news.md.
  */
-export type NewsCategory = 'general-news' | 'tech-internet' | 'social-platform' | 'game-entertainment' | 'science-academic'
+export type NewsCategory = 'general-news' | 'tech-internet' | 'game-entertainment' | 'science-academic'
 
 /**
- * Supported regions for RSS sources in phase 1 (international deferred).
+ * Supported regions for RSS sources in phase 1. `intl` is non-CN wire / English or global outlets (BBC world, Nature, etc.).
  */
-export type NewsRegion = 'cn' | 'hk_tw'
+export type NewsRegion = 'cn' | 'hk_tw' | 'intl'
 
 /**
  * One row from `services/news/news-sources.manifest.ts` (`newsSourcesManifest.sources`)
@@ -17,6 +17,10 @@ export interface NewsSourceConfig {
   /** Human-readable label */
   label: string
   category: NewsCategory
+  /**
+   * List slug aligned with `/news/[slug]` and `GET /api/news/feed?list=` (see `news-subcategories.ts`); legacy API still accepts `category` + `sub`.
+   */
+  subcategory: string
   region: NewsRegion
   /** Path appended to RSSHUB_BASE_URL (e.g. /thepaper/featured) */
   rsshubPath: string
@@ -42,6 +46,10 @@ export interface ParsedFeedItem {
   link: string
   publishedAt: string | null
   summary: string | null
+  /**
+   * Cover image from `media:thumbnail`, `media:content` (image), RSS `enclosure` (image), or first absolute `img src` in `description` / `content:encoded`.
+   */
+  imageUrl?: string
   /**
    * RSS/Atom-style categories from `category`, `dc:subject`, etc. (order preserved, deduped).
    */
@@ -114,9 +122,9 @@ export interface NewsFeedMergeStats {
   duplicateDropped: number
   /** Rows merged: same UTC calendar day + identical normalized title, different URL and different source */
   duplicateDroppedByTitle: number
-  /** Rows removed: `publishedAt` missing/invalid or older than the rolling recent window */
+  /** Rows removed: `publishedAt` older than the rolling window (missing or unparseable `publishedAt` is kept) */
   droppedOutsideRecentWindow: number
-  /** Rolling window length in hours (`NEWS_FEED_RECENT_HOURS`, default 24) */
+  /** Rolling window length in hours (per-list defaults + `NEWS_FEED_RECENT_HOURS` for the all-pool / unknown slug) */
   recentWindowHours: number
   /**
    * Distinct items in the paginated list: after dedupe, recent window, optional manifest `category`,
@@ -144,6 +152,19 @@ export interface NewsFeedFacetSource {
   sourceId: string
   label: string
   count: number
+}
+
+/**
+ * Per configured RSS source: rows parsed from XML vs rows credited in the merged pool (after dedupe + time window).
+ * Lets UIs explain “RSS OK but 0 in list” when items drop out of the rolling window or fold under another outlet.
+ */
+export interface NewsFeedSourceInventoryRow {
+  sourceId: string
+  label: string
+  /** Item rows appended from this feed before cross-source dedupe */
+  parsedCount: number
+  /** Count in the merged pool (primary + co-source attribution), same basis as {@link NewsFeedFacetSource.count} */
+  poolCount: number
 }
 
 /**

@@ -3,7 +3,7 @@
 import { useRequest } from 'ahooks'
 import classNames from 'classnames'
 import { eachDayOfInterval, endOfMonth, format, isSameDay, startOfMonth } from 'date-fns'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { TbCalendarSearch, TbChevronDown, TbChevronLeft, TbChevronRight, TbSearch } from 'react-icons/tb'
 
 import type { Holiday } from '@/app/actions/holiday/api'
@@ -11,6 +11,7 @@ import { getHolidaysForYear } from '@/app/holiday/lib/getHolidaysForYear'
 import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
 import { useDebugPanel } from '@/components/DebugPanel'
 import { EmptyState } from '@/components/EmptyState'
+import { FloatingDropdown } from '@/components/FloatingDropdown'
 
 interface CalendarProps {
   /** Optional initial data (e.g. from SSR). When omitted, data is loaded client-side via IDB + API. */
@@ -31,7 +32,6 @@ export function Calendar(props: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [pickerOpen, setPickerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const pickerRef = useRef<HTMLDivElement>(null)
 
   const { data: fetchedHolidays, loading } = useRequest(() => getHolidaysForYear(currentYear), {
     refreshDeps: [currentYear],
@@ -91,16 +91,6 @@ export function Calendar(props: CalendarProps) {
     setCurrentMonth(d.getMonth())
     setPickerOpen(false)
     setSearchQuery('')
-  }, [])
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        setPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   if (forceError) {
@@ -167,47 +157,54 @@ export function Calendar(props: CalendarProps) {
           今天
         </button>
 
-        <div className="relative ml-auto" ref={pickerRef}>
-          <button
-            type="button"
-            onClick={() => setPickerOpen((o) => !o)}
-            className={FILTER_BUTTON_CLASS}
-            aria-label="Choose a holiday"
-            aria-expanded={pickerOpen}
-            aria-haspopup="listbox"
+        <div className="ml-auto">
+          <FloatingDropdown
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            align="end"
+            menuMinWidth={320}
+            matchTriggerWidth={false}
+            menuClassName="rounded-lg border border-gray-200 bg-white py-2 shadow-lg ring-1 ring-black/5"
+            trigger={
+              <button
+                type="button"
+                onClick={() => setPickerOpen((o) => !o)}
+                className={FILTER_BUTTON_CLASS}
+                aria-label="Choose a holiday"
+                aria-expanded={pickerOpen}
+                aria-haspopup="listbox"
+              >
+                <TbSearch className="h-4 w-4 text-gray-500" />
+                节日
+                <TbChevronDown className="h-4 w-4 text-gray-500" />
+              </button>
+            }
           >
-            <TbSearch className="h-4 w-4 text-gray-500" />
-            节日
-            <TbChevronDown className="h-4 w-4 text-gray-500" />
-          </button>
-          {pickerOpen && (
-            <div className="absolute right-0 top-full z-10 mt-1 w-80 min-w-[16rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
-              <div className="border-b border-gray-100 px-2 pb-2">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜索节日…"
-                  className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400"
-                  aria-label="Search holidays"
-                />
-              </div>
-              <ul className="max-h-56 overflow-auto">
-                {pickerOptions.length === 0 ? (
-                  <li className="px-3 py-2.5 text-sm text-gray-500">无匹配节日</li>
-                ) : (
-                  pickerOptions.map((h) => (
-                    <li key={h.date}>
-                      <button type="button" onClick={() => selectHoliday(h)} className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100" role="option">
-                        <span className="font-medium">{h.name}</span>
-                        <span className="ml-2 text-gray-500">{h.date}</span>
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
+            <div className="border-b border-gray-100 px-2 pb-2" role="presentation">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜索节日…"
+                className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400"
+                aria-label="Search holidays"
+              />
             </div>
-          )}
+            <ul className="max-h-56 overflow-auto" role="listbox">
+              {pickerOptions.length === 0 ? (
+                <li className="px-3 py-2.5 text-sm text-gray-500">无匹配节日</li>
+              ) : (
+                pickerOptions.map((h) => (
+                  <li key={h.date}>
+                    <button type="button" onClick={() => selectHoliday(h)} className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100" role="option">
+                      <span className="font-medium">{h.name}</span>
+                      <span className="ml-2 text-gray-500">{h.date}</span>
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </FloatingDropdown>
         </div>
       </div>
 

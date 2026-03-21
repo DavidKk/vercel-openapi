@@ -1,3 +1,5 @@
+import { isAppCacheDisabled } from '@/services/config/cache-debug'
+
 /**
  * Cache-Control values for API routes.
  * Use with GET endpoints so browser and Vercel can cache by URL (same params = cache hit).
@@ -46,4 +48,15 @@ export const CACHE_CONTROL_PROXY_REDIRECT = 'public, max-age=86400, s-maxage=864
  */
 export function cacheControlNoStoreHeaders(): Headers {
   return new Headers({ 'Cache-Control': CACHE_CONTROL_NO_STORE })
+}
+
+/**
+ * When `DISABLE_CACHE=1` (see `services/config/cache-debug.ts`), set `Cache-Control` to {@link CACHE_CONTROL_NO_STORE}.
+ * Otherwise leave existing `Cache-Control` unchanged.
+ * @param headers Headers being built for a response (mutated in place)
+ */
+export function applyCacheControlDebugOverride(headers: Headers): void {
+  if (isAppCacheDisabled()) {
+    headers.set('Cache-Control', CACHE_CONTROL_NO_STORE)
+  }
 }

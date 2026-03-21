@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { tool } from '@/initializer/mcp'
 import { pruneNewsFeedPoolPayloadForWindow, sliceNewsFeedPageFromPool } from '@/services/news/aggregate-feed'
 import type { NewsFacetListFilter } from '@/services/news/facet-list-filter'
-import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedWindowMs } from '@/services/news/feed-kv-cache'
+import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours, resolveNewsFeedWindowMs } from '@/services/news/feed-kv-cache'
+import { getNewsCategoryForListSlug, isValidNewsListSlug, normalizeNewsSubcategory } from '@/services/news/news-subcategories'
 import { filterNewsSources, getNewsFeedBaseUrl } from '@/services/news/sources'
 
 const DEFAULT_ITEM_LIMIT = 30
@@ -20,13 +21,12 @@ const FEED_SOURCE_ID_RE = /^[\w-]+$/
  */
 export const get_news_feed = tool(
   'get_news_feed',
-  'Aggregate latest news from RSS feeds (RSSHub-compatible). All matching sources are merged first; optional category filters returned rows by article taxonomy (manifest category), not which RSS feeds are fetched. Optional region limits sources by region. At most one of feedCategory, feedKeyword, feedSourceId filters the merged pool before pagination (same as HTTP query). Merged pool is cached (L1/L2); facet changes reuse the pool. For offset>0, pass feedAnchor equal to fetchedAt from the first page. Returns { items, fetchedAt, baseUrl, mergeStats, facets, errors? }.',
+  'Aggregate latest news from RSS (RSSHub-compatible). Prefer `list` (flat slug, e.g. headlines, media) to match the overview UI; or use legacy `category` + optional `sub`. When neither is set, first maxFeeds across all categories. Optional region. At most one of feedCategory, feedKeyword, feedSourceId before pagination. Cached L1/L2. For offset>0 pass feedAnchor from first page fetchedAt. Returns { items, fetchedAt, baseUrl, mergeStats, facets, sourceInventory?, errors? } — `sourceInventory` lists parsed vs pool counts per RSS source.',
   z.object({
-    category: z
-      .enum(['general-news', 'tech-internet', 'social-platform', 'game-entertainment', 'science-academic'])
-      .optional()
-      .describe('Filter merged items by manifest article category'),
-    region: z.enum(['cn', 'hk_tw']).optional().describe('Filter sources by region'),
+    list: z.string().min(1).max(48).optional().describe('Flat list slug (same as /news/[slug] and ?list= on the HTTP API); when set, category/sub are ignored'),
+    category: z.enum(['general-news', 'tech-internet', 'game-entertainment', 'science-academic']).optional().describe('Legacy manifest tab when `list` is omitted'),
+    sub: z.string().min(1).max(48).optional().describe('Legacy sub-tab when category is set; invalid/missing → default sub for that category'),
+    region: z.enum(['cn', 'hk_tw', 'intl']).optional().describe('Filter sources by region'),
     limit: z.number().int().min(1).max(MAX_ITEM_LIMIT).optional().describe(`Max items after merge (default ${DEFAULT_ITEM_LIMIT})`),
     maxFeeds: z.number().int().min(1).max(MAX_MAX_FEEDS).optional().describe(`Max RSS feeds to fetch (default ${DEFAULT_MAX_FEEDS})`),
     offset: z.number().int().min(0).max(MAX_ITEM_OFFSET).optional().describe('Skip this many items after merge/today filter (pagination; default 0)'),
@@ -48,6 +48,10 @@ export const get_news_feed = tool(
   }),
   async (params) => {
     const { category, region } = params
+    const listTrimmed = params.list?.trim() ?? ''
+    if (listTrimmed !== '' && !isValidNewsListSlug(listTrimmed)) {
+      throw new Error('invalid list: use a known flat slug (e.g. headlines, media, games)')
+    }
     const limit = params.limit ?? DEFAULT_ITEM_LIMIT
     const maxFeeds = params.maxFeeds ?? DEFAULT_MAX_FEEDS
     const offset = params.offset ?? 0
@@ -73,19 +77,27 @@ export const get_news_feed = tool(
       facetListFilter = { kind: 'src', sourceId: feedSourceId }
     }
 
-    let sources = filterNewsSources(undefined, region)
-    sources = sources.slice(0, maxFeeds)
-    const baseUrl = getNewsFeedBaseUrl()
+    const useList = listTrimmed !== '' && isValidNewsListSlug(listTrimmed)
     const itemCategory = category
+    const baseUrl = getNewsFeedBaseUrl()
+    const listSubNorm = useList ? listTrimmed : itemCategory !== undefined ? normalizeNewsSubcategory(itemCategory, params.sub) : ''
+    let sources = useList
+      ? filterNewsSources(undefined, region, undefined, listTrimmed)
+      : filterNewsSources(itemCategory, region, itemCategory !== undefined ? listSubNorm : undefined)
+    sources = sources.slice(0, maxFeeds)
     const regionNorm = region ?? ''
-    const categoryNorm = itemCategory ?? ''
+    const resolvedCategory = useList ? getNewsCategoryForListSlug(listTrimmed) : itemCategory
+    const categoryNorm = resolvedCategory ?? ''
 
     const windowAtMs = resolveNewsFeedWindowMs({ feedAnchorRaw: params.feedAnchor, offset })
+    const recentWindowHours = resolveNewsFeedPoolRecentWindowHours(listSubNorm)
     const poolCacheKey = await buildNewsFeedPoolCacheKey({
       baseUrl,
       category: categoryNorm,
+      subcategory: listSubNorm,
       region: regionNorm,
       maxFeeds,
+      recentWindowHours,
     })
 
     const { payload: poolPayload } = await getOrBuildNewsFeedMergedPool({
@@ -93,7 +105,8 @@ export const get_news_feed = tool(
       sources,
       baseUrl,
       windowAtMs,
-      itemCategory,
+      itemCategory: resolvedCategory,
+      listSlug: listSubNorm,
     })
 
     const prunedPayload = pruneNewsFeedPoolPayloadForWindow(poolPayload, windowAtMs)
@@ -105,6 +118,7 @@ export const get_news_feed = tool(
       mergeStats,
       facets,
       baseUrl: responseBaseUrl,
+      sourceInventory,
     } = sliceNewsFeedPageFromPool(prunedPayload, { facetListFilter, itemOffset: offset, itemLimit: limit })
 
     const out: {
@@ -113,8 +127,12 @@ export const get_news_feed = tool(
       baseUrl: string
       mergeStats: typeof mergeStats
       facets: typeof facets
+      sourceInventory?: typeof sourceInventory
       errors?: { sourceId: string; message: string }[]
     } = { items, fetchedAt, baseUrl: responseBaseUrl, mergeStats, facets }
+    if (sourceInventory !== undefined && sourceInventory.length > 0) {
+      out.sourceInventory = sourceInventory
+    }
     if (errors.length > 0) {
       out.errors = errors
     }

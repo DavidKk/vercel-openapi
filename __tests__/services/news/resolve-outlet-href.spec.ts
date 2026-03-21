@@ -6,6 +6,7 @@ describe('resolveOutletHref', () => {
     id: 'x',
     label: 'X',
     category: 'general-news',
+    subcategory: 'headlines',
     region: 'cn',
     rsshubPath: '/x',
     defaultUrl: 'https://example.com',

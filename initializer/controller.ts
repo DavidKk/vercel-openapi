@@ -5,9 +5,24 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 import { ensureCronAuthorized } from '@/services/auth/cron'
+import { isAppCacheDisabled } from '@/services/config/cache-debug'
 import { getHeaders, runWithContext } from '@/services/context'
 
-import { isStandardResponse, standardResponseError, stringifyUnknownError } from './response'
+import { CACHE_CONTROL_NO_STORE, isStandardResponse, standardResponseError, stringifyUnknownError } from './response'
+
+/**
+ * Clone context response headers and apply `Cache-Control: private, no-store` when `DISABLE_CACHE=1`
+ * (see `services/config/cache-debug.ts`).
+ * @param source Headers from request context, if any
+ * @returns Headers for `NextResponse`
+ */
+function withDebugCacheControl(source: Headers | undefined): Headers {
+  const headers = new Headers(source ?? undefined)
+  if (isAppCacheDisabled()) {
+    headers.set('Cache-Control', CACHE_CONTROL_NO_STORE)
+  }
+  return headers
+}
 
 /** Base context passed to handlers (params, search string, searchParams). */
 export interface Context {
@@ -39,7 +54,10 @@ export function api<P>(handle: (req: NextRequest, context: ContextWithParams<P>)
         const status = 'status' in result ? result.status : 200
         const inputHeaders = 'headers' in result ? result.headers : {}
         const collectHeaders = getHeaders()
-        const headers = { ...collectHeaders, ...inputHeaders }
+        const headers = { ...collectHeaders, ...inputHeaders } as Record<string, string>
+        if (isAppCacheDisabled()) {
+          headers['Cache-Control'] = CACHE_CONTROL_NO_STORE
+        }
         return NextResponse.json(result, { status, headers })
       } catch (error) {
         if (error instanceof NextResponse) {
@@ -55,7 +73,11 @@ export function api<P>(handle: (req: NextRequest, context: ContextWithParams<P>)
           return standardResponseError(message)
         })()
 
-        return NextResponse.json(result, { status: 500 })
+        const errHeaders: Record<string, string> = {}
+        if (isAppCacheDisabled()) {
+          errHeaders['Cache-Control'] = CACHE_CONTROL_NO_STORE
+        }
+        return NextResponse.json(result, { status: 500, headers: errHeaders })
       }
     })
   }
@@ -72,7 +94,7 @@ export function plainText<P>(handle: (req: NextRequest, context: ContextWithPara
           searchParams: req.nextUrl.searchParams,
         }
         const result = await handle(req, enhancedContext)
-        const headers = getHeaders()
+        const headers = withDebugCacheControl(getHeaders())
         if (result instanceof NextResponse) {
           return result
         }
@@ -80,7 +102,7 @@ export function plainText<P>(handle: (req: NextRequest, context: ContextWithPara
         return new NextResponse(result, { status: 200, headers })
       } catch (error) {
         const message = stringifyUnknownError(error)
-        return new NextResponse(message, { status: 500 })
+        return new NextResponse(message, { status: 500, headers: withDebugCacheControl(getHeaders()) })
       }
     })
   }
@@ -97,14 +119,14 @@ export function buffer<P>(handle: (req: NextRequest, context: ContextWithParams<
           searchParams: req.nextUrl.searchParams,
         }
         const result = await handle(req, enhancedContext)
-        const headers = getHeaders()
+        const headers = withDebugCacheControl(getHeaders())
         if (result instanceof NextResponse) {
           return result
         }
         return new NextResponse(result, { status: 200, headers })
       } catch (error) {
         const message = stringifyUnknownError(error)
-        return new NextResponse(message, { status: 500 })
+        return new NextResponse(message, { status: 500, headers: withDebugCacheControl(getHeaders()) })
       }
     })
   }

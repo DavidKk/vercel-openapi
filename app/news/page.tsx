@@ -19,14 +19,14 @@ function searchParamsHasNonEmptyString(record: Record<string, string | string[] 
 }
 
 /**
- * `/news` redirects to `/news/[category]`; supports legacy `?category=&query=` and modern `?tag=&keyword=&source=`.
+ * `/news` redirects to `/news/[slug]` (flat list slug); supports legacy `?category=&sub=` and modern `?tag=&keyword=&source=` and `?list=`.
  */
 export default async function NewsRootPage(props: Readonly<NewsRootPageProps>) {
   const sp = await props.searchParams
   const href = resolveNewsFeedLandingHrefFromRootSearch(sp)
   const pathMatch = /^\/news\/([^/?]+)/.exec(href)
-  const targetCategory = pathMatch?.[1] ?? 'unknown'
-  const redirectSummary = `News: redirect /news → /news/${targetCategory}${href.includes('?') ? ' (+ query)' : ''}`
+  const targetList = pathMatch?.[1] ?? 'unknown'
+  const redirectSummary = `News: redirect /news → /news/${targetList}${href.includes('?') ? ' (+ query)' : ''}`
   logger.info(
     redirectSummary,
     JSON.stringify({
@@ -34,7 +34,7 @@ export default async function NewsRootPage(props: Readonly<NewsRootPageProps>) {
       step: 'redirect',
       message: redirectSummary,
       event: 'news_root_redirect',
-      targetCategory,
+      targetList,
       targetHasSearchParams: href.includes('?'),
       inputHadLegacyCategory: searchParamsHasNonEmptyString(sp, 'category'),
       inputHadLegacyQuery: searchParamsHasNonEmptyString(sp, 'query'),

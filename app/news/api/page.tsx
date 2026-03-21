@@ -16,12 +16,15 @@ export default function NewsApiPage() {
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/news/sources" enableCopy />
-            <p className={DOC_ENDPOINT_DESC_CLASS}>Optional query: category, region (cn | hk_tw). Returns sources and baseUrl.</p>
+            <p className={DOC_ENDPOINT_DESC_CLASS}>Optional query: category, region (cn | hk_tw | intl). Returns sources and baseUrl.</p>
           </div>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/news/feed" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
-              Optional: category, region, limit (items, max 100), maxFeeds (sources, max 25). Returns items, fetchedAt, baseUrl; partial errors per source when upstream fails.
+              Prefer query <code className="rounded bg-gray-100 px-1">list</code> (flat slug, same as overview path). Legacy{' '}
+              <code className="rounded bg-gray-100 px-1">category</code> + <code className="rounded bg-gray-100 px-1">sub</code> when{' '}
+              <code className="rounded bg-gray-100 px-1">list</code> omitted. Also optional region, limit, offset, maxFeeds, feedAnchor (for pagination), and one of feedCategory /
+              feedKeyword / feedSourceId. Returns items (optional imageUrl), fetchedAt, baseUrl, facets, sourceInventory, mergeStats; partial errors per source when upstream fails.
             </p>
           </div>
           <h2 className={DOC_SECTION_TITLE_CLASS}>Response shape</h2>
@@ -36,6 +39,7 @@ export default function NewsApiPage() {
         "link": "https://...",
         "publishedAt": "2025-03-21T08:00:00.000Z",
         "summary": null,
+        "imageUrl": "https://…",
         "sourceId": "thepaper",
         "sourceLabel": "澎湃新闻",
         "category": "general-news",
@@ -43,7 +47,9 @@ export default function NewsApiPage() {
       }
     ],
     "fetchedAt": "...",
-    "baseUrl": "https://rsshub.app"
+    "baseUrl": "https://rsshub.app",
+    "facets": { "categories": [], "keywords": [], "sources": [] },
+    "mergeStats": { "hasMore": true, "uniqueAfterDedupe": 120 }
   }
 }`}
           </pre>

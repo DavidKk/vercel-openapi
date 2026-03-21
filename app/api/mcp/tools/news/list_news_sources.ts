@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { tool } from '@/initializer/mcp'
+import { normalizeNewsSubcategory } from '@/services/news/news-subcategories'
 import { filterNewsSources, getNewsFeedBaseUrl } from '@/services/news/sources'
 
 /**
@@ -8,13 +9,15 @@ import { filterNewsSources, getNewsFeedBaseUrl } from '@/services/news/sources'
  */
 export const list_news_sources = tool(
   'list_news_sources',
-  'List RSS sources from the news manifest. Optional filters: category (general-news, tech-internet, social-platform, game-entertainment, science-academic), region (cn, hk_tw). Returns { sources, baseUrl }.',
+  'List RSS sources from the news manifest. Optional category, sub (flat list slug when category is set; default first list slug for that category), region (cn, hk_tw, intl). Returns { sources, baseUrl }.',
   z.object({
-    category: z.enum(['general-news', 'tech-internet', 'social-platform', 'game-entertainment', 'science-academic']).optional().describe('Filter by phase-1 category'),
-    region: z.enum(['cn', 'hk_tw']).optional().describe('Filter by region'),
+    category: z.enum(['general-news', 'tech-internet', 'game-entertainment', 'science-academic']).optional().describe('Filter by phase-1 category'),
+    sub: z.string().min(1).max(48).optional().describe('Flat list slug when category is set (same as /news/[slug] segment)'),
+    region: z.enum(['cn', 'hk_tw', 'intl']).optional().describe('Filter by region'),
   }),
   async (params) => {
-    const sources = filterNewsSources(params.category, params.region)
+    const subNorm = params.category !== undefined ? normalizeNewsSubcategory(params.category, params.sub) : undefined
+    const sources = filterNewsSources(params.category, params.region, subNorm)
     return { sources, baseUrl: getNewsFeedBaseUrl() }
   }
 )

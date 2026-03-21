@@ -1,7 +1,8 @@
 import { cron } from '@/initializer/controller'
 import { cacheControlNoStoreHeaders, jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import { createLogger } from '@/services/logger'
-import { buildNewsFeedPoolCacheKey, refreshNewsFeedMergedPool } from '@/services/news/feed-kv-cache'
+import { buildNewsFeedPoolCacheKey, refreshNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours } from '@/services/news/feed-kv-cache'
+import { getNewsCategoryForListSlug, NEWS_LIST_SLUGS_ORDER } from '@/services/news/news-subcategories'
 import { filterNewsSources, getNewsFeedBaseUrl, isValidNewsCategory, isValidNewsRegion, NEWS_MANIFEST_CATEGORY_ORDER } from '@/services/news/sources'
 import type { NewsCategory } from '@/services/news/types'
 
@@ -41,6 +42,8 @@ function parseBoundedInt(raw: string | null, defaultValue: number, max: number):
 interface PoolRefreshJob {
   categoryKey: string
   itemCategory?: NewsCategory
+  /** Manifest list sub-tab slug; empty for all-pool job */
+  subcategory: string
 }
 
 /**
@@ -48,9 +51,10 @@ interface PoolRefreshJob {
  * (same as user traffic + `after()` refresh). Call from cron-job.org etc. every ~10 minutes with
  * `CRON_SECRET` (Bearer or `?secret=`).
  *
- * Query: `maxFeeds` (default 15, max 25), `region` (`cn` | `hk_tw` or omit for all),
+ * Query: `maxFeeds` (default 15, max 25), `region` (`cn` | `hk_tw` | `intl` or omit for all),
  * `categories` (comma-separated slugs; default all manifest tabs), `allPool=1` to also refresh the
  * no-category pool key used when `category` is omitted on the API.
+ * Each selected manifest category runs **one refresh per flat list slug** under that category, matching `GET /api/news/feed?list=`.
  */
 export const GET = cron(async (_req, context) => {
   const maxFeeds = parseBoundedInt(context.searchParams.get('maxFeeds'), DEFAULT_MAX_FEEDS, MAX_MAX_FEEDS)
@@ -84,17 +88,22 @@ export const GET = cron(async (_req, context) => {
   const includeAllPool = context.searchParams.get('allPool') === '1'
 
   const baseUrl = getNewsFeedBaseUrl()
-  const sourcesFull = filterNewsSources(undefined, regionNorm || undefined).slice(0, maxFeeds)
-  if (sourcesFull.length === 0) {
-    return jsonInvalidParameters('no sources for given region/maxFeeds', { headers: cacheControlNoStoreHeaders() })
+  const allSources = filterNewsSources(undefined, regionNorm || undefined)
+  if (allSources.length === 0) {
+    return jsonInvalidParameters('no sources for given region', { headers: cacheControlNoStoreHeaders() })
   }
 
   const jobs: PoolRefreshJob[] = []
   if (includeAllPool) {
-    jobs.push({ categoryKey: '', itemCategory: undefined })
+    jobs.push({ categoryKey: '', itemCategory: undefined, subcategory: '' })
   }
   for (const c of categories) {
-    jobs.push({ categoryKey: c, itemCategory: c })
+    for (const slug of NEWS_LIST_SLUGS_ORDER) {
+      if (getNewsCategoryForListSlug(slug) !== c) {
+        continue
+      }
+      jobs.push({ categoryKey: c, itemCategory: c, subcategory: slug })
+    }
   }
 
   const startedAt = Date.now()
@@ -102,25 +111,35 @@ export const GET = cron(async (_req, context) => {
 
   const settled = await Promise.allSettled(
     jobs.map(async (job) => {
+      const sources = filterNewsSources(job.itemCategory, regionNorm || undefined, job.itemCategory !== undefined ? job.subcategory : undefined).slice(0, maxFeeds)
+      const recentWindowHours = resolveNewsFeedPoolRecentWindowHours(job.subcategory)
       const poolCacheKey = await buildNewsFeedPoolCacheKey({
         baseUrl,
         category: job.categoryKey,
+        subcategory: job.subcategory,
         region: regionNorm,
         maxFeeds,
+        recentWindowHours,
       })
       const t0 = Date.now()
       await refreshNewsFeedMergedPool({
         poolCacheKey,
-        sources: sourcesFull,
+        sources,
         baseUrl,
         itemCategory: job.itemCategory,
+        listSlug: job.subcategory,
       })
       const ms = Date.now() - t0
-      return { categoryKey: job.categoryKey || 'all', itemCategory: job.itemCategory ?? null, ms }
+      return {
+        categoryKey: job.categoryKey || 'all',
+        itemCategory: job.itemCategory ?? null,
+        subcategory: job.subcategory || null,
+        ms,
+      }
     })
   )
 
-  const ok: { categoryKey: string; itemCategory: string | null; ms: number }[] = []
+  const ok: { categoryKey: string; itemCategory: string | null; subcategory: string | null; ms: number }[] = []
   const failed: { categoryKey: string; reason: string }[] = []
 
   for (let i = 0; i < settled.length; i++) {
@@ -131,6 +150,7 @@ export const GET = cron(async (_req, context) => {
       ok.push({
         categoryKey: s.value.categoryKey,
         itemCategory: s.value.itemCategory,
+        subcategory: s.value.subcategory,
         ms: s.value.ms,
       })
     } else {

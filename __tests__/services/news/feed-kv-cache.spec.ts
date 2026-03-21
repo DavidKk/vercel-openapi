@@ -7,12 +7,14 @@ jest.mock('next/server', () => ({
 import { alignWindowMsToTtlBucket, buildNewsFeedPoolCacheKey, isNewsFeedPoolCachePayload, resolveNewsFeedWindowMs } from '@/services/news/feed-kv-cache'
 
 describe('feed-kv-cache (pool)', () => {
-  it('should produce the same pool cache key for identical pool dimensions (no window in key)', async () => {
+  it('should produce the same pool cache key for identical pool dimensions', async () => {
     const parts = {
       baseUrl: 'https://rss.example',
       category: 'general-news',
+      subcategory: 'headlines',
       region: '',
       maxFeeds: 15,
+      recentWindowHours: 24,
     }
     const a = await buildNewsFeedPoolCacheKey(parts)
     const b = await buildNewsFeedPoolCacheKey(parts)
@@ -20,16 +22,17 @@ describe('feed-kv-cache (pool)', () => {
     expect(a.startsWith('news:feedpool:v3:')).toBe(true)
   })
 
-  it('should use same key for same feed config (window does not affect key)', async () => {
+  it('should differ cache key when recentWindowHours differs', async () => {
     const base = {
       baseUrl: 'https://rss.example',
       category: 'general-news',
+      subcategory: 'opinion',
       region: '',
       maxFeeds: 15,
     }
-    const x = await buildNewsFeedPoolCacheKey(base)
-    const y = await buildNewsFeedPoolCacheKey(base)
-    expect(x).toBe(y)
+    const shortWin = await buildNewsFeedPoolCacheKey({ ...base, recentWindowHours: 24 })
+    const longWin = await buildNewsFeedPoolCacheKey({ ...base, recentWindowHours: 168 })
+    expect(shortWin).not.toBe(longWin)
   })
 
   it('should validate pool cache JSON shape', () => {

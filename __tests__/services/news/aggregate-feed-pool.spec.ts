@@ -1,5 +1,6 @@
 import {
   type NewsFeedPoolCachePayload,
+  pruneNewsFeedPoolPayloadForWindow,
   reconcileNewsFeedPoolAfterFailedSourceRetry,
   reconcileNewsFeedPoolAfterRssFetch,
   sliceNewsFeedPageFromPool,
@@ -11,6 +12,7 @@ const mockSources: NewsSourceConfig[] = [
     id: 'src-a',
     label: 'A',
     category: 'general-news',
+    subcategory: 'headlines',
     region: 'cn',
     rsshubPath: '/a',
   },
@@ -18,6 +20,7 @@ const mockSources: NewsSourceConfig[] = [
     id: 'src-b',
     label: 'B',
     category: 'general-news',
+    subcategory: 'headlines',
     region: 'cn',
     rsshubPath: '/b',
   },
@@ -169,5 +172,29 @@ describe('aggregate-feed pool slice + reconcile', () => {
     })
     expect(out.errors.some((e) => e.sourceId === 'src-b')).toBe(false)
     expect(out.pool.some((r) => r.link === 'https://ex.test/b')).toBe(true)
+  })
+
+  it('should preserve merge droppedOutsideRecentWindow when pruning pool for feedAnchor', () => {
+    const nowMs = Date.parse('2026-03-21T12:00:00.000Z')
+    const freshIso = new Date(nowMs).toISOString()
+    const pool = [
+      {
+        title: 'Recent',
+        link: 'https://ex.test/r',
+        publishedAt: freshIso,
+        summary: null,
+        sourceId: 'src-a',
+        sourceLabel: 'A',
+        category: 'general-news' as const,
+        region: 'cn' as const,
+      },
+    ]
+    const payload: NewsFeedPoolCachePayload = {
+      ...basePayload(pool),
+      droppedOutsideRecentWindow: 23,
+    }
+    const pruned = pruneNewsFeedPoolPayloadForWindow(payload, nowMs)
+    expect(pruned.pool).toHaveLength(1)
+    expect(pruned.droppedOutsideRecentWindow).toBe(23)
   })
 })

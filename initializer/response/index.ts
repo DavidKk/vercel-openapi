@@ -3,6 +3,8 @@
  */
 import { NextResponse } from 'next/server'
 
+import { applyCacheControlDebugOverride } from './cache-control'
+
 /** Standard API response envelope. */
 export interface StandardResponse {
   code: number
@@ -39,6 +41,7 @@ export function standardResponse(init?: StandardResponseInit) {
           headers.set(key, value)
         })
 
+        applyCacheControlDebugOverride(headers)
         headers.set('Content-Type', 'application/json; charset=utf-8')
 
         return NextResponse.json({ code, message, data }, { status, ...options, headers })
@@ -55,6 +58,7 @@ export function standardResponse(init?: StandardResponseInit) {
           headers.set(key, value)
         })
 
+        applyCacheControlDebugOverride(headers)
         headers.set('Content-Type', 'text/plain; charset=utf-8')
 
         return new NextResponse(message, { status, ...options, headers })
@@ -87,7 +91,12 @@ export interface ResponseInit {
 
 /** Return NextResponse.json with standard envelope and status 200. */
 export function json(data: StandardResponse, options: ResponseInit = {}) {
-  return NextResponse.json(data, { status: 200, ...options })
+  const headers = new Headers()
+  options.headers?.forEach((value, key) => {
+    headers.set(key, value)
+  })
+  applyCacheControlDebugOverride(headers)
+  return NextResponse.json(data, { status: 200, ...options, headers })
 }
 
 /** Success JSON response: envelope with code 0 and given data. */
@@ -164,6 +173,7 @@ export function jsonForbidden(message = 'forbidden', options: ErrorResponseInit 
 }
 
 export {
+  applyCacheControlDebugOverride,
   CACHE_CONTROL_GIST_CATALOG,
   CACHE_CONTROL_LONG_LIVED,
   CACHE_CONTROL_NO_STORE,

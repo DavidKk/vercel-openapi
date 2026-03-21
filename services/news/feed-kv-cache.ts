@@ -1,16 +1,19 @@
 import { after } from 'next/server'
 
+import { isAppCacheDisabled } from '@/services/config/cache-debug'
 import { getJsonKv, getKvClient, setJsonKvEx } from '@/services/kv/client'
 import { createLogger } from '@/services/logger'
 import { createLruCache } from '@/services/lru-cache'
 
 import { mergeNewsFeedsToPool, type NewsFeedPoolCachePayload, reconcileNewsFeedPoolAfterFailedSourceRetry, reconcileNewsFeedPoolAfterRssFetch } from './aggregate-feed'
+import { getNewsFeedRecentWindowHoursForListSlug } from './published-recent-window'
 import type { NewsCategory, NewsSourceConfig } from './types'
 
 const logger = createLogger('news-feed-kv-cache')
 
 const POOL_KEY_PREFIX = 'news:feedpool:v3'
-const POOL_CACHE_SCHEMA_VERSION = 3
+/** Bumped when pool payload shape changes (e.g. `sourceInventory`); invalidates KV keys via {@link buildNewsFeedPoolCacheKey}. */
+const POOL_CACHE_SCHEMA_VERSION = 13
 
 /** Pool KV TTL: default 24h so repeat visitors hit L2 instead of waiting on RSS. */
 const POOL_MIN_TTL_SEC = 3_600
@@ -139,6 +142,9 @@ const poolMemoryState: { lru: ReturnType<typeof createLruCache<string, NewsFeedP
  * @returns Payload or null
  */
 export function getNewsFeedPoolMemoryCached(poolCacheKey: string): NewsFeedPoolCachePayload | null {
+  if (isAppCacheDisabled()) {
+    return null
+  }
   const entry = poolMemoryState.lru.get(poolCacheKey)
   if (!entry) {
     return null
@@ -157,6 +163,9 @@ export function getNewsFeedPoolMemoryCached(poolCacheKey: string): NewsFeedPoolC
  * @param payload Full pool payload
  */
 export function setNewsFeedPoolMemoryCached(poolCacheKey: string, payload: NewsFeedPoolCachePayload): void {
+  if (isAppCacheDisabled()) {
+    return
+  }
   poolMemoryState.lru.set(poolCacheKey, { storedAtMs: Date.now(), payload })
 }
 
@@ -178,8 +187,12 @@ async function sha256Hex(text: string): Promise<string> {
 export interface NewsFeedPoolCacheKeyParts {
   baseUrl: string
   category: string
+  /** Manifest sub-tab slug when `category` is set; empty when no list category (all-pool). */
+  subcategory: string
   region: string
   maxFeeds: number
+  /** Rolling `publishedAt` window (hours); must match {@link mergeNewsFeedsToPool} for this pool. */
+  recentWindowHours: number
 }
 
 /**
@@ -192,8 +205,10 @@ export async function buildNewsFeedPoolCacheKey(parts: NewsFeedPoolCacheKeyParts
     v: POOL_CACHE_SCHEMA_VERSION,
     baseUrl: parts.baseUrl,
     category: parts.category,
+    subcategory: parts.subcategory,
     region: parts.region,
     maxFeeds: parts.maxFeeds,
+    recentWindowHours: parts.recentWindowHours,
   })
   const hash = await sha256Hex(canonical)
   return `${POOL_KEY_PREFIX}:${hash}`
@@ -235,8 +250,17 @@ export function isNewsFeedPoolCachePayload(data: unknown): data is NewsFeedPoolC
  * Run RSS fetch + reconcile into L1/L2 (single-flight per `poolCacheKey`).
  * @param args Same dimensions as {@link getOrBuildNewsFeedMergedPool}
  */
-async function executeNewsFeedPoolBackgroundRefresh(args: { poolCacheKey: string; sources: NewsSourceConfig[]; baseUrl: string; itemCategory?: NewsCategory }): Promise<void> {
-  const { poolCacheKey, sources, baseUrl, itemCategory } = args
+async function executeNewsFeedPoolBackgroundRefresh(args: {
+  poolCacheKey: string
+  sources: NewsSourceConfig[]
+  baseUrl: string
+  itemCategory?: NewsCategory
+  listSlug: string
+}): Promise<void> {
+  if (isAppCacheDisabled()) {
+    return
+  }
+  const { poolCacheKey, sources, baseUrl, itemCategory, listSlug } = args
   let previous = getNewsFeedPoolMemoryCached(poolCacheKey)
   const kv = getKvClient()
   if (previous === null && kv) {
@@ -247,7 +271,7 @@ async function executeNewsFeedPoolBackgroundRefresh(args: { poolCacheKey: string
   }
   const previousItems = previous?.pool ?? []
   const nowMs = Date.now()
-  const fresh = await mergeNewsFeedsToPool(sources, baseUrl, { windowAtMs: nowMs, itemCategory })
+  const fresh = await mergeNewsFeedsToPool(sources, baseUrl, { windowAtMs: nowMs, itemCategory, listSlug })
   const reconciled = reconcileNewsFeedPoolAfterRssFetch({
     previousItems,
     fresh,
@@ -266,7 +290,13 @@ async function executeNewsFeedPoolBackgroundRefresh(args: { poolCacheKey: string
  * Use from cron or manual warm; keep pool key dimensions aligned with `GET /api/news/feed`.
  * @param args Pool cache key, sources slice, base URL, optional list category filter
  */
-export async function refreshNewsFeedMergedPool(args: { poolCacheKey: string; sources: NewsSourceConfig[]; baseUrl: string; itemCategory?: NewsCategory }): Promise<void> {
+export async function refreshNewsFeedMergedPool(args: {
+  poolCacheKey: string
+  sources: NewsSourceConfig[]
+  baseUrl: string
+  itemCategory?: NewsCategory
+  listSlug: string
+}): Promise<void> {
   await executeNewsFeedPoolBackgroundRefresh(args)
 }
 
@@ -296,8 +326,9 @@ export function scheduleNewsFeedPoolBackgroundRefreshIfStale(params: {
   sources: NewsSourceConfig[]
   baseUrl: string
   itemCategory?: NewsCategory
+  listSlug: string
 }): void {
-  const { poolLayerHit, payload, poolCacheKey, sources, baseUrl, itemCategory } = params
+  const { poolLayerHit, payload, poolCacheKey, sources, baseUrl, itemCategory, listSlug } = params
   if (!isNewsFeedPoolBackgroundRefreshDue(poolLayerHit, payload)) {
     return
   }
@@ -305,8 +336,8 @@ export function scheduleNewsFeedPoolBackgroundRefreshIfStale(params: {
   try {
     after(async () => {
       try {
-        await executeNewsFeedPoolBackgroundRefresh({ poolCacheKey, sources, baseUrl, itemCategory })
-        const refreshOkSummary = 'News feed: background RSS refresh finished (pool cache updated).'
+        await executeNewsFeedPoolBackgroundRefresh({ poolCacheKey, sources, baseUrl, itemCategory, listSlug })
+        const refreshOkSummary = 'Background RSS refresh finished (pool cache updated).'
         logger.info(
           refreshOkSummary,
           JSON.stringify({
@@ -319,7 +350,7 @@ export function scheduleNewsFeedPoolBackgroundRefreshIfStale(params: {
         )
       } catch (e) {
         const errText = e instanceof Error ? e.message : String(e)
-        const refreshFailSummary = `News feed: background RSS refresh failed — ${errText}`
+        const refreshFailSummary = `Background RSS refresh failed — ${errText}`
         logger.warn(
           refreshFailSummary,
           JSON.stringify({
@@ -335,7 +366,7 @@ export function scheduleNewsFeedPoolBackgroundRefreshIfStale(params: {
     })
   } catch (e) {
     const skipErr = e instanceof Error ? e.message : String(e)
-    const skipSummary = `News feed: skipped background refresh (after() unavailable) — ${skipErr}`
+    const skipSummary = `Skipped background refresh (after() unavailable) — ${skipErr}`
     logger.warn(
       skipSummary,
       JSON.stringify({
@@ -360,10 +391,14 @@ async function executeNewsFeedFailedSourcesRetry(args: {
   sources: NewsSourceConfig[]
   baseUrl: string
   itemCategory?: NewsCategory
+  listSlug: string
   /** Milliseconds waited before this re-fetch (for logs). */
   waitedMs: number
 }): Promise<void> {
-  const { poolCacheKey, sources, baseUrl, itemCategory, waitedMs } = args
+  if (isAppCacheDisabled()) {
+    return
+  }
+  const { poolCacheKey, sources, baseUrl, itemCategory, listSlug, waitedMs } = args
   let previous = getNewsFeedPoolMemoryCached(poolCacheKey)
   const kv = getKvClient()
   if (previous === null && kv) {
@@ -373,27 +408,27 @@ async function executeNewsFeedFailedSourcesRetry(args: {
     }
   }
   if (previous === null) {
-    logger.info('News feed: failed-source retry skipped (no pool in L1/KV)', JSON.stringify({ event: 'news_feed_failed_retry_skip', reason: 'no_pool' }))
+    logger.info('Failed-source retry skipped (no pool in L1/KV)', JSON.stringify({ event: 'news_feed_failed_retry_skip', reason: 'no_pool' }))
     return
   }
 
   const failedIds = [...new Set((previous.errors ?? []).map((e) => e.sourceId))]
   if (failedIds.length === 0) {
-    logger.info('News feed: failed-source retry skipped (no errors on snapshot)', JSON.stringify({ event: 'news_feed_failed_retry_skip', reason: 'no_errors' }))
+    logger.info('Failed-source retry skipped (no errors on snapshot)', JSON.stringify({ event: 'news_feed_failed_retry_skip', reason: 'no_errors' }))
     return
   }
 
   const retrySources = sources.filter((s) => failedIds.includes(s.id))
   if (retrySources.length === 0) {
     logger.info(
-      'News feed: failed-source retry skipped (failed ids not in current source slice)',
+      'Failed-source retry skipped (failed ids not in current source slice)',
       JSON.stringify({ event: 'news_feed_failed_retry_skip', reason: 'no_matching_sources', failedIds })
     )
     return
   }
 
   const nowMs = Date.now()
-  const freshPartial = await mergeNewsFeedsToPool(retrySources, baseUrl, { windowAtMs: nowMs, itemCategory })
+  const freshPartial = await mergeNewsFeedsToPool(retrySources, baseUrl, { windowAtMs: nowMs, itemCategory, listSlug })
   const reconciled = reconcileNewsFeedPoolAfterFailedSourceRetry({
     previousItems: previous.pool,
     previousErrors: previous.errors ?? [],
@@ -408,7 +443,7 @@ async function executeNewsFeedFailedSourcesRetry(args: {
   }
   setNewsFeedPoolMemoryCached(poolCacheKey, payload)
 
-  const retryOkSummary = `News feed: failed-source retry finished (waited ${waitedMs}ms before re-fetch, ${retrySources.length} sources).`
+  const retryOkSummary = `Failed-source retry finished (waited ${waitedMs}ms before re-fetch, ${retrySources.length} sources).`
   logger.info(
     retryOkSummary,
     JSON.stringify({
@@ -429,8 +464,17 @@ async function executeNewsFeedFailedSourcesRetry(args: {
  * Idempotent per `poolCacheKey` until the job finishes (avoids piling timers). Re-reads errors after the delay.
  * @param params Pool key and same merge inputs as the HTTP handler
  */
-export function scheduleNewsFeedFailedSourcesRetryIfNeeded(params: { poolCacheKey: string; sources: NewsSourceConfig[]; baseUrl: string; itemCategory?: NewsCategory }): void {
-  const { poolCacheKey, sources, baseUrl, itemCategory } = params
+export function scheduleNewsFeedFailedSourcesRetryIfNeeded(params: {
+  poolCacheKey: string
+  sources: NewsSourceConfig[]
+  baseUrl: string
+  itemCategory?: NewsCategory
+  listSlug: string
+}): void {
+  if (isAppCacheDisabled()) {
+    return
+  }
+  const { poolCacheKey, sources, baseUrl, itemCategory, listSlug } = params
   if (failedRetryInFlight.has(poolCacheKey)) {
     return
   }
@@ -446,11 +490,12 @@ export function scheduleNewsFeedFailedSourcesRetryIfNeeded(params: { poolCacheKe
           sources,
           baseUrl,
           itemCategory,
+          listSlug,
           waitedMs,
         })
       } catch (e) {
         const errText = e instanceof Error ? e.message : String(e)
-        const failSummary = `News feed: failed-source retry error — ${errText}`
+        const failSummary = `Failed-source retry error — ${errText}`
         logger.warn(
           failSummary,
           JSON.stringify({
@@ -469,7 +514,7 @@ export function scheduleNewsFeedFailedSourcesRetryIfNeeded(params: { poolCacheKe
   } catch (e) {
     failedRetryInFlight.delete(poolCacheKey)
     const skipErr = e instanceof Error ? e.message : String(e)
-    const skipSummary = `News feed: skipped failed-source retry (after() unavailable) — ${skipErr}`
+    const skipSummary = `Skipped failed-source retry (after() unavailable) — ${skipErr}`
     logger.warn(
       skipSummary,
       JSON.stringify({
@@ -495,8 +540,15 @@ export async function getOrBuildNewsFeedMergedPool(args: {
   baseUrl: string
   windowAtMs: number
   itemCategory?: NewsCategory
+  listSlug: string
 }): Promise<{ payload: NewsFeedPoolCachePayload; poolLayerHit: 'l1' | 'l2' | null }> {
-  const { poolCacheKey, sources, baseUrl, windowAtMs, itemCategory } = args
+  const { poolCacheKey, sources, baseUrl, windowAtMs, itemCategory, listSlug } = args
+
+  if (isAppCacheDisabled()) {
+    const merged = await mergeNewsFeedsToPool(sources, baseUrl, { windowAtMs, itemCategory, listSlug })
+    const payload: NewsFeedPoolCachePayload = { ...merged, baseUrl }
+    return { payload, poolLayerHit: null }
+  }
 
   const mem = getNewsFeedPoolMemoryCached(poolCacheKey)
   if (mem !== null) {
@@ -512,7 +564,7 @@ export async function getOrBuildNewsFeedMergedPool(args: {
     }
   }
 
-  const merged = await mergeNewsFeedsToPool(sources, baseUrl, { windowAtMs, itemCategory })
+  const merged = await mergeNewsFeedsToPool(sources, baseUrl, { windowAtMs, itemCategory, listSlug })
   const payload: NewsFeedPoolCachePayload = { ...merged, baseUrl }
 
   if (kv) {
@@ -520,4 +572,13 @@ export async function getOrBuildNewsFeedMergedPool(args: {
   }
   setNewsFeedPoolMemoryCached(poolCacheKey, payload)
   return { payload, poolLayerHit: null }
+}
+
+/**
+ * Recent-window hours for a pool key (same rule as merge).
+ * @param listSubcategoryNorm Flat list slug or empty for the all-pool
+ * @returns Hours used in {@link buildNewsFeedPoolCacheKey} and {@link mergeNewsFeedsToPool}
+ */
+export function resolveNewsFeedPoolRecentWindowHours(listSubcategoryNorm: string): number {
+  return getNewsFeedRecentWindowHoursForListSlug(listSubcategoryNorm)
 }
