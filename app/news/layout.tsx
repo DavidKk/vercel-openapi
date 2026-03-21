@@ -9,7 +9,7 @@ interface NewsLayoutProps {
 }
 
 const NEWS_SIDEBAR_ITEMS = [
-  { href: '/news/general-news', title: 'Overview', ariaLabel: 'News overview', icon: <TbNews className="h-5 w-5" /> },
+  { href: '/news/headlines', title: 'Overview', ariaLabel: 'News overview', icon: <TbNews className="h-5 w-5" /> },
   { href: '/news/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/news/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
   { href: '/news/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },

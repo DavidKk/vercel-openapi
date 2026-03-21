@@ -79,6 +79,12 @@ describe('GET /api/news/feed', () => {
     expect(res.status).toBe(400)
   })
 
+  it('should return 400 for invalid list', async () => {
+    const req = new NextRequest('http://localhost/api/news/feed?list=not-a-real-slug', { method: 'GET' })
+    const res = await GET(req, { params: Promise.resolve({}) })
+    expect(res.status).toBe(400)
+  })
+
   it('should return 400 for invalid limit', async () => {
     const req = new NextRequest('http://localhost/api/news/feed?limit=0', { method: 'GET' })
     const res = await GET(req, { params: Promise.resolve({}) })
@@ -125,6 +131,48 @@ describe('GET /api/news/feed', () => {
     expect(body.data.mergeStats).toBeDefined()
     expect(body.data.facets).toBeDefined()
     expect(mockGetOrBuildNewsFeedMergedPool).toHaveBeenCalled()
+  })
+
+  it('should pass only manifest sources for game-entertainment (not global first-15 slice)', async () => {
+    const req = new NextRequest('http://localhost/api/news/feed?category=game-entertainment&limit=5', {
+      method: 'GET',
+    })
+    const res = await GET(req, { params: Promise.resolve({}) })
+    expect(res.status).toBe(200)
+    expect(mockGetOrBuildNewsFeedMergedPool).toHaveBeenCalled()
+    const arg = mockGetOrBuildNewsFeedMergedPool.mock.calls[0]![0] as {
+      sources: { id: string }[]
+      itemCategory?: string
+    }
+    expect(arg.itemCategory).toBe('game-entertainment')
+    expect(arg.sources.map((s) => s.id)).toContain('xiaoheihe')
+    expect(arg.sources.length).toBeGreaterThan(0)
+  })
+
+  it('should scope tech-internet to developer sub-tab when sub=developer', async () => {
+    const req = new NextRequest('http://localhost/api/news/feed?category=tech-internet&sub=developer&limit=5', {
+      method: 'GET',
+    })
+    const res = await GET(req, { params: Promise.resolve({}) })
+    expect(res.status).toBe(200)
+    const arg = mockGetOrBuildNewsFeedMergedPool.mock.calls[0]![0] as {
+      sources: { id: string }[]
+      poolCacheKey: string
+    }
+    expect(arg.sources.map((s) => s.id)).toContain('solidot')
+    expect(typeof arg.poolCacheKey).toBe('string')
+  })
+
+  it('should scope developer pool when list=developer', async () => {
+    const req = new NextRequest('http://localhost/api/news/feed?list=developer&limit=5', { method: 'GET' })
+    const res = await GET(req, { params: Promise.resolve({}) })
+    expect(res.status).toBe(200)
+    const arg = mockGetOrBuildNewsFeedMergedPool.mock.calls[0]![0] as {
+      sources: { id: string }[]
+      itemCategory?: string
+    }
+    expect(arg.itemCategory).toBe('tech-internet')
+    expect(arg.sources.map((s) => s.id)).toContain('solidot')
   })
 
   it('should set X-Cache-Hit when pool served from cache', async () => {

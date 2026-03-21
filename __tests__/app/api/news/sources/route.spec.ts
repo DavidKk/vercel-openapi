@@ -44,4 +44,17 @@ describe('GET /api/news/sources', () => {
       expect(s.category).toBe('general-news')
     }
   })
+
+  it('should filter by region intl', async () => {
+    const req = new NextRequest('http://localhost/api/news/sources?region=intl', { method: 'GET' })
+    const res = await GET(req, { params: Promise.resolve({}) })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    const rows = body.data.sources as { region: string }[]
+    expect(rows.length).toBeGreaterThan(0)
+    for (const s of rows) {
+      expect(s.region).toBe('intl')
+    }
+  })
 })

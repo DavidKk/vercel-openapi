@@ -23,7 +23,7 @@ const linkInactive = 'text-gray-500'
 
 /**
  * Icon-only sidebar that highlights the link matching the current pathname.
- * News: any `/news/[category]` feed path highlights Overview when its href is `/news/general-news`.
+ * News: any `/news/[slug]` feed path highlights Overview when its href is `/news/headlines`.
  * Used in fuel-price, holiday, and geo dashboard layouts.
  * @param props Sidebar items (href, title, ariaLabel, icon)
  * @returns Nav element with icon links and active state
@@ -35,7 +35,7 @@ export function DashboardSidebar(props: Readonly<DashboardSidebarProps>) {
   return (
     <nav className="flex w-14 flex-col items-center gap-3 border-r border-gray-200 bg-white py-3">
       {items.map((item, index) => {
-        const isActive = pathname === item.href || (item.href === '/news/general-news' && isNewsManifestCategoryFeedPath(pathname))
+        const isActive = pathname === item.href || (item.href === '/news/headlines' && isNewsManifestCategoryFeedPath(pathname))
         const className = [linkBase, isActive ? linkActive : linkInactive].join(' ')
         /** First item in every module is the Overview entry; tooltip label is always OVERVIEW */
         const tooltipContent = index === 0 ? 'OVERVIEW' : item.title

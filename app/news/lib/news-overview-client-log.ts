@@ -7,8 +7,8 @@ const STORAGE_KEY = 'news_debug'
 
 /** Default one-line explanation per event id (browser console). */
 const DEFAULT_NEWS_OVERVIEW_LOG_MESSAGES: Record<string, string> = {
-  router_replace: 'Overview: URL updated (tab or facet change).',
-  route_sync: 'Overview: synced tab/facet from URL (back/forward or shared link).',
+  router_replace: 'Overview: URL updated (list or facet change).',
+  route_sync: 'Overview: synced list/facet from URL (back/forward or shared link).',
   feed_request: 'Overview: calling /api/news/feed.',
   feed_aborted: 'Overview: feed request aborted (navigation or cleanup).',
   feed_network_error: 'Overview: feed request failed before HTTP response.',
@@ -17,6 +17,7 @@ const DEFAULT_NEWS_OVERVIEW_LOG_MESSAGES: Record<string, string> = {
   feed_response: 'Overview: received a feed page from the API.',
   feed_envelope_error: 'Overview: feed JSON envelope reports failure (non-zero code).',
   feed_session_start: 'Overview: starting a new feed session (first page).',
+  feed_idb_hit: 'Overview: hydrated first page from IndexedDB (TTL aligned with API stale-while-revalidate).',
   load_more_trigger: 'Overview: infinite scroll requested the next page.',
 }
 

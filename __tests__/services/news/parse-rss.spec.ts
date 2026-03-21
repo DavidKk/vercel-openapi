@@ -1,4 +1,4 @@
-import { decodeXmlEntities, parseRssItems } from '@/services/news/parse-rss'
+import { decodeXmlEntities, parseItemImageUrl, parseRssItems } from '@/services/news/parse-rss'
 
 describe('parseRssItems', () => {
   it('should parse two RSS items with title, link, pubDate', () => {
@@ -40,6 +40,36 @@ describe('parseRssItems', () => {
     const items = parseRssItems(xml)
     expect(items).toHaveLength(1)
     expect(items[0].feedCategories).toEqual(['国内', '社会', '民生'])
+  })
+
+  it('should set imageUrl from media:thumbnail', () => {
+    const xml = `<?xml version="1.0"?>
+<rss xmlns:media="http://search.yahoo.com/mrss/"><channel><item>
+<title>T</title>
+<link>https://example.com/p</link>
+<media:thumbnail url="https://cdn.example.com/thumb.jpg" width="120" height="80" />
+</item></channel></rss>`
+    const items = parseRssItems(xml)
+    expect(items[0].imageUrl).toBe('https://cdn.example.com/thumb.jpg')
+  })
+
+  it('should set imageUrl from first http img in description CDATA', () => {
+    const xml = `<?xml version="1.0"?>
+<rss><channel><item>
+<title>Pic</title>
+<link>https://example.com/x</link>
+<description><![CDATA[<p><img src="https://img.example.com/a.png" /></p>]]></description>
+</item></channel></rss>`
+    const items = parseRssItems(xml)
+    expect(items[0].imageUrl).toBe('https://img.example.com/a.png')
+  })
+
+  it('should prefer media:thumbnail over img in description', () => {
+    const block = `<item>
+<description><![CDATA[<img src="https://low.example.com/z.jpg"/>]]></description>
+<media:thumbnail url="https://high.example.com/t.jpg" />
+</item>`
+    expect(parseItemImageUrl(block)).toBe('https://high.example.com/t.jpg')
   })
 
   it('should parse media:keywords and split delimiters into feedKeywords', () => {

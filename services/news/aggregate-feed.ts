@@ -4,9 +4,9 @@ import { filterPoolByFacetList, type NewsFacetListFilter } from './facet-list-fi
 import { normalizeLink } from './normalize-link'
 import { normalizeTitleKey } from './normalize-title'
 import { parseRssItems } from './parse-rss'
-import { filterToRecentPublished, getNewsFeedRecentWindowHours } from './published-recent-window'
+import { filterToRecentPublished, getNewsFeedRecentWindowHours, getNewsFeedRecentWindowHoursForListSlug, MAX_RECENT_HOURS, MIN_RECENT_HOURS } from './published-recent-window'
 import { resolveOutletHref } from './resolve-outlet-href'
-import type { AggregatedNewsItem, NewsCategory, NewsFeedFacets, NewsFeedMergeStats, NewsPlatformTag, NewsSourceConfig, ParsedFeedItem } from './types'
+import type { AggregatedNewsItem, NewsCategory, NewsFeedFacets, NewsFeedMergeStats, NewsFeedSourceInventoryRow, NewsPlatformTag, NewsSourceConfig, ParsedFeedItem } from './types'
 
 const logger = createLogger('news-aggregate')
 
@@ -15,8 +15,9 @@ const MAX_TIMEOUT_MS = 120_000
 const DEFAULT_TIMEOUT_MS = 30_000
 
 const MIN_CONCURRENCY = 1
-const MAX_CONCURRENCY = 8
-const DEFAULT_CONCURRENCY = 2
+/** Upper bound for env override; self-hosted RSSHub (HTTP/HTML routes only) can usually sustain more than public hubs. */
+const MAX_CONCURRENCY = 16
+const DEFAULT_CONCURRENCY = 8
 
 const MIN_MAX_ATTEMPTS = 1
 const MAX_MAX_ATTEMPTS = 5
@@ -27,6 +28,26 @@ const RETRYABLE_HTTP_STATUSES = new Set([429, 502, 503, 504])
 
 /** User-Agent for upstream RSS requests */
 const RSS_USER_AGENT = 'unbnd-news-aggregator/1.0'
+
+/**
+ * Build `fetch` headers for RSSHub (or compatible) GETs. When both `RSSHUB_CF_ACCESS_CLIENT_ID` and
+ * `RSSHUB_CF_ACCESS_CLIENT_SECRET` are set, adds Cloudflare Zero Trust **Access service token** headers
+ * so a worker or self-hosted RSSHub behind Cloudflare Access can authenticate.
+ * @returns Header map (never log values — secrets)
+ */
+function buildNewsRssFetchHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: 'application/rss+xml, application/xml, text/xml, */*',
+    'User-Agent': RSS_USER_AGENT,
+  }
+  const clientId = process.env.RSSHUB_CF_ACCESS_CLIENT_ID?.trim()
+  const clientSecret = process.env.RSSHUB_CF_ACCESS_CLIENT_SECRET?.trim()
+  if (clientId && clientSecret) {
+    headers['CF-Access-Client-Id'] = clientId
+    headers['CF-Access-Client-Secret'] = clientSecret
+  }
+  return headers
+}
 
 /**
  * Minimum normalized title length (chars) before same-day title dedupe runs.
@@ -63,8 +84,8 @@ function getNewsRssFetchTimeoutMs(): number {
 }
 
 /**
- * Max concurrent upstream RSS requests. Lower this (e.g. 1) if a self-hosted instance returns 503 under burst load.
- * @returns Concurrency between 1 and 8
+ * Max concurrent upstream RSS requests to RSSHub. Lower (e.g. 1) if the instance returns 503 under burst load.
+ * @returns Integer from 1 through 16 (env `NEWS_RSS_FETCH_CONCURRENCY`, else default 8)
  */
 function getNewsRssFetchConcurrency(): number {
   return parseEnvInt('NEWS_RSS_FETCH_CONCURRENCY', DEFAULT_CONCURRENCY, MIN_CONCURRENCY, MAX_CONCURRENCY)
@@ -123,10 +144,7 @@ async function fetchRssXml(url: string, timeoutMs: number): Promise<string> {
     try {
       const res = await fetch(url, {
         signal: controller.signal,
-        headers: {
-          Accept: 'application/rss+xml, application/xml, text/xml, */*',
-          'User-Agent': RSS_USER_AGENT,
-        },
+        headers: buildNewsRssFetchHeaders(),
       })
       if (!res.ok) {
         try {
@@ -207,6 +225,13 @@ export interface NewsFeedMergedPool {
   duplicateDroppedByTitle: number
   droppedOutsideRecentWindow: number
   recentWindowHours: number
+  /**
+   * Parsed row counts per manifest `source.id` before cross-feed dedupe (latest full fetch).
+   * Omitted on legacy cached pools.
+   */
+  parsedBySourceId?: Record<string, number>
+  /** Per-source parsed vs pool counts for API/UI inventory */
+  sourceInventory?: NewsFeedSourceInventoryRow[]
 }
 
 /**
@@ -215,16 +240,45 @@ export interface NewsFeedMergedPool {
 export type NewsFeedPoolCachePayload = NewsFeedMergedPool & { baseUrl: string }
 
 /**
+ * Map source facet id → occurrence count in the merged pool.
+ * @param facets Histogram from {@link buildFeedFacetsFromPool}
+ * @returns Lookup by `sourceId`
+ */
+function facetSourceCountMap(facets: NewsFeedFacets): Map<string, number> {
+  return new Map(facets.sources.map((x) => [x.sourceId, x.count]))
+}
+
+/**
+ * Build inventory rows for the requested manifest slice.
+ * @param sources Manifest slice (same order as the merge)
+ * @param poolCounts Credits in the final pool (from facets)
+ * @param parsedBySourceId Parsed rows per id before dedupe; omit when unknown
+ * @returns One row per source
+ */
+function buildSourceInventoryRows(
+  sources: NewsSourceConfig[],
+  poolCounts: Map<string, number>,
+  parsedBySourceId: Record<string, number> | undefined
+): NewsFeedSourceInventoryRow[] {
+  return sources.map((s) => ({
+    sourceId: s.id,
+    label: s.label,
+    parsedCount: parsedBySourceId?.[s.id] ?? 0,
+    poolCount: poolCounts.get(s.id) ?? 0,
+  }))
+}
+
+/**
  * Fetch all feeds, merge, dedupe, recent window, optional manifest `itemCategory` — **no** RSS facet filter, **no** page slice.
  * @param sources Sources to query (already filtered and sliced)
  * @param baseUrl RSS base (no trailing slash); used only for upstream fetch URLs
- * @param options `windowAtMs` for rolling window + pagination anchor; optional manifest category
+ * @param options `windowAtMs` for rolling window + pagination anchor; optional manifest category; `listSlug` for per-list recent window (empty = global default)
  * @returns Full pool and facet histograms over that pool
  */
 export async function mergeNewsFeedsToPool(
   sources: NewsSourceConfig[],
   baseUrl: string,
-  options: { windowAtMs: number; itemCategory?: NewsCategory }
+  options: { windowAtMs: number; itemCategory?: NewsCategory; listSlug?: string }
 ): Promise<NewsFeedMergedPool> {
   const nowMs = options.windowAtMs
   const errors: { sourceId: string; message: string }[] = []
@@ -233,27 +287,83 @@ export async function mergeNewsFeedsToPool(
   const timeoutMs = getNewsRssFetchTimeoutMs()
   const concurrency = getNewsRssFetchConcurrency()
 
+  const parsedCountBySource = new Map<string, number>()
   for (const s of sources) {
     sourceHadItems.set(s.id, false)
+    parsedCountBySource.set(s.id, 0)
   }
 
   const sourceById = new Map<string, NewsSourceConfig>(sources.map((s) => [s.id, s]))
 
+  const mergeBatchStartedAt = Date.now()
+  logger.info(
+    `RSS merge: ${sources.length} sources, concurrency=${concurrency}, timeoutMs=${timeoutMs}`,
+    JSON.stringify({
+      flow: 'News merged pool',
+      step: 'rss_merge_start',
+      event: 'news_rss_merge_start',
+      sourceCount: sources.length,
+      concurrency,
+      timeoutMs,
+      maxAttempts: getNewsRssFetchMaxAttempts(),
+      sourceIds: sources.map((s) => s.id),
+      mergeBatchStartedAt,
+    })
+  )
+
   await runWithConcurrencyLimit(sources, concurrency, async (source) => {
     const path = source.rsshubPath.startsWith('/') ? source.rsshubPath : `/${source.rsshubPath}`
     const url = `${baseUrl}${path}`
+    const fetchStartedAt = Date.now()
+    logger.info(
+      `RSS fetch start: ${source.id} — GET ${url}`,
+      JSON.stringify({
+        flow: 'News merged pool',
+        step: 'rss_fetch_start',
+        event: 'news_rss_fetch_start',
+        sourceId: source.id,
+        sourceLabel: source.label,
+        url,
+        rsshubPath: path,
+        concurrency,
+        mergeBatchStartedAt,
+        startedAtMs: fetchStartedAt,
+      })
+    )
     try {
       const xml = await fetchRssXml(url, timeoutMs)
       const parsed = parseRssItems(xml)
+      const fetchMs = Date.now() - fetchStartedAt
       if (parsed.length > 0) {
         sourceHadItems.set(source.id, true)
       }
+      const rssOkMeta = JSON.stringify({
+        flow: 'News merged pool',
+        step: 'rss_fetch_ok',
+        event: 'news_rss_fetch_ok',
+        sourceId: source.id,
+        sourceLabel: source.label,
+        parsedCount: parsed.length,
+        fetchMs,
+        rsshubPath: path,
+        url,
+        concurrency,
+        mergeBatchStartedAt,
+      })
+      const rssOkSummary = `RSS ok: ${source.id} — ${parsed.length} parsed in ${fetchMs}ms`
+      if (parsed.length === 0) {
+        logger.warn(rssOkSummary, rssOkMeta)
+      } else {
+        logger.info(rssOkSummary, rssOkMeta)
+      }
       for (const row of parsed) {
+        parsedCountBySource.set(source.id, (parsedCountBySource.get(source.id) ?? 0) + 1)
         collected.push(attachMeta(row, source))
       }
     } catch (e) {
+      const fetchMs = Date.now() - fetchStartedAt
       const message = formatFetchError(e, timeoutMs)
-      const sourceFailSummary = `News feed: RSS source "${source.id}" failed — ${message}`
+      const sourceFailSummary = `RSS source "${source.id}" failed — ${message}`
       logger.warn(
         sourceFailSummary,
         JSON.stringify({
@@ -262,7 +372,10 @@ export async function mergeNewsFeedsToPool(
           message: sourceFailSummary,
           event: 'news_feed_source_failed',
           sourceId: source.id,
+          fetchMs,
           url,
+          concurrency,
+          mergeBatchStartedAt,
           errorDetail: message,
         })
       )
@@ -273,12 +386,16 @@ export async function mergeNewsFeedsToPool(
   const { uniqueItems: afterUrlDedupe, droppedMissingLink, duplicateDropped } = dedupeByNormalizedLinkWithStats(collected, sourceById)
   const { uniqueItems: mergedItems, duplicateDroppedByTitle } = dedupeBySameDayTitleAcrossSources(afterUrlDedupe, sourceById)
   mergedItems.sort((a, b) => compareFeedRowsNewestFirst(a, b))
-  const recentHours = getNewsFeedRecentWindowHours()
+  const listSlugNorm = options.listSlug?.trim() ?? ''
+  const recentHours = getNewsFeedRecentWindowHoursForListSlug(listSlugNorm)
   const { kept: recentItems, droppedOutsideRecentWindow } = filterToRecentPublished(mergedItems, recentHours, nowMs)
   attachPlatformTags(recentItems, sourceById)
   const itemCategory = options.itemCategory
   const pool = itemCategory !== undefined ? recentItems.filter((row) => row.category === itemCategory) : recentItems
   const facets = buildFeedFacetsFromPool(pool)
+  const parsedBySourceId = Object.fromEntries(sources.map((s) => [s.id, parsedCountBySource.get(s.id) ?? 0]))
+  const poolFacetMap = facetSourceCountMap(facets)
+  const sourceInventory = buildSourceInventoryRows(sources, poolFacetMap, parsedBySourceId)
 
   const sourcesWithItems = [...sourceHadItems.values()].filter(Boolean).length
   const sourcesFailedIds = new Set(errors.map((e) => e.sourceId))
@@ -300,26 +417,43 @@ export async function mergeNewsFeedsToPool(
     duplicateDroppedByTitle,
     droppedOutsideRecentWindow,
     recentWindowHours: recentHours,
+    parsedBySourceId,
+    sourceInventory,
   }
 }
 
 /**
- * Drop articles outside the rolling recent window relative to `windowAtMs`, rebuild facet histograms, and align `fetchedAt` for pagination.
+ * Drop articles outside the rolling recent window relative to `windowAtMs`, rebuild facet histograms, and align
+ * `fetchedAt` for pagination.
+ * Merge diagnostics (`droppedOutsideRecentWindow`, `duplicateDropped`, etc.) describe how the pool was **built**;
+ * this pass only shrinks `pool` for the request anchor and must not overwrite those counters (otherwise logs show
+ * e.g. `raw=30` / `deduped=7` with `droppedWindow=0`).
  * @param payload Cached or fresh pool row
  * @param windowAtMs Request anchor (from `feedAnchor` or current time)
  * @returns New payload (does not mutate input)
  */
 export function pruneNewsFeedPoolPayloadForWindow(payload: NewsFeedPoolCachePayload, windowAtMs: number): NewsFeedPoolCachePayload {
-  const recentHours = getNewsFeedRecentWindowHours()
-  const { kept, droppedOutsideRecentWindow } = filterToRecentPublished(payload.pool, recentHours, windowAtMs)
+  const recentHours =
+    typeof payload.recentWindowHours === 'number' && Number.isFinite(payload.recentWindowHours)
+      ? Math.min(MAX_RECENT_HOURS, Math.max(MIN_RECENT_HOURS, payload.recentWindowHours))
+      : getNewsFeedRecentWindowHours()
+  const { kept } = filterToRecentPublished(payload.pool, recentHours, windowAtMs)
   const facets = buildFeedFacetsFromPool(kept)
+  const poolFacetMap = facetSourceCountMap(facets)
+  let sourceInventory = payload.sourceInventory
+  if (sourceInventory !== undefined && sourceInventory.length > 0) {
+    sourceInventory = sourceInventory.map((row) => ({
+      ...row,
+      poolCount: poolFacetMap.get(row.sourceId) ?? 0,
+    }))
+  }
   return {
     ...payload,
     pool: kept,
     facets,
-    droppedOutsideRecentWindow,
     fetchedAt: new Date(windowAtMs).toISOString(),
     windowAtMs,
+    sourceInventory,
   }
 }
 
@@ -340,12 +474,14 @@ export function reconcileNewsFeedPoolAfterRssFetch(args: {
   const { uniqueItems: afterUrlDedupe, droppedMissingLink, duplicateDropped } = dedupeByNormalizedLinkWithStats(combined, sourceById)
   const { uniqueItems: mergedItems, duplicateDroppedByTitle } = dedupeBySameDayTitleAcrossSources(afterUrlDedupe, sourceById)
   mergedItems.sort((a, b) => compareFeedRowsNewestFirst(a, b))
-  const recentHours = getNewsFeedRecentWindowHours()
+  const recentHours = fresh.recentWindowHours
   const nowMs = Date.now()
   const { kept: recentItems, droppedOutsideRecentWindow } = filterToRecentPublished(mergedItems, recentHours, nowMs)
   attachPlatformTags(recentItems, sourceById)
   const pool = itemCategory !== undefined ? recentItems.filter((row) => row.category === itemCategory) : recentItems
   const facets = buildFeedFacetsFromPool(pool)
+  const poolFacetMap = facetSourceCountMap(facets)
+  const sourceInventory = buildSourceInventoryRows(sources, poolFacetMap, fresh.parsedBySourceId)
   return {
     pool,
     facets,
@@ -362,6 +498,8 @@ export function reconcileNewsFeedPoolAfterRssFetch(args: {
     duplicateDroppedByTitle,
     droppedOutsideRecentWindow,
     recentWindowHours: recentHours,
+    parsedBySourceId: fresh.parsedBySourceId,
+    sourceInventory,
   }
 }
 
@@ -386,7 +524,7 @@ export function reconcileNewsFeedPoolAfterFailedSourceRetry(args: {
   const { uniqueItems: afterUrlDedupe, droppedMissingLink, duplicateDropped } = dedupeByNormalizedLinkWithStats(combined, sourceById)
   const { uniqueItems: mergedItems, duplicateDroppedByTitle } = dedupeBySameDayTitleAcrossSources(afterUrlDedupe, sourceById)
   mergedItems.sort((a, b) => compareFeedRowsNewestFirst(a, b))
-  const recentHours = getNewsFeedRecentWindowHours()
+  const recentHours = freshPartial.recentWindowHours
   const nowMs = Date.now()
   const { kept: recentItems, droppedOutsideRecentWindow } = filterToRecentPublished(mergedItems, recentHours, nowMs)
   attachPlatformTags(recentItems, sourceById)
@@ -411,6 +549,9 @@ export function reconcileNewsFeedPoolAfterFailedSourceRetry(args: {
     }
   }
 
+  const poolFacetMap = facetSourceCountMap(facets)
+  const sourceInventory = buildSourceInventoryRows(allSources, poolFacetMap, freshPartial.parsedBySourceId)
+
   return {
     pool,
     facets,
@@ -427,6 +568,8 @@ export function reconcileNewsFeedPoolAfterFailedSourceRetry(args: {
     duplicateDroppedByTitle,
     droppedOutsideRecentWindow,
     recentWindowHours: recentHours,
+    parsedBySourceId: freshPartial.parsedBySourceId,
+    sourceInventory,
   }
 }
 
@@ -450,6 +593,7 @@ export function sliceNewsFeedPageFromPool(
   baseUrl: string
   mergeStats: NewsFeedMergeStats
   facets: NewsFeedFacets
+  sourceInventory?: NewsFeedSourceInventoryRow[]
 } {
   const {
     pool,
@@ -466,6 +610,7 @@ export function sliceNewsFeedPageFromPool(
     duplicateDroppedByTitle,
     droppedOutsideRecentWindow,
     recentWindowHours,
+    sourceInventory,
   } = payload
 
   const listPool = options.facetListFilter !== undefined ? filterPoolByFacetList(pool, options.facetListFilter) : pool
@@ -499,6 +644,7 @@ export function sliceNewsFeedPageFromPool(
     baseUrl,
     mergeStats,
     facets,
+    sourceInventory,
   }
 }
 
@@ -509,7 +655,7 @@ export function sliceNewsFeedPageFromPool(
  * @param baseUrl RSS base (no trailing slash)
  * @param itemLimit Max items in this page (slice length)
  * @param itemOffset Skip this many rows after sort/today filter (for pagination)
- * @param options Optional `windowAtMs`, `itemCategory` (manifest taxonomy), and/or `facetListFilter`
+ * @param options Optional `windowAtMs`, `itemCategory`, `listSlug` (recent window), and/or `facetListFilter`
  *   (RSS category / keyword / source id — after pool build; facets stay over full pool)
  * @returns Items, per-source errors, ISO fetch timestamp, merge diagnostics
  */
@@ -518,18 +664,20 @@ export async function aggregateNewsFeeds(
   baseUrl: string,
   itemLimit: number,
   itemOffset = 0,
-  options?: { windowAtMs?: number; itemCategory?: NewsCategory; facetListFilter?: NewsFacetListFilter }
+  options?: { windowAtMs?: number; itemCategory?: NewsCategory; listSlug?: string; facetListFilter?: NewsFacetListFilter }
 ): Promise<{
   items: AggregatedNewsItem[]
   errors: { sourceId: string; message: string }[]
   fetchedAt: string
   mergeStats: NewsFeedMergeStats
   facets: NewsFeedFacets
+  sourceInventory?: NewsFeedSourceInventoryRow[]
 }> {
   const windowAtMs = options?.windowAtMs ?? Date.now()
   const merged = await mergeNewsFeedsToPool(sources, baseUrl, {
     windowAtMs,
     itemCategory: options?.itemCategory,
+    listSlug: options?.listSlug,
   })
   return sliceNewsFeedPageFromPool({ ...merged, baseUrl }, { facetListFilter: options?.facetListFilter, itemOffset, itemLimit })
 }
@@ -597,6 +745,9 @@ function attachMeta(row: ParsedFeedItem, source: NewsSourceConfig): AggregatedNe
     category: source.category,
     region: source.region,
   }
+  if (row.imageUrl?.trim()) {
+    item.imageUrl = row.imageUrl.trim()
+  }
   if (row.feedCategories?.length) {
     item.feedCategories = [...row.feedCategories]
   }
@@ -633,6 +784,9 @@ function dedupeLabelList(values: string[]): string[] {
 function mergeFeedAnnotations(kept: AggregatedNewsItem, incoming: AggregatedNewsItem): void {
   const cats = dedupeLabelList([...(kept.feedCategories ?? []), ...(incoming.feedCategories ?? [])])
   const kws = dedupeLabelList([...(kept.feedKeywords ?? []), ...(incoming.feedKeywords ?? [])])
+  if (!kept.imageUrl?.trim() && incoming.imageUrl?.trim()) {
+    kept.imageUrl = incoming.imageUrl.trim()
+  }
   if (cats.length > 0) {
     kept.feedCategories = cats
   } else {

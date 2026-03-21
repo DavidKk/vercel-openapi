@@ -28,7 +28,7 @@ export interface IdbCache<T> {
 /** Single IndexedDB database for the app; each module uses a different object store. */
 export const SHARED_DB_NAME = 'unbnd-idb'
 
-const SHARED_DB_VERSION = 5
+const SHARED_DB_VERSION = 6
 
 /** Object store names in the shared DB. Use these with createIdbCache(SHARED_DB_NAME, storeName, ttl). */
 export const IDB_STORES = {
@@ -41,6 +41,7 @@ export const IDB_STORES = {
   HOLIDAY_LIST: 'holiday_list',
   MOVIES: 'movies',
   PRICES: 'prices',
+  NEWS_FEED: 'news_feed',
 } as const
 
 function openDb(dbName: string, storeName: string): Promise<IDBDatabase> {
@@ -85,6 +86,9 @@ function openDb(dbName: string, storeName: string): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains(IDB_STORES.PRICES)) {
           db.createObjectStore(IDB_STORES.PRICES, { keyPath: 'key' })
+        }
+        if (!db.objectStoreNames.contains(IDB_STORES.NEWS_FEED)) {
+          db.createObjectStore(IDB_STORES.NEWS_FEED, { keyPath: 'key' })
         }
       } else {
         if (!db.objectStoreNames.contains(storeName)) {

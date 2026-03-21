@@ -1,4 +1,5 @@
 import type { NewsFacetListFilter } from './facet-list-filter'
+import { getDefaultNewsSubcategory, isValidNewsListSlug, isValidNewsSubcategoryForCategory, normalizeNewsListSlug } from './news-subcategories'
 import { isValidNewsCategory } from './sources'
 import type { NewsCategory } from './types'
 
@@ -14,16 +15,27 @@ const MAX_FACET_SOURCE_LEN = 80
 const SOURCE_QUERY_RE = /^[\w-]+$/
 
 /**
- * Whether `pathname` is a single-segment news feed route like `/news/general-news` (not `/news/api`, etc.).
+ * Whether `pathname` is a single-segment news feed route like `/news/headlines` (not `/news/api`, etc.).
  * @param pathname Current path from the router
- * @returns True when the first segment after `/news` is a category slug, not a reserved tool path
+ * @returns True when the segment after `/news` is a flat list slug, not a reserved tool path
  */
-export function isNewsManifestCategoryFeedPath(pathname: string): boolean {
+export function isNewsListFeedPath(pathname: string): boolean {
   const m = /^\/news\/([^/]+)\/?$/.exec(pathname)
   if (!m) {
     return false
   }
-  return !NEWS_NON_CATEGORY_PATH_SEGMENTS.has(m[1]!) && isValidNewsCategory(m[1]!)
+  const seg = m[1]!
+  if (NEWS_NON_CATEGORY_PATH_SEGMENTS.has(seg)) {
+    return false
+  }
+  return isValidNewsListSlug(seg)
+}
+
+/**
+ * @deprecated Use {@link isNewsListFeedPath}; kept for call sites that still import the old name.
+ */
+export function isNewsManifestCategoryFeedPath(pathname: string): boolean {
+  return isNewsListFeedPath(pathname)
 }
 
 /**
@@ -82,7 +94,7 @@ export function serializeNewsOverviewQueryParam(filter: NewsFacetListFilter): st
 }
 
 /**
- * Parse facet from `/news/[category]?tag=` | `?keyword=` | `?source=` (at most one applies: source wins, then tag, then keyword).
+ * Parse facet from `/news/[slug]?tag=` | `?keyword=` | `?source=` (at most one applies: source wins, then tag, then keyword).
  * @param params Current URL search params
  * @returns Filter for `/api/news/feed` or null
  */
@@ -123,13 +135,13 @@ export function buildNewsFacetQueryParams(filter: NewsFacetListFilter | null): U
 }
 
 /**
- * Canonical href for the feed UI: `/news/[category]` plus optional `tag`, `keyword`, or `source`.
- * @param category Manifest category slug
+ * Canonical href for the feed UI: `/news/[slug]` plus optional `tag`, `keyword`, or `source`.
+ * @param listSlug Flat list key (e.g. headlines, media)
  * @param filter Optional list facet
  * @returns Path + query
  */
-export function buildNewsOverviewHref(category: NewsCategory, filter: NewsFacetListFilter | null): string {
-  const base = `/news/${category}`
+export function buildNewsOverviewHref(listSlug: string, filter: NewsFacetListFilter | null): string {
+  const base = `/news/${normalizeNewsListSlug(listSlug)}`
   const q = buildNewsFacetQueryParams(filter)
   const s = q.toString()
   return s ? `${base}?${s}` : base
@@ -198,6 +210,13 @@ export function resolveNewsFeedLandingHrefFromRootSearch(record: Record<string, 
       facet = parseNewsOverviewQueryParam(legacyQ)
     }
   }
+  const listDirect = firstSearchParamString(record.list)
+  if (listDirect && isValidNewsListSlug(listDirect)) {
+    return buildNewsOverviewHref(listDirect, facet)
+  }
+
   const category = parseNewsOverviewCategoryParam(firstSearchParamString(record.category) ?? null)
-  return buildNewsOverviewHref(category, facet)
+  const subParam = firstSearchParamString(record.sub)
+  const listFromLegacy = subParam && isValidNewsSubcategoryForCategory(category, subParam) ? subParam : getDefaultNewsSubcategory(category)
+  return buildNewsOverviewHref(normalizeNewsListSlug(listFromLegacy), facet)
 }

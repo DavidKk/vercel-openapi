@@ -1,6 +1,7 @@
 import {
   buildNewsFacetQueryParams,
   buildNewsOverviewHref,
+  isNewsListFeedPath,
   isNewsManifestCategoryFeedPath,
   newsOverviewTagFiltersEqual,
   parseNewsFacetFromUrlSearchParams,
@@ -43,43 +44,49 @@ describe('news-overview-url', () => {
     expect(parseNewsFacetFromUrlSearchParams(p3)).toEqual({ kind: 'fk', value: 'kw' })
   })
 
-  it('should build href for category path only', () => {
-    expect(buildNewsOverviewHref('general-news', null)).toBe('/news/general-news')
-    expect(buildNewsOverviewHref('tech-internet', null)).toBe('/news/tech-internet')
+  it('should build href for flat list path only', () => {
+    expect(buildNewsOverviewHref('headlines', null)).toBe('/news/headlines')
+    expect(buildNewsOverviewHref('media', null)).toBe('/news/media')
   })
 
   it('should build href with tag keyword source query', () => {
-    expect(buildNewsOverviewHref('general-news', { kind: 'fc', value: '国内' })).toBe('/news/general-news?tag=%E5%9B%BD%E5%86%85')
-    expect(buildNewsOverviewHref('tech-internet', { kind: 'fk', value: 'a,b' })).toContain('keyword=')
-    const h = buildNewsOverviewHref('general-news', { kind: 'src', sourceId: 'x' })
-    expect(h).toBe('/news/general-news?source=x')
+    expect(buildNewsOverviewHref('headlines', { kind: 'fc', value: '国内' })).toBe('/news/headlines?tag=%E5%9B%BD%E5%86%85')
+    expect(buildNewsOverviewHref('media', { kind: 'fk', value: 'a,b' })).toContain('keyword=')
+    const h = buildNewsOverviewHref('headlines', { kind: 'src', sourceId: 'x' })
+    expect(h).toBe('/news/headlines?source=x')
   })
 
-  it('should build facet query params without category', () => {
+  it('should build facet query params without list path', () => {
     expect(buildNewsFacetQueryParams(null).toString()).toBe('')
     expect(buildNewsFacetQueryParams({ kind: 'fc', value: 'z' }).get('tag')).toBe('z')
     expect(buildNewsFacetQueryParams({ kind: 'fk', value: 'z' }).get('keyword')).toBe('z')
     expect(buildNewsFacetQueryParams({ kind: 'src', sourceId: 'ab-c' }).get('source')).toBe('ab-c')
   })
 
-  it('should resolve root /news legacy search to new path', () => {
-    expect(resolveNewsFeedLandingHrefFromRootSearch({})).toBe('/news/general-news')
-    expect(resolveNewsFeedLandingHrefFromRootSearch({ category: 'tech-internet' })).toBe('/news/tech-internet')
-    expect(resolveNewsFeedLandingHrefFromRootSearch({ query: 'fc,国内' })).toBe('/news/general-news?tag=%E5%9B%BD%E5%86%85')
-    expect(resolveNewsFeedLandingHrefFromRootSearch({ category: 'tech-internet', query: 'fk,a,b' })).toContain('/news/tech-internet')
+  it('should resolve root /news legacy search to flat list path', () => {
+    expect(resolveNewsFeedLandingHrefFromRootSearch({})).toBe('/news/headlines')
+    expect(resolveNewsFeedLandingHrefFromRootSearch({ category: 'tech-internet' })).toBe('/news/media')
+    expect(resolveNewsFeedLandingHrefFromRootSearch({ query: 'fc,国内' })).toBe('/news/headlines?tag=%E5%9B%BD%E5%86%85')
+    expect(resolveNewsFeedLandingHrefFromRootSearch({ category: 'tech-internet', query: 'fk,a,b' })).toContain('/news/media')
     expect(resolveNewsFeedLandingHrefFromRootSearch({ category: 'tech-internet', query: 'fk,a,b' })).toContain('keyword=a%2Cb')
   })
 
   it('should resolve root /news modern search params', () => {
     expect(resolveNewsFeedLandingHrefFromRootSearch({ tag: '时政' })).toContain('tag=')
-    expect(resolveNewsFeedLandingHrefFromRootSearch({ source: 'thepaper-featured' })).toBe('/news/general-news?source=thepaper-featured')
+    expect(resolveNewsFeedLandingHrefFromRootSearch({ source: 'thepaper-featured' })).toBe('/news/headlines?source=thepaper-featured')
   })
 
-  it('should detect manifest category feed pathname', () => {
-    expect(isNewsManifestCategoryFeedPath('/news/general-news')).toBe(true)
-    expect(isNewsManifestCategoryFeedPath('/news/tech-internet')).toBe(true)
-    expect(isNewsManifestCategoryFeedPath('/news/api')).toBe(false)
-    expect(isNewsManifestCategoryFeedPath('/news')).toBe(false)
+  it('should resolve explicit list query on /news root', () => {
+    expect(resolveNewsFeedLandingHrefFromRootSearch({ list: 'games' })).toBe('/news/games')
+  })
+
+  it('should detect flat list feed pathname', () => {
+    expect(isNewsListFeedPath('/news/headlines')).toBe(true)
+    expect(isNewsListFeedPath('/news/media')).toBe(true)
+    expect(isNewsManifestCategoryFeedPath('/news/headlines')).toBe(true)
+    expect(isNewsListFeedPath('/news/general-news')).toBe(false)
+    expect(isNewsListFeedPath('/news/api')).toBe(false)
+    expect(isNewsListFeedPath('/news')).toBe(false)
   })
 
   it('should compare tag filters', () => {

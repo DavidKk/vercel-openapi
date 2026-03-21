@@ -24,10 +24,11 @@ export default function NewsMcpPage() {
           <h2 className={DOC_SECTION_TITLE_CLASS}>Tools</h2>
           <ul className="mb-3 list-disc pl-4">
             <li className="mb-1">
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">list_news_sources</code> — Optional category, region.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">list_news_sources</code> — Optional category, sub, region (cn|hk_tw|intl).
             </li>
             <li className="mb-1">
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_news_feed</code> — Optional category, region, limit, maxFeeds.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_news_feed</code> — Prefer <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">list</code>;
+              legacy category, sub; optional region, limit, offset, maxFeeds, feedAnchor; at most one of feedCategory, feedKeyword, feedSourceId.
             </li>
           </ul>
         </div>

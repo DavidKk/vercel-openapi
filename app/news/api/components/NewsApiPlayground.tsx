@@ -25,6 +25,9 @@ interface NewsApiState {
 export function NewsApiPlayground() {
   const [tab, setTab] = useState<ApiTab>('feed')
   const [category, setCategory] = useState('')
+  const [sub, setSub] = useState('')
+  /** Flat list slug for `GET /api/news/feed?list=` (overrides category + sub when set). */
+  const [list, setList] = useState('')
   const [region, setRegion] = useState('')
   const [limit, setLimit] = useState('30')
   const [offset, setOffset] = useState('0')
@@ -37,12 +40,18 @@ export function NewsApiPlayground() {
     if (tab === 'sources') {
       const q = new URLSearchParams()
       if (category.trim()) q.set('category', category.trim())
+      if (sub.trim()) q.set('sub', sub.trim())
       if (region.trim()) q.set('region', region.trim())
       const qs = q.toString()
       return `${origin}/api/news/sources${qs ? `?${qs}` : ''}`
     }
     const q = new URLSearchParams()
-    if (category.trim()) q.set('category', category.trim())
+    if (list.trim()) {
+      q.set('list', list.trim())
+    } else {
+      if (category.trim()) q.set('category', category.trim())
+      if (sub.trim()) q.set('sub', sub.trim())
+    }
     if (region.trim()) q.set('region', region.trim())
     if (limit.trim()) q.set('limit', limit.trim())
     if (offset.trim() && offset.trim() !== '0') q.set('offset', offset.trim())
@@ -126,16 +135,34 @@ export function NewsApiPlayground() {
               />
             </label>
             <label className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-gray-500">sub (optional, with category)</span>
+              <input
+                className="rounded border border-gray-200 px-2 py-1 font-mono text-[11px]"
+                value={sub}
+                onChange={(e) => setSub(e.target.value)}
+                placeholder="e.g. media, developer"
+              />
+            </label>
+            <label className="flex flex-col gap-0.5">
               <span className="text-[10px] text-gray-500">region (optional)</span>
               <input
                 className="rounded border border-gray-200 px-2 py-1 font-mono text-[11px]"
                 value={region}
                 onChange={(e) => setRegion(e.target.value)}
-                placeholder="cn or hk_tw"
+                placeholder="cn, hk_tw, or intl"
               />
             </label>
             {tab === 'feed' && (
               <>
+                <label className="flex flex-col gap-0.5">
+                  <span className="text-[10px] text-gray-500">list (optional; overrides category + sub)</span>
+                  <input
+                    className="rounded border border-gray-200 px-2 py-1 font-mono text-[11px]"
+                    value={list}
+                    onChange={(e) => setList(e.target.value)}
+                    placeholder="e.g. headlines, media, games"
+                  />
+                </label>
                 <label className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-gray-500">limit</span>
                   <input className="rounded border border-gray-200 px-2 py-1 font-mono text-[11px]" value={limit} onChange={(e) => setLimit(e.target.value)} />

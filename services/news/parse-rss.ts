@@ -123,6 +123,125 @@ function parseItemFeedKeywords(itemBlock: string): string[] {
 }
 
 /**
+ * First absolute `img src` inside tagged HTML bodies (CDATA-aware).
+ * @param itemBlock XML for one RSS item
+ * @param tagNames Field names in document order to scan
+ * @returns http(s) URL or null
+ */
+function firstImgHttpUrlFromTaggedFields(itemBlock: string, tagNames: string[]): string | null {
+  for (const tagName of tagNames) {
+    const esc = escapeTagForRegex(tagName)
+    const re = new RegExp(`<${esc}[^>]*>([\\s\\S]*?)<\\/${esc}>`, 'i')
+    const m = itemBlock.match(re)
+    if (!m) {
+      continue
+    }
+    let inner = m[1].trim()
+    const cdata = inner.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/i)
+    if (cdata) {
+      inner = cdata[1]
+    }
+    const imgM = inner.match(/<img[^>]+src\s*=\s*["']([^"']+)["']/i)
+    if (!imgM) {
+      continue
+    }
+    const u = decodeXmlEntities(imgM[1].trim())
+    if (u.startsWith('https://') || u.startsWith('http://')) {
+      return u
+    }
+  }
+  return null
+}
+
+/**
+ * Image URL from `media:thumbnail` (MRSS-style self-closing tags).
+ * @param block XML fragment for one item
+ * @returns http(s) URL or null
+ */
+function parseMediaThumbnailUrl(block: string): string | null {
+  const re = /<media:thumbnail\b[^>]*\/?>/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(block)) !== null) {
+    const urlMatch = m[0].match(/\burl\s*=\s*["']([^"']+)["']/i)
+    if (urlMatch) {
+      const url = decodeXmlEntities(urlMatch[1].trim())
+      if (url.startsWith('https://') || url.startsWith('http://')) {
+        return url
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Image URL from `media:content` when `medium="image"` or `type` is an image MIME type.
+ * @param block XML fragment for one item
+ * @returns http(s) URL or null
+ */
+function parseMediaContentImageUrl(block: string): string | null {
+  const re = /<media:content\b[^>]*\/?>/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(block)) !== null) {
+    const tag = m[0]
+    const mediumMatch = tag.match(/\bmedium\s*=\s*["']([^"']+)["']/i)
+    const typeMatch = tag.match(/\btype\s*=\s*["']([^"']+)["']/i)
+    const medium = mediumMatch ? mediumMatch[1].toLowerCase() : ''
+    const mime = typeMatch ? typeMatch[1].toLowerCase() : ''
+    const isImage = medium === 'image' || mime.startsWith('image/')
+    if (!isImage) {
+      continue
+    }
+    const urlMatch = tag.match(/\burl\s*=\s*["']([^"']+)["']/i)
+    if (urlMatch) {
+      const url = decodeXmlEntities(urlMatch[1].trim())
+      if (url.startsWith('https://') || url.startsWith('http://')) {
+        return url
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Image URL from RSS `enclosure` when type is image/* or URL path looks like an image file.
+ * @param block XML fragment for one item
+ * @returns http(s) URL or null
+ */
+function parseEnclosureImageUrl(block: string): string | null {
+  const re = /<enclosure\b[^>]*\/?>/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(block)) !== null) {
+    const tag = m[0]
+    const urlMatch = tag.match(/\burl\s*=\s*["']([^"']+)["']/i)
+    if (!urlMatch) {
+      continue
+    }
+    const url = decodeXmlEntities(urlMatch[1].trim())
+    const typeMatch = tag.match(/\btype\s*=\s*["']([^"']+)["']/i)
+    const mime = typeMatch ? typeMatch[1].toLowerCase() : ''
+    const looksImage = mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|avif|bmp)(\?|#|$)/i.test(url)
+    if (looksImage && (url.startsWith('http://') || url.startsWith('https://'))) {
+      return url
+    }
+  }
+  return null
+}
+
+/**
+ * Pick one cover image URL per RSS item (best-effort; namespaces vary by feed).
+ * @param itemBlock XML for one &lt;item&gt;
+ * @returns Absolute http(s) URL or null
+ */
+export function parseItemImageUrl(itemBlock: string): string | null {
+  return (
+    parseMediaThumbnailUrl(itemBlock) ??
+    parseMediaContentImageUrl(itemBlock) ??
+    parseEnclosureImageUrl(itemBlock) ??
+    firstImgHttpUrlFromTaggedFields(itemBlock, ['description', 'content:encoded'])
+  )
+}
+
+/**
  * Parse link from RSS item (handles plain &lt;link&gt;...&lt;/link&gt;).
  * @param itemBlock XML for one &lt;item&gt;
  * @returns URL string or empty string
@@ -172,11 +291,15 @@ export function parseRssItems(xml: string): ParsedFeedItem[] {
     const description = firstTagText(block, 'description') ?? firstTagText(block, 'content:encoded')
     const feedCategories = parseItemFeedCategories(block)
     const feedKeywords = parseItemFeedKeywords(block)
+    const imageUrl = parseItemImageUrl(block)
     const row: ParsedFeedItem = {
       title: title || link,
       link: link || title,
       publishedAt: parsePubDateIso(block),
       summary: description,
+    }
+    if (imageUrl) {
+      row.imageUrl = imageUrl
     }
     if (feedCategories.length > 0) {
       row.feedCategories = feedCategories

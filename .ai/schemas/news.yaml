@@ -23,11 +23,11 @@ sidebarItems:
 
 apiPage:
   title: News API
-  subtitle: List RSS sources and aggregate latest items by category and region (RSSHub-compatible feeds). HTTP paths are under `/api/news/…` (below); `/news/…` is the App Router UI.
+  subtitle: List RSS sources and aggregate latest items by flat list slug or legacy category/region (RSSHub-compatible feeds). HTTP paths are under `/api/news/…` (below); `/news/…` is the App Router UI.
   endpoints:
     - method: GET
       path: /api/news/sources
-      description: Returns configured sources and the resolved RSSHub base URL. Optional query category, region.
+      description: Returns configured sources and the resolved RSSHub base URL. Optional query category, sub (when category set), region (cn|hk_tw|intl).
       exampleResponse: |
         {
           "sources": [
@@ -44,7 +44,7 @@ apiPage:
         }
     - method: GET
       path: /api/news/feed
-      description: Fetches RSS for all matching sources (unified merge), optional manifest category filters items after merge; optional at most one of feedCategory, feedKeyword, feedSourceId filters the merged list before pagination; facets always over full pool. Query category, region, limit, offset, maxFeeds, feedAnchor.
+      description: Prefer query `list` (flat slug, same as /news/[slug]); or legacy `category` + optional `sub`. Then maxFeeds cap. When neither is set, first maxFeeds across manifest. Merge + dedupe; optional feedCategory, feedKeyword, or feedSourceId before pagination. Query list, category, sub, region, limit, offset, maxFeeds, feedAnchor.
       exampleResponse: |
         {
           "items": [
@@ -59,6 +59,7 @@ apiPage:
               "region": "cn",
               "feedCategories": ["国内", "时政"],
               "feedKeywords": ["国务院", "政策"],
+              "imageUrl": "https://cdn.example.com/cover.jpg",
               "alsoFromSources": [
                 { "sourceId": "other", "sourceLabel": "另一媒体", "href": "https://other.example" }
               ],
@@ -69,11 +70,13 @@ apiPage:
             }
           ],
           "fetchedAt": "2025-03-21T10:00:00.000Z",
+          "baseUrl": "https://rsshub.app",
           "facets": {
             "categories": [{ "value": "国内", "count": 12 }],
             "keywords": [{ "value": "政策", "count": 3 }],
             "sources": [{ "sourceId": "thepaper", "label": "澎湃新闻", "count": 5 }]
-          }
+          },
+          "sourceInventory": [{ "sourceId": "thepaper", "label": "澎湃新闻", "poolCount": 5, "parsedCount": 12 }]
         }
   playgroundComponentName: NewsApiPlayground
   playgroundImportPath: '@/app/news/api/components'
@@ -83,9 +86,9 @@ mcpPage:
   subtitle: List configured news sources and fetch aggregated feeds through MCP.
   tools:
     - name: list_news_sources
-      description: List RSS sources from the manifest (optional category and region filters).
+      description: List RSS sources from the manifest (optional category, sub list slug when category set, region cn|hk_tw|intl).
     - name: get_news_feed
-      description: Aggregate latest news items from RSS feeds; optional category, region, limit, maxFeeds; optional feedCategory, feedKeyword, or feedSourceId (at most one) filters before pagination.
-      paramsDescription: 'category (optional), region (optional cn|hk_tw), limit (optional item cap), maxFeeds (optional source cap).'
+      description: Aggregate latest news from RSS; prefer list (flat slug). Legacy category + sub when list omitted. Optional region, limit, offset, maxFeeds, feedAnchor (for offset>0), and at most one of feedCategory, feedKeyword, feedSourceId before pagination.
+      paramsDescription: 'list (preferred), category + sub (legacy), region, limit, offset, maxFeeds, feedAnchor, feedCategory|feedKeyword|feedSourceId (one).'
   playgroundComponentName: NewsMcpPlayground
   playgroundImportPath: '@/app/news/mcp/components'

@@ -24,5 +24,10 @@ declare namespace NodeJS {
     FREECURRENCYAPI_API_KEY?: string
     /** QWeather API key (weather module) */
     QWEATHER_API_KEY?: string
+    /**
+     * Opt-in only: unset = normal caching. When explicitly `1` / `true` / `yes`, skip app-layer caches
+     * (e.g. news merged pool L1/L2/KV) and force `Cache-Control: private, no-store` on standard JSON helpers.
+     */
+    DISABLE_CACHE?: string
   }
 }
