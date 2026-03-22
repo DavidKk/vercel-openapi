@@ -56,15 +56,6 @@ export const newsSourcesManifest = {
       defaultUrl: 'https://www.huanqiu.com',
     },
     {
-      id: 'guancha-redian',
-      label: '观察者网热点',
-      category: 'general-news',
-      subcategory: 'headlines',
-      region: 'cn',
-      rsshubPath: '/guancha/redian',
-      defaultUrl: 'https://www.guancha.cn',
-    },
-    {
       id: 'jiemian-news',
       label: '界面新闻',
       category: 'general-news',

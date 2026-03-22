@@ -2,11 +2,11 @@ import {
   drainAbortedOverviewFetch,
   getNewsOverviewEmptyStateVisible,
   getNewsOverviewErrorBannerVisible,
-  getNewsOverviewHeadRefreshVisible,
   getNewsOverviewL0HydrationView,
   getNewsOverviewLoadMoreEnabled,
   getNewsOverviewMainFeedSkeleton,
   isSameNewsOverviewSession,
+  shouldPersistNewsOverviewFacet,
   shouldPersistNewsOverviewL0,
 } from '@/app/news/lib/news-feed-overview-display'
 import type { NewsFeedOverviewCachePayload } from '@/services/news/browser/idb-cache'
@@ -94,24 +94,6 @@ describe('news-feed-overview-display', () => {
     })
   })
 
-  describe('getNewsOverviewHeadRefreshVisible', () => {
-    it('should show top refresh skeleton while cached rows stay visible during the first network refresh', () => {
-      expect(getNewsOverviewHeadRefreshVisible(false, false, 5)).toBe(true)
-    })
-
-    it('should hide top refresh skeleton once the first request settles', () => {
-      expect(getNewsOverviewHeadRefreshVisible(false, true, 5)).toBe(false)
-    })
-
-    it('should hide top refresh skeleton when there are no visible rows yet', () => {
-      expect(getNewsOverviewHeadRefreshVisible(false, false, 0)).toBe(false)
-    })
-
-    it('should hide top refresh skeleton during silent warmup refetch (same as settled + items)', () => {
-      expect(getNewsOverviewHeadRefreshVisible(false, true, 5)).toBe(false)
-    })
-  })
-
   describe('getNewsOverviewEmptyStateVisible', () => {
     it('should show empty only when not skeleton, no items, no error', () => {
       expect(getNewsOverviewEmptyStateVisible(false, 0, null)).toBe(true)
@@ -196,6 +178,21 @@ describe('news-feed-overview-display', () => {
 
     it('should not persist when envelope reports failure', () => {
       expect(shouldPersistNewsOverviewL0(null, 1)).toBe(false)
+    })
+  })
+
+  describe('shouldPersistNewsOverviewFacet', () => {
+    it('should persist facet first page when facet is set and envelope ok', () => {
+      expect(shouldPersistNewsOverviewFacet({ kind: 'fk', value: 'k' }, undefined)).toBe(true)
+      expect(shouldPersistNewsOverviewFacet({ kind: 'fk', value: 'k' }, 0)).toBe(true)
+    })
+
+    it('should not persist when no facet', () => {
+      expect(shouldPersistNewsOverviewFacet(null, 0)).toBe(false)
+    })
+
+    it('should not persist when envelope reports failure', () => {
+      expect(shouldPersistNewsOverviewFacet({ kind: 'fk', value: 'k' }, 1)).toBe(false)
     })
   })
 

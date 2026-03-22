@@ -1,5 +1,6 @@
 import {
   applyFacetFilterToCachedOverviewItems,
+  buildNewsFeedOverviewFacetIdbKey,
   buildNewsFeedOverviewIdbKey,
   cachedOverviewHasMoreHint,
   getNewsFeedOverviewCachedWarmupSources,
@@ -13,6 +14,12 @@ describe('news browser idb-cache', () => {
   it('should build one L0 key per list slug (facets are client-filtered)', () => {
     expect(buildNewsFeedOverviewIdbKey('headlines')).toBe('v1:overview:headlines')
     expect(buildNewsFeedOverviewIdbKey('games')).toBe('v1:overview:games')
+  })
+
+  it('should build facet-scoped overview keys for keyword tag and source', () => {
+    expect(buildNewsFeedOverviewFacetIdbKey('headlines', { kind: 'fk', value: '伊朗' })).toBe(`v1:overview:headlines:fk:${encodeURIComponent('伊朗')}`)
+    expect(buildNewsFeedOverviewFacetIdbKey('headlines', { kind: 'fc', value: '国内' })).toBe(`v1:overview:headlines:fc:${encodeURIComponent('国内')}`)
+    expect(buildNewsFeedOverviewFacetIdbKey('headlines', { kind: 'src', sourceId: 'x-y' })).toBe('v1:overview:headlines:src:x-y')
   })
 
   it('should filter cached rows by facet like the API', () => {

@@ -49,13 +49,31 @@ function isNewsFeedOverviewWarmupSource(value: unknown): value is { sourceId: st
 /**
  * IndexedDB key for the news overview **per flat list only** (one L0 row per channel). The snapshot is always
  * the **unfiltered** first API page for that list (`limit` matches app `PAGE_SIZE`); tag / keyword / source facets
- * are applied in the client via {@link applyFacetFilterToCachedOverviewItems}.
+ * are applied in the client via {@link applyFacetFilterToCachedOverviewItems} when no facet-scoped row exists.
  * @param listSlug Flat list slug (e.g. headlines, games)
  * @returns Key string, e.g. `v1:overview:headlines`
  */
 export function buildNewsFeedOverviewIdbKey(listSlug: string): string {
   const list = normalizeNewsListSlug(listSlug)
   return `v1:overview:${list}`
+}
+
+/**
+ * IndexedDB key for the **facet-filtered** first API page (same TTL as L0). Used so `/news/[slug]?keyword=` etc.
+ * can reload within TTL with the last server slice instead of re-filtering the unfiltered L0 page (often sparse).
+ * @param listSlug Flat list slug
+ * @param facet Active list facet from the URL
+ * @returns Key string, e.g. `v1:overview:headlines:fk:...`
+ */
+export function buildNewsFeedOverviewFacetIdbKey(listSlug: string, facet: NewsFacetListFilter): string {
+  const list = normalizeNewsListSlug(listSlug)
+  if (facet.kind === 'fc') {
+    return `v1:overview:${list}:fc:${encodeURIComponent(facet.value)}`
+  }
+  if (facet.kind === 'fk') {
+    return `v1:overview:${list}:fk:${encodeURIComponent(facet.value)}`
+  }
+  return `v1:overview:${list}:src:${encodeURIComponent(facet.sourceId)}`
 }
 
 /**

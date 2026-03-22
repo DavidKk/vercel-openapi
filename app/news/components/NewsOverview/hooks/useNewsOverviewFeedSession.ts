@@ -8,6 +8,7 @@ import {
   getNewsOverviewLoadMoreEnabled,
   isSameNewsOverviewSession,
   type NewsOverviewSessionSnapshot,
+  shouldPersistNewsOverviewFacet,
   shouldPersistNewsOverviewL0,
 } from '@/app/news/lib/news-feed-overview-display'
 import { logNewsOverview } from '@/app/news/lib/news-overview-client-log'
@@ -18,6 +19,7 @@ import {
   type NewsOverviewTagFilter,
 } from '@/app/news/lib/news-overview-ui'
 import {
+  buildNewsFeedOverviewFacetIdbKey,
   buildNewsFeedOverviewIdbKey,
   getNewsFeedOverviewCachedWarmupSources,
   getNewsFeedOverviewFromIdb,
@@ -357,6 +359,7 @@ export function useNewsOverviewFeedSession(args: {
         facet: newsOverviewFacetLabelForLog(session.facet),
       })
       const idbKey = buildNewsFeedOverviewIdbKey(slug)
+      const facetIdbKey = session.facet ? buildNewsFeedOverviewFacetIdbKey(slug, session.facet) : null
       /**
        * Defer network (and IDB) until after the current synchronous passive-effect flush. In React 18 Strict Mode
        * (dev), the first effect run is torn down immediately; without this yield, `fetchFeedPage` would already be
@@ -367,52 +370,73 @@ export function useNewsOverviewFeedSession(args: {
         return
       }
       let hydratedFromIdb = false
-      let cachedFresh: Awaited<ReturnType<typeof getNewsFeedOverviewFromIdb>> = null
-      let cached: Awaited<ReturnType<typeof getNewsFeedOverviewFromIdb>> = null
+      let poolCachedFresh: Awaited<ReturnType<typeof getNewsFeedOverviewFromIdb>> = null
+      let poolCached: Awaited<ReturnType<typeof getNewsFeedOverviewFromIdb>> = null
+      let facetCachedFresh: Awaited<ReturnType<typeof getNewsFeedOverviewFromIdb>> = null
+      let facetCached: Awaited<ReturnType<typeof getNewsFeedOverviewFromIdb>> = null
       try {
-        cachedFresh = await getNewsFeedOverviewFromIdb(idbKey)
-        cached = cachedFresh ?? (await getNewsFeedOverviewFromIdbStale(idbKey))
+        if (facetIdbKey) {
+          facetCachedFresh = await getNewsFeedOverviewFromIdb(facetIdbKey)
+          facetCached = facetCachedFresh ?? (await getNewsFeedOverviewFromIdbStale(facetIdbKey))
+        }
+        poolCachedFresh = await getNewsFeedOverviewFromIdb(idbKey)
+        poolCached = poolCachedFresh ?? (await getNewsFeedOverviewFromIdbStale(idbKey))
       } catch {
-        cachedFresh = null
-        cached = null
+        poolCachedFresh = null
+        poolCached = null
+        facetCachedFresh = null
+        facetCached = null
       }
+
+      const usedFacetSnapshotForPaint = facetIdbKey !== null && facetCached !== null
+      const paintPayload = usedFacetSnapshotForPaint ? facetCached : poolCached
+      const paintFromFreshTier = usedFacetSnapshotForPaint ? facetCachedFresh !== null : poolCachedFresh !== null
 
       if (!cancelled && isActiveNewsOverviewSession(session)) {
         setFeedSessionBootstrap(false)
-        if (cached) {
-          const l0View = getNewsOverviewL0HydrationView(cached, session.facet)
-          setItems(l0View.displayItems)
-          setHasMore(l0View.hasMore)
-          setPartialErrors(cached.errors)
-          setWarmupSources(getNewsFeedOverviewCachedWarmupSources(cached))
-          if (cached.fetchedAt) {
-            feedSessionAnchorRef.current = cached.fetchedAt
+        if (paintPayload) {
+          if (usedFacetSnapshotForPaint) {
+            setItems(paintPayload.items)
+            setHasMore(paintPayload.hasMore)
+            setLoading(false)
+          } else {
+            const l0View = getNewsOverviewL0HydrationView(paintPayload, session.facet)
+            setItems(l0View.displayItems)
+            setHasMore(l0View.hasMore)
+            setLoading(l0View.needsLoadingUntilNetwork)
           }
-          if (cached.facets) {
-            setFeedFacets(cached.facets)
+          setPartialErrors(paintPayload.errors)
+          setWarmupSources(getNewsFeedOverviewCachedWarmupSources(paintPayload))
+          if (paintPayload.fetchedAt) {
+            feedSessionAnchorRef.current = paintPayload.fetchedAt
+          }
+          if (paintPayload.facets) {
+            setFeedFacets(paintPayload.facets)
           } else {
             setFeedFacets(null)
           }
-          setSourceInventory(cached.sourceInventory ?? null)
-          setTotalArticleCount(cached.uniqueAfterDedupe ?? null)
+          setSourceInventory(paintPayload.sourceInventory ?? null)
+          setTotalArticleCount(paintPayload.uniqueAfterDedupe ?? null)
           setError(null)
           hydratedFromIdb = true
-          setLoading(l0View.needsLoadingUntilNetwork)
           logNewsOverview('feed_idb_hit', {
             pagePath: pathname,
             list: slug,
             facet: newsOverviewFacetLabelForLog(session.facet),
-            idbKey,
-            itemsCount: l0View.displayItems.length,
-            idbPoolPageCount: cached.items.length,
-            idbFresh: cachedFresh !== null,
+            idbKey: usedFacetSnapshotForPaint ? facetIdbKey! : idbKey,
+            itemsCount: usedFacetSnapshotForPaint ? paintPayload.items.length : getNewsOverviewL0HydrationView(paintPayload, session.facet).displayItems.length,
+            idbStoredRowCount: paintPayload.items.length,
+            idbFresh: paintFromFreshTier,
+            idbFacetSnapshot: usedFacetSnapshotForPaint,
           })
         } else {
           setLoading(true)
         }
       }
 
-      if (cachedFresh !== null) {
+      /** Skip first-page network only when the cache tier that matches the URL facet is still fresh (same TTL as L0). */
+      const skipFirstPageNetwork = facetIdbKey !== null ? facetCachedFresh !== null : poolCachedFresh !== null
+      if (skipFirstPageNetwork) {
         if (!cancelled && isActiveNewsOverviewSession(session)) {
           setLoading(false)
           setInitialFeedRequestSettledState(true)
@@ -420,7 +444,7 @@ export function useNewsOverviewFeedSession(args: {
             pagePath: pathname,
             list: slug,
             facet: newsOverviewFacetLabelForLog(session.facet),
-            idbKey,
+            idbKey: facetIdbKey ?? idbKey,
           })
         }
         return
@@ -496,6 +520,23 @@ export function useNewsOverviewFeedSession(args: {
         if (shouldPersistNewsOverviewL0(session.facet, result.code)) {
           try {
             await setNewsFeedOverviewInIdb(idbKey, {
+              items: result.list,
+              errors: result.errors,
+              warmupSources: result.feedWarmupSources,
+              fetchedAt: result.fetchedAt,
+              facets: result.facets ?? null,
+              sourceInventory: result.sourceInventory ?? null,
+              uniqueAfterDedupe: result.uniqueAfterDedupe ?? null,
+              hasMore: result.hasMore,
+              warmupPending: result.feedWarmupSources.length > 0,
+            })
+          } catch {
+            // ignore IDB write failures
+          }
+        }
+        if (facetIdbKey && shouldPersistNewsOverviewFacet(session.facet, result.code)) {
+          try {
+            await setNewsFeedOverviewInIdb(facetIdbKey, {
               items: result.list,
               errors: result.errors,
               warmupSources: result.feedWarmupSources,

@@ -35,7 +35,6 @@ export const NewsOverviewFeedColumn = memo(function NewsOverviewFeedColumn(props
   items: AggregatedNewsItem[]
   itemRowKeys: string[]
   tagFilter: NewsOverviewTagFilter
-  showHeadRefreshSkeleton: boolean
   onToggleFeedCategoryFacet: (value: string) => void
   enteringItemKeys: ReadonlySet<string>
   expandedSummaryKeys: Record<string, true>
@@ -55,7 +54,6 @@ export const NewsOverviewFeedColumn = memo(function NewsOverviewFeedColumn(props
     items,
     itemRowKeys,
     tagFilter,
-    showHeadRefreshSkeleton,
     onToggleFeedCategoryFacet,
     enteringItemKeys,
     expandedSummaryKeys,
@@ -111,22 +109,6 @@ export const NewsOverviewFeedColumn = memo(function NewsOverviewFeedColumn(props
 
       {!showMainFeedSkeleton && items.length > 0 ? (
         <ul className="mx-auto max-w-3xl shrink-0 space-y-3" aria-label="Article list">
-          {showHeadRefreshSkeleton ? (
-            <li
-              key="news-feed-warmup-head-loading"
-              className="animate-pulse rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
-              aria-busy="true"
-              aria-live="polite"
-              aria-label="Loading newer articles"
-            >
-              <div className="h-4 w-3/4 rounded bg-gray-200" />
-              <div className="mt-2 h-3 w-1/3 rounded bg-gray-100" />
-              <div className="mt-3 space-y-2">
-                <div className="h-3 w-full rounded bg-gray-100" />
-                <div className="h-3 w-5/6 rounded bg-gray-100" />
-              </div>
-            </li>
-          ) : null}
           {items.map((item, rowIdx) => {
             const baseListKey = getNewsFeedItemListKey(item)
             const rowKey = itemRowKeys[rowIdx] ?? baseListKey
