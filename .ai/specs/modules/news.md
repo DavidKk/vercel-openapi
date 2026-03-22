@@ -62,14 +62,25 @@ Implementation: `services/news/routing/news-overview-url.ts` (`buildNewsOverview
   - `offset` (optional) — skip this many rows after merge, recent window, and list construction; default `0`, max `2000` (pagination).
   - `maxFeeds` (optional) — max RSS sources to fetch for this request; default `15`, max `25` (applied **after** list/region source filtering).
   - `feedAnchor` (optional) — ISO timestamp from the first page `fetchedAt`; use on later pages so the rolling recent window matches the session.
-- **Response:** `{ items: AggregatedItem[], fetchedAt: string (ISO), baseUrl: string, facets: NewsFeedFacets, errors?: { sourceId, message }[], mergeStats?: NewsFeedMergeStats, sourceInventory?: … }`. **`facets`** — histograms over the full merged pool for this request (before `offset`/`limit`): `categories[]`, `keywords[]`, `sources[]` each with `{ value, count }` or `{ sourceId, label, count }`, sorted by count desc (for filter UIs; not limited to the current page of `items`).  
+  - **RSS list facet** (optional, **at most one**): `feedCategory`, `feedKeyword`, or `feedSourceId` — same semantics as the overview URL `tag` / `keyword` / `source` query (filter the merged pool in memory after the window prune, then apply `offset`/`limit`). Implementation: `app/api/news/feed/route.ts`.
+  - `retrySourceIds` (optional) — comma / semicolon / whitespace–separated manifest `sourceId`s; **only when `offset=0`**. Re-fetches and merges **only** those sources into the existing L1/L2 pool (single-flight on the server). Used by the overview when **`feedWarmup`** is present. Response may set **`X-News-Feed-Partial-Retry: 1`** when this path ran.
+- **Response:** `{ items: AggregatedItem[], fetchedAt: string (ISO), baseUrl: string, facets: NewsFeedFacets, errors?: { sourceId, message }[], mergeStats?: NewsFeedMergeStats, sourceInventory?: …, feedWarmup?: … }`. **`facets`** — histograms over the full merged pool for this request (before `offset`/`limit`): `categories[]`, `keywords[]`, `sources[]` each with `{ value, count }` or `{ sourceId, label, count }`, sorted by count desc (for filter UIs; not limited to the current page of `items`).  
   Each item: `title`, `link`, `publishedAt` (ISO or null), `summary` (nullable), `sourceId`, `sourceLabel`, `category` (module taxonomy), `region`, optional **`imageUrl`** (cover URL from RSS `media:*` / `enclosure` / first `img` in description when parseable), optional `feedCategories` (RSS `category` / `dc:subject`, deduped), optional `feedKeywords` (`media:keywords` / `keywords`, split on comma-like delimiters), optional `alsoFromSources`, optional `platformTags` for multi-source UI.  
   **`sourceInventory`** (optional): per-source `poolCount` / `parsedCount` for the sidebar.  
+  **`errors`** (when present): **hard** upstream / merge failures only. Transient issues (timeouts, merge budget skip phrasing, retryable HTTP) are split server-side: see **`feedWarmup`** below. When serving **stale-only** after an inline refresh failure, the API may **suppress** `errors` / `feedWarmup` noise (see route `inline_failed_stale` + `X-News-Pool-Stale`).
+  **`feedWarmup`** (optional): when some sources are still classed as **warming**, `{ pending: true, sources: { sourceId, message }[], suggestedRetryAfterSeconds, suggestedManualRetryAfterSeconds }`. Constants default to **5** seconds (`NEWS_FEED_WARMUP_POLL_INTERVAL_SECONDS`, `NEWS_FEED_WARMUP_MANUAL_UNLOCK_SECONDS` in `services/news/feed/news-feed-source-issue.ts`). Clients should poll with **`retrySourceIds`** for those ids (first page only), not replace the whole list blindly.
   **`mergeStats`** (when present): merge/dedupe diagnostics — `sourcesRequested`, `sourcesWithItems`, `sourcesEmptyOrFailed`, `rawItemCount`, `droppedMissingLink`, `duplicateDropped` (same normalized URL), `duplicateDroppedByTitle` (same UTC calendar day + identical normalized title, different URL, different source), `droppedOutsideRecentWindow` (older than rolling window; **missing or unparseable `publishedAt` are kept**), `recentWindowHours` (per list slug via `getNewsFeedRecentWindowHoursForListSlug`, or `NEWS_FEED_RECENT_HOURS` for the no-list pool), `uniqueAfterDedupe` (count in the list-scoped pool after dedupe/window, before `offset` slice), `offset` (applied skip, clamped), `hasMore`, `returnedItems`, `truncatedByLimit` (items not in this page after `offset`).
 - **Sort order:** newer `publishedAt` first (missing dates last).
 - **Recent window:** after dedupe/sort, items with parseable `publishedAt` older than `recentWindowHours` (relative to `feedAnchor` or request “now”) are dropped; **missing or unparseable `publishedAt` are kept** (many RSSHub routes omit or garble dates).
 - **Caching (HTTP):** `Cache-Control: public, s-maxage=60, stale-while-revalidate=300` — **latest** snapshot semantics; not historical.
-- **Caching (browser overview):** the `/news/[slug]` client may hydrate the **first page** from **IndexedDB** (TTL **300s**, aligned with `stale-while-revalidate`), then refresh from the API — see `services/news/browser/idb-cache.ts`.
+- **Caching (browser overview — L0):** per [.ai/knowledge/glossary.md](../../knowledge/glossary.md), **L0** is **IndexedDB**. The `/news/[slug]` client hydrates the **first page** from L0 (TTL **600s** `NEWS_FEED_OVERVIEW_IDB_TTL_MS`); when L0 is still fresh, reloads use it directly and skip the first-page network request. Exception: if the cached payload still carried **`feedWarmup.pending`** sources, the client keeps the cached rows for paint, restores the cached **`warmupSources`** list for UI messaging, but does **not** treat that snapshot as a fresh hit, so reloads continue requesting the API to refill the missing sources. After TTL expiry, the client may still paint the stale snapshot first, then refresh from the API — see `services/news/browser/idb-cache.ts`. **Target** L0 behavior matches **Caching (server) → Target semantics** (fast paint, stale-on-failure, bounded refresh); full stack order **L0 → L1 → L2 → upstream**.
+
+**Overview UI client (`app/news/components/NewsOverview/NewsOverview.tsx`) — aligned behavior**
+
+- **Page size:** requests **`limit=20`** (`NEWS_OVERVIEW_PAGE_SIZE` in `app/news/lib/news-overview-ui.ts`); the API default when `limit` is omitted is **30** (see query docs above). L0 key is **one row per list slug** (`buildNewsFeedOverviewIdbKey(listSlug)` → `v1:overview:{slug}`); the stored snapshot is the **unfiltered** first page, then facets are applied in the client (`applyFacetFilterToCachedOverviewItems`).
+- **Warmup poll:** if **`feedWarmup.pending`** and `sources.length > 0`, the client **`setInterval`** polls every **5000 ms** (same default as `suggestedRetryAfterSeconds` / `NEWS_FEED_WARMUP_POLL_INTERVAL_SECONDS`) with **`retrySourceIds`** set to those source ids; **manual retry** uses the same request after **`suggestedManualRetryAfterSeconds`** (UI unlock).
+- **Head merge (no full list replace):** on a successful warmup / manual retry first page, the client **prepends** items whose stable key is not already in the list. Stable list identity: **`sourceId` + normalized title + `link`** — `getNewsFeedItemListKey` in `app/news/lib/news-feed-item-key.ts` (`mergeNewsFeedItemsPreferIncomingHead`). **`hasMore`**, **`errors`**, **`feedWarmup`**, **`fetchedAt`** (session anchor), **facets**, **sourceInventory**, and **total count** are updated from the response.
+- **UX:** while warmup polling, a **skeleton** row is shown at the **top** of the article list (same card skeleton pattern as initial load). Newly prepended rows may use the **`news-feed-row-enter`** animation (`app/globals.css`; respects `prefers-reduced-motion`). React **`key`** on rows uses **`getNewsFeedItemListKey`**, not array index, to limit unnecessary reordering.
 
 ---
 
@@ -106,24 +117,80 @@ Tuning: file-level constants at the top of `facets/dedupe-facet-label-substrings
 ## Errors and boundaries
 
 - Upstream RSSHub or network failures for a source are reported in `errors[]`; other sources still contribute items.
+- **Target (see Caching → Target semantics):** when serving **last-good cache** after a failed refresh, **reduce** client-visible `errors[]` noise; reserve detailed failures for **logs**.
 - Invalid `category` / `region` / numeric params → `400` with a short message.
-- Empty `items` is valid if all fetches fail or feeds parse to zero entries.
+- Empty `items` is valid if all fetches fail or feeds parse to zero entries (**target:** distinguish **cold start + total failure** vs **prune removed all rows** where helpful).
 
 ---
 
 ## Caching (server)
 
-Aligned with [.ai/knowledge/glossary.md](../../knowledge/glossary.md) **L1 / L2** flow for `GET /api/news/feed`:
+Aligned with [.ai/knowledge/glossary.md](../../knowledge/glossary.md) **L1 / L2** flow for `GET /api/news/feed`.
+
+### Current implementation (as of repo)
 
 - **Merged pool only** — L1/L2 store the **full merged + deduped pool** for one **stable key**: resolved `RSSHUB_BASE_URL`, manifest **`category`** string (`''` for the all-category pool), **`subcategory`** string (`''` for the all-category pool; else the normalized **flat list slug** — from `list=` or from legacy `category`+`sub`), **`region`**, **`maxFeeds`**, and **`recentWindowHours`** (from the list slug / env). The key does **not** include `feedAnchor`, RSS list facets (`feedCategory` / `feedKeyword` / `feedSourceId`), `limit`, or `offset`.
 - **Per request** — After a hit, `pruneNewsFeedPoolPayloadForWindow` applies the same rolling window length relative to `feedAnchor` (or `now`). Then `sliceNewsFeedPageFromPool` applies optional RSS facet filter + `offset`/`limit` in memory. Switching sidebar tags reuses the same pool → fast.
 - **L1** — In-memory LRU (fewer entries than small payloads; pools are larger). **L2** — Upstash when configured. **Write-through on pool miss:** L2 then L1.
+- **Pool L2 TTL** — `NEWS_FEED_KV_TTL_SECONDS` (default **86400**, clamp **3600–86400**), **one global value** for all pool keys (not yet aligned per list slug with `recentWindowHours`).
+- **HTTP path** — `GET /api/news/feed` serves L1/L2 when present or runs a **synchronous** RSS merge on miss; **no** refresh attempt on hit. Stale pools update on the next miss, TTL expiry, or **external cron** (`GET /api/cron/sync/news-feed-pools`). Cron uses `reconcileNewsFeedPoolAfterRssFetch` (previous pool + fresh merge). Implementation: `services/news/feed/feed-kv-cache.ts`, `pruneNewsFeedPoolPayloadForWindow` / `reconcileNewsFeedPoolAfterRssFetch` / `reconcileNewsFeedPoolAfterFailedSourceRetry` in `feed/aggregate-feed.ts`.
+- **Merge wall** — On cache miss, optional `NEWS_FEED_MERGE_WALL_MS` / Vercel default caps merge duration so a **partial** pool may be returned; see `.env.example` and `mergeNewsFeedsToPool` options.
 
-Pool L2 TTL: `NEWS_FEED_KV_TTL_SECONDS` (default **86400**, clamp **3600–86400**). `GET /api/news/feed` serves L1/L2 when present or runs a **synchronous** RSS merge on miss; there is **no** post-response refresh or delayed failed-source retry on the HTTP route (stale pools update on the next miss, TTL expiry, or **external cron**). Optional **external cron**: `GET /api/cron/sync/news-feed-pools` (see [integrations/rsshub-openapi.md](../integrations/rsshub-openapi.md#cron-news-feed-pools)). Implementation: `services/news/feed/feed-kv-cache.ts`, `pruneNewsFeedPoolPayloadForWindow` / `reconcileNewsFeedPoolAfterRssFetch` / `reconcileNewsFeedPoolAfterFailedSourceRetry` in `feed/aggregate-feed.ts`.
+### Target semantics (specification — implementation pending)
+
+The following is the **agreed product/ops model** for pool caching and refresh. Code will be updated to match; until then, rely on **Current implementation** above.
+
+**1. Three time dimensions (do not conflate them)**
+
+| Dimension                                                                                               | Role                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Content window** (`recentWindowHours` per list slug or `NEWS_FEED_RECENT_HOURS` for the no-list pool) | Decides whether an **item** may appear in the response: `publishedAt` relative to the request anchor (`feedAnchor` or `now`) must fall inside the window. The window can be wide (e.g. 72h / 7d); practical cardinality is still bounded by RSS depth and merge.                                                                                                                            |
+| **Refresh interval (“re-fetch”)**                                                                       | How often the service **attempts** a new upstream RSS merge for that pool (e.g. **~10 minutes**). This is **freshness**, independent of how wide the content window is.                                                                                                                                                                                                                     |
+| **Cache retention (L1/L2 TTL)**                                                                         | How long the **stored merged pool document** may be kept before treating it as absent for **cold-start** purposes. **Target:** align **per pool** with that pool’s **content window** (same order of magnitude, clamped to platform limits), so storage horizon matches display horizon. **Global** `NEWS_FEED_KV_TTL_SECONDS` may remain a ceiling or default until per-slug TTL is wired. |
+
+**2. Stale-on-failure (serve last good pool)**
+
+- If a refresh **fails** (network, RSSHub, timeout, total merge failure, etc.), **do not delete or overwrite** the last successfully stored pool for that key.
+- **Return** the **previous** cached payload (after the usual per-request `pruneNewsFeedPoolPayloadForWindow` + slice). This is **valid and correct** whenever there is still a usable cached pool.
+
+**3. When the response may be empty or an error**
+
+- **Only** when there is **no** stored pool at all for that key **and** the current merge attempt **also** fails (cold start + failure). Then the API may return an **empty `items`** list and/or an **error response** — either is acceptable; pick one convention for the product.
+- **Not** the same case: cache exists but **every item** falls outside the content window after prune → returning **zero items** is still a **successful** shape (no upstream “total failure” requirement).
+
+**4. Successful refresh (reconcile, not blind replace on top of good cache)**
+
+- When refresh **succeeds**, **merge** the new fetch with the **previous** pool (dedupe, sort, apply window), same idea as `reconcileNewsFeedPoolAfterRssFetch` today on cron — **do not** drop still-valid cached rows solely because a new request ran; rows disappear when the **content window** excludes them (or when dedupe replaces with a newer representation).
+
+**5. Client-visible `errors[]` and partial merges**
+
+- When the response is **served from last-good cache** after a failed refresh, **avoid** flooding the client with **per-source error noise**; prefer **server-side logs** and/or a **single** lightweight signal (e.g. `stale: true`, or a summarized `refreshError`).
+- When **some** sources fail but the merged pool still has items, keep partial errors **optional** or **reduced** for UX; full diagnostics remain available in **structured server logs**.
+- **`X-News-Pool-Partial: 1`** (merge wall / budget skip on miss) remains a separate, explicit indicator for debugging.
+
+**6. Delivery constraints**
+
+- **Refresh** on a short interval must not rely solely on **synchronous** work inside the default serverless budget; prefer **cron** (`/api/cron/sync/news-feed-pools`), **background** execution where the platform allows, or **try refresh with short timeout** then fall back to stale without writing failure state over the good pool.
+
+**7. Client L0 (IndexedDB) — same scheme as L1/L2**
+
+Terms follow [.ai/knowledge/glossary.md](../../knowledge/glossary.md): **L0** = browser IndexedDB; **L1** = server memory; **L2** = server KV (Upstash for this module). End-to-end flow: **L0 → (HTTP) → L1 → L2 → RSS upstream**.
+
+- **Fast UX:** Show the last **good** L0 snapshot immediately for the **first page** (`offset=0`) while a network refresh runs (today: TTL **300s** `NEWS_FEED_OVERVIEW_IDB_TTL_MS`, aligned with API `stale-while-revalidate=300`).
+- **Stale-on-failure:** If the API call **fails** (network, 5xx, timeout), **do not wipe** the L0 entry for that key; keep displaying the previous successful snapshot until **L0 TTL** expires or the user explicitly refreshes. Mirrors server “keep last good pool.”
+- **Anti-thrash:** Revalidate on a **bounded** cadence (SWR + TTL today); when server-side refresh targets **~10 minutes**, the client should **debounce** or **rate-limit** background refetches so switching tabs / remounts do not **storm** `/api/news/feed`.
+- **Write discipline:** **Overwrite** L0 only on **successful** API responses (`code === 0` or equivalent); failed attempts **must not** replace a still-valid L0 payload.
+
+**8. Tag / keyword / source facet — must be part of the cache model**
+
+- **Server:** The merged pool **L1/L2 cache key** intentionally **excludes** `feedCategory`, `feedKeyword`, and `feedSourceId`. One pool backs **all** facet views; filtering happens in memory (`sliceNewsFeedPageFromPool` after `pruneNewsFeedPoolPayloadForWindow`). **Stale-on-failure** therefore applies to the **shared pool**; a keyword-only API request still reads the same pool key as the unfiltered list, then applies the **keyword** filter. Product copy: “search by keyword” in the UI maps to query **`feedKeyword`** (Topics chip).
+- **Client L0:** `buildNewsFeedOverviewIdbKey(listSlug)` — **no** facet dimension in the key (same merged pool per list as the server). The client reads **fresh TTL** then **stale** (`getNewsFeedOverviewFromIdbStale`) for SWR paint, filters cached rows to match URL `tag` / `keyword` / `source`, and **writes** L0 only on successful **unfiltered** first-page responses (`tagFilter === null`) so facet-specific slices never overwrite the shared row. All L0 rows follow §7.
+- **Cold start:** If there is **no** server pool **and** no L0 entry **and** the request fails, the UI gets empty/error (same rule as §3).
 
 ---
 
 ## Semantics (latest only)
 
-- Each response reflects a **live** aggregation at request time (subject to cache headers), not stored history.
+- Each response aims for **useful latest** data: **subject to** the target caching rules above, a response may be **intentionally stale** (last good pool) when refresh fails; optional response fields may indicate staleness once implemented.
+- **Current** behavior: see **Caching (server) → Current implementation**; until reconcile-on-HTTP and stale-on-failure land, treat responses as **snapshot at last hit or miss** within TTL/cron.
 - Any future “as of date” or archived snapshots must use a **separate path** and spec.

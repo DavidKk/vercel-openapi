@@ -37,6 +37,10 @@ Refer to the [`.env.example`](./.env.example) file to set required environment v
 2. After deployment, obtain an access token via `/api/auth/login`
 3. Use the token to access the holiday data interface at `/api/holiday`
 
+## News module caching (spec)
+
+Layered caching (**L0** IndexedDB → **L1** memory → **L2** KV), stale-on-failure, refresh cadence, and **facet / keyword** (`feedKeyword`) cache dimensions for `GET /api/news/feed` and `/news` are specified in [`.ai/specs/modules/news.md`](./.ai/specs/modules/news.md) (**Caching (server)**, **Target semantics**, §7–§8).
+
 ## E2E Tests (Playwright)
 
 Before running E2E tests, install Playwright browsers once (required after clone or Playwright update):

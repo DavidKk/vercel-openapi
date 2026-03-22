@@ -41,6 +41,8 @@ Optional **warm / refresh** of merged pools (same RSS merge + L1 + Upstash write
 
 See `.env.example` (Cron / automation) for URL examples. Implementation: `app/api/cron/sync/news-feed-pools/route.ts`, `refreshNewsFeedMergedPool` in `services/news/feed/feed-kv-cache.ts`.
 
+**Planned HTTP + pool behavior (stale-on-failure, refresh interval, per-window TTL alignment, quieter `errors` when stale)** plus **client L0 (IndexedDB)** and **facet/keyword cache keys** are specified in [modules/news.md](../modules/news.md#caching-server) under **Caching (server) → Target semantics** (§1–§8). Cron remains the primary place that already **reconciles** previous pool + fresh merge; the spec extends that model to user-facing requests, L0, and failure handling.
+
 ---
 
 ## Data files

@@ -5,7 +5,15 @@ import { getAuthSession } from '@/services/auth/session'
 import { getNewsCategoryForListSlug, isValidNewsListSlug, normalizeNewsSubcategory } from '@/services/news/config/news-subcategories'
 import type { NewsFacetListFilter } from '@/services/news/facets/facet-list-filter'
 import { attachFinalizedTopicKeywordsToNewsPool, pruneNewsFeedPoolPayloadForWindow, sliceNewsFeedPageFromPool } from '@/services/news/feed/aggregate-feed'
-import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours, resolveNewsFeedWindowMs } from '@/services/news/feed/feed-kv-cache'
+import {
+  applyRetrySourcesToNewsFeedPool,
+  buildNewsFeedPoolCacheKey,
+  getOrBuildNewsFeedMergedPool,
+  resolveNewsFeedPoolRecentWindowHours,
+  resolveNewsFeedWindowMs,
+  tryReadNewsFeedPoolFromCacheOnly,
+} from '@/services/news/feed/feed-kv-cache'
+import { NEWS_FEED_WARMUP_MANUAL_UNLOCK_SECONDS, NEWS_FEED_WARMUP_POLL_INTERVAL_SECONDS, splitNewsFeedPoolErrors } from '@/services/news/feed/news-feed-source-issue'
 import { resolveNewsFeedRegionAccess } from '@/services/news/region/news-feed-region-access'
 import { filterNewsSources, getNewsFeedBaseUrl } from '@/services/news/sources/sources'
 import type { NewsRegion } from '@/services/news/types'
@@ -24,7 +32,7 @@ const FEED_SOURCE_ID_RE = /^[\w-]+$/
  */
 export const get_news_feed = tool(
   'get_news_feed',
-  'Aggregate latest news from RSS (RSSHub-compatible). Prefer `list` (flat slug, e.g. headlines, media) to match the overview UI; or use legacy `category` + optional `sub`. When neither is set, first maxFeeds across all categories. Optional region (`cn` | `hk_tw` | `intl`): `hk_tw` and `intl` require a signed-in session; unsigned callers only receive mainland (`cn`) sources. At most one of feedCategory, feedKeyword, feedSourceId before pagination. Cached L1/L2. For offset>0 pass feedAnchor from first page fetchedAt. Returns { items, fetchedAt, baseUrl, mergeStats, facets, sourceInventory?, errors? } — `sourceInventory` lists parsed vs pool counts per RSS source.',
+  'Aggregate latest news from RSS (RSSHub-compatible). Prefer `list` (flat slug, e.g. headlines, media) to match the overview UI; or use legacy `category` + optional `sub`. When neither is set, first maxFeeds across all categories. Optional region (`cn` | `hk_tw` | `intl`): `hk_tw` and `intl` require a signed-in session; unsigned callers only receive mainland (`cn`) sources. At most one of feedCategory, feedKeyword, feedSourceId before pagination. Cached L1/L2. For offset>0 pass feedAnchor from first page fetchedAt. Optional `retrySourceIds` (first page only): re-fetch only those manifest ids into the pool when L1/L2 exists (same as HTTP `retrySourceIds`). Returns items, fetchedAt, baseUrl, mergeStats, facets, optional sourceInventory; `errors` lists hard upstream failures only; `feedWarmup` lists transient/timeouts for polling.',
   z.object({
     list: z.string().min(1).max(48).optional().describe('Flat list slug (same as /news/[slug] and ?list= on the HTTP API); when set, category/sub are ignored'),
     category: z.enum(['general-news', 'tech-internet', 'game-entertainment', 'science-academic']).optional().describe('Legacy manifest tab when `list` is omitted'),
@@ -48,6 +56,13 @@ export const get_news_feed = tool(
       .regex(FEED_SOURCE_ID_RE)
       .optional()
       .describe('Manifest source id; filter list before pagination (exclusive with feedCategory / feedKeyword)'),
+    retrySourceIds: z
+      .array(z.string().min(1).max(MAX_FEED_SOURCE_ID_LEN).regex(FEED_SOURCE_ID_RE))
+      .max(MAX_MAX_FEEDS)
+      .optional()
+      .describe(
+        'When offset=0 and L1/L2 has a pool, re-fetch RSS for these manifest ids only and merge into the cache; unknown ids are ignored. If cache is empty, runs a full merge instead.'
+      ),
   }),
   async (params) => {
     const { category } = params
@@ -109,14 +124,47 @@ export const get_news_feed = tool(
       recentWindowHours,
     })
 
-    const { payload: poolPayload } = await getOrBuildNewsFeedMergedPool({
-      poolCacheKey,
-      sources,
-      baseUrl,
-      windowAtMs,
-      itemCategory: resolvedCategory,
-      listSlug: listSubNorm,
-    })
+    const retrySourceIds = params.retrySourceIds === undefined ? [] : [...new Set(params.retrySourceIds.filter((id) => sources.some((s) => s.id === id)))]
+
+    let poolPayload: Awaited<ReturnType<typeof getOrBuildNewsFeedMergedPool>>['payload']
+    if (retrySourceIds.length > 0 && offset === 0) {
+      const fb = await tryReadNewsFeedPoolFromCacheOnly({ poolCacheKey, listSlug: listSubNorm })
+      if (fb !== null) {
+        poolPayload = await applyRetrySourcesToNewsFeedPool({
+          poolCacheKey,
+          cachedPayload: fb.payload,
+          allSources: sources,
+          retrySourceIds,
+          baseUrl,
+          itemCategory: resolvedCategory,
+          listSlug: listSubNorm,
+        })
+      } else {
+        poolPayload = (
+          await getOrBuildNewsFeedMergedPool({
+            poolCacheKey,
+            sources,
+            baseUrl,
+            windowAtMs,
+            itemCategory: resolvedCategory,
+            listSlug: listSubNorm,
+            allowInlinePoolRefresh: true,
+          })
+        ).payload
+      }
+    } else {
+      poolPayload = (
+        await getOrBuildNewsFeedMergedPool({
+          poolCacheKey,
+          sources,
+          baseUrl,
+          windowAtMs,
+          itemCategory: resolvedCategory,
+          listSlug: listSubNorm,
+          allowInlinePoolRefresh: offset === 0,
+        })
+      ).payload
+    }
 
     const prunedPayload = pruneNewsFeedPoolPayloadForWindow(poolPayload, windowAtMs)
     const responsePoolPayload = attachFinalizedTopicKeywordsToNewsPool(prunedPayload)
@@ -131,6 +179,8 @@ export const get_news_feed = tool(
       sourceInventory,
     } = sliceNewsFeedPageFromPool(responsePoolPayload, { facetListFilter, itemOffset: offset, itemLimit: limit })
 
+    const { warmup: warmupIssues, failures: failureIssues } = splitNewsFeedPoolErrors(errors)
+
     const out: {
       items: typeof items
       fetchedAt: string
@@ -139,12 +189,26 @@ export const get_news_feed = tool(
       facets: typeof facets
       sourceInventory?: typeof sourceInventory
       errors?: { sourceId: string; message: string }[]
+      feedWarmup?: {
+        pending: true
+        sources: { sourceId: string; message: string }[]
+        suggestedRetryAfterSeconds: number
+        suggestedManualRetryAfterSeconds: number
+      }
     } = { items, fetchedAt, baseUrl: responseBaseUrl, mergeStats, facets }
     if (sourceInventory !== undefined && sourceInventory.length > 0) {
       out.sourceInventory = sourceInventory
     }
-    if (errors.length > 0) {
-      out.errors = errors
+    if (failureIssues.length > 0) {
+      out.errors = failureIssues
+    }
+    if (warmupIssues.length > 0) {
+      out.feedWarmup = {
+        pending: true,
+        sources: warmupIssues,
+        suggestedRetryAfterSeconds: NEWS_FEED_WARMUP_POLL_INTERVAL_SECONDS,
+        suggestedManualRetryAfterSeconds: NEWS_FEED_WARMUP_MANUAL_UNLOCK_SECONDS,
+      }
     }
     return out
   }
