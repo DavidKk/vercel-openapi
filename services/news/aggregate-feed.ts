@@ -30,21 +30,69 @@ const RETRYABLE_HTTP_STATUSES = new Set([429, 502, 503, 504])
 const RSS_USER_AGENT = 'unbnd-news-aggregator/1.0'
 
 /**
- * Build `fetch` headers for RSSHub (or compatible) GETs. When both `RSSHUB_CF_ACCESS_CLIENT_ID` and
- * `RSSHUB_CF_ACCESS_CLIENT_SECRET` are set, adds Cloudflare Zero Trust **Access service token** headers
- * so a worker or self-hosted RSSHub behind Cloudflare Access can authenticate.
- * @returns Header map (never log values — secrets)
+ * Cache for parsed `RSSHUB_REQUEST_HEADERS_JSON` so RSS merges do not re-parse on every upstream fetch.
+ */
+let rsshubRequestHeadersJsonCache: { raw: string | undefined; headers: Record<string, string> | null } = {
+  raw: undefined,
+  headers: null,
+}
+
+/**
+ * Parse optional `RSSHUB_REQUEST_HEADERS_JSON` into header entries. Only top-level string values are applied.
+ * @returns Extra headers for RSS GETs, or null when unset, invalid, or empty
+ */
+function parseRsshubRequestHeadersJson(): Record<string, string> | null {
+  const raw = process.env.RSSHUB_REQUEST_HEADERS_JSON?.trim()
+  if (raw === rsshubRequestHeadersJsonCache.raw) {
+    return rsshubRequestHeadersJsonCache.headers
+  }
+  rsshubRequestHeadersJsonCache.raw = raw
+  if (!raw) {
+    rsshubRequestHeadersJsonCache.headers = null
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      logger.warn('RSSHUB_REQUEST_HEADERS_JSON must be a JSON object; ignoring')
+      rsshubRequestHeadersJsonCache.headers = null
+      return null
+    }
+    const out: Record<string, string> = {}
+    for (const [key, value] of Object.entries(parsed)) {
+      const k = key.trim()
+      if (!k || typeof value !== 'string') {
+        continue
+      }
+      out[k] = value
+    }
+    if (Object.keys(out).length === 0) {
+      rsshubRequestHeadersJsonCache.headers = null
+      return null
+    }
+    rsshubRequestHeadersJsonCache.headers = out
+    return out
+  } catch {
+    logger.warn('RSSHUB_REQUEST_HEADERS_JSON is not valid JSON; ignoring')
+    rsshubRequestHeadersJsonCache.headers = null
+    return null
+  }
+}
+
+/**
+ * Build `fetch` headers for RSSHub (or compatible) GETs. Merges optional `RSSHUB_REQUEST_HEADERS_JSON`
+ * (JSON object: header name → string value) for auth gateways, reverse proxies, or e.g. Cloudflare Access
+ * service tokens (`CF-Access-Client-Id`, `CF-Access-Client-Secret`). Extra entries override same-named defaults.
+ * @returns Header map (never log values — may contain secrets)
  */
 function buildNewsRssFetchHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/rss+xml, application/xml, text/xml, */*',
     'User-Agent': RSS_USER_AGENT,
   }
-  const clientId = process.env.RSSHUB_CF_ACCESS_CLIENT_ID?.trim()
-  const clientSecret = process.env.RSSHUB_CF_ACCESS_CLIENT_SECRET?.trim()
-  if (clientId && clientSecret) {
-    headers['CF-Access-Client-Id'] = clientId
-    headers['CF-Access-Client-Secret'] = clientSecret
+  const extra = parseRsshubRequestHeadersJson()
+  if (extra) {
+    Object.assign(headers, extra)
   }
   return headers
 }

@@ -29,5 +29,7 @@ declare namespace NodeJS {
      * (e.g. news merged pool L1/L2/KV) and force `Cache-Control: private, no-store` on standard JSON helpers.
      */
     DISABLE_CACHE?: string
+    /** Optional JSON object (string values only) merged into News RSSHub upstream fetch headers */
+    RSSHUB_REQUEST_HEADERS_JSON?: string
   }
 }
