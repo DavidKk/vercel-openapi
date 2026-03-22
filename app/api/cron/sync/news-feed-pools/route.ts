@@ -8,8 +8,11 @@ import type { NewsCategory } from '@/services/news/types'
 
 export const runtime = 'nodejs'
 
-/** Hobby may cap execution (~10s); Pro/Enterprise can use higher `maxDuration` for parallel pool refreshes. */
-export const maxDuration = 300
+/**
+ * Vercel Hobby allows `maxDuration` 1–60s only. Pro/Enterprise can raise this in code (e.g. 300) per route.
+ * @see https://vercel.com/docs/functions/configuring-functions/duration
+ */
+export const maxDuration = 60
 
 const logger = createLogger('cron-news-feed-pools')
 
@@ -48,7 +51,7 @@ interface PoolRefreshJob {
 
 /**
  * News merged-pool warm / refresh cron. Re-fetches RSS and writes L1 + Upstash for each pool key
- * (same as user traffic + `after()` refresh). Call from cron-job.org etc. every ~10 minutes with
+ * (same RSS merge + L1/KV write as a full pool refresh). Call from cron-job.org etc. every ~10 minutes with
  * `CRON_SECRET` (Bearer or `?secret=`).
  *
  * Query: `maxFeeds` (default 15, max 25), `region` (`cn` | `hk_tw` | `intl` or omit for all),

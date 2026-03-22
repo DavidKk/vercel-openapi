@@ -212,7 +212,7 @@ export const newsSourcesManifest = {
       category: 'tech-internet',
       subcategory: 'product',
       region: 'cn',
-      rsshubPath: '/woshipm/popular',
+      rsshubPath: '/woshipm/popular/daily',
       defaultUrl: 'https://www.woshipm.com',
     },
     {
