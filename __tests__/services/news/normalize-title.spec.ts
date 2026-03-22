@@ -1,4 +1,4 @@
-import { normalizeTitleKey } from '@/services/news/normalize-title'
+import { normalizeTitleKey } from '@/services/news/parsing/normalize-title'
 
 describe('normalizeTitleKey', () => {
   it('should collapse whitespace and strip simple tags', () => {

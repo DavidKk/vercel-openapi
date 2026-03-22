@@ -1,12 +1,15 @@
 import { api } from '@/initializer/controller'
-import { jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
+import { jsonForbidden, jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
+import { getAuthSession } from '@/services/auth/session'
 import { createLogger } from '@/services/logger'
-import { pruneNewsFeedPoolPayloadForWindow, sliceNewsFeedPageFromPool } from '@/services/news/aggregate-feed'
-import type { NewsFacetListFilter } from '@/services/news/facet-list-filter'
-import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours, resolveNewsFeedWindowMs } from '@/services/news/feed-kv-cache'
-import { getNewsCategoryForListSlug, isValidNewsListSlug, normalizeNewsSubcategory } from '@/services/news/news-subcategories'
-import { filterNewsSources, getNewsFeedBaseUrl, isValidNewsCategory, isValidNewsRegion } from '@/services/news/sources'
-import type { NewsCategory } from '@/services/news/types'
+import { getNewsCategoryForListSlug, isValidNewsListSlug, normalizeNewsSubcategory } from '@/services/news/config/news-subcategories'
+import type { NewsFacetListFilter } from '@/services/news/facets/facet-list-filter'
+import { attachFinalizedTopicKeywordsToNewsPool, pruneNewsFeedPoolPayloadForWindow, sliceNewsFeedPageFromPool } from '@/services/news/feed/aggregate-feed'
+import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours, resolveNewsFeedWindowMs } from '@/services/news/feed/feed-kv-cache'
+import { resolveNewsFeedRegionAccess } from '@/services/news/region/news-feed-region-access'
+import { filterNewsSources, getNewsFeedBaseUrl, isValidNewsCategory, isValidNewsRegion } from '@/services/news/sources/sources'
+import { logNewsStructured, NEWS_FEED_API_FLOW } from '@/services/news/structured-news-log'
+import type { NewsCategory, NewsRegion } from '@/services/news/types'
 
 /** Node runtime: merged pool is built or read from cache synchronously before the JSON response (no post-response RSS jobs). */
 export const runtime = 'nodejs'
@@ -189,8 +192,14 @@ export const GET = api(async (req) => {
   }
 
   const baseUrl = getNewsFeedBaseUrl()
-  const regionNorm = region !== undefined && region !== '' && isValidNewsRegion(region) ? region : ''
+  const requestedRegion: '' | NewsRegion = region !== undefined && region !== '' && isValidNewsRegion(region) ? region : ''
   const categoryNorm = itemCategory ?? ''
+
+  const session = await getAuthSession()
+  const regionAccess = resolveNewsFeedRegionAccess(session.authenticated, requestedRegion)
+  if (!regionAccess.ok) {
+    return jsonForbidden(regionAccess.message, { headers: new Headers({ 'Content-Type': 'application/json' }) })
+  }
 
   const windowAtMs = resolveNewsFeedWindowMs({ feedAnchorRaw, offset })
   const recentWindowHours = resolveNewsFeedPoolRecentWindowHours(listSubcategoryNorm)
@@ -198,7 +207,7 @@ export const GET = api(async (req) => {
     baseUrl,
     category: categoryNorm,
     subcategory: listSubcategoryNorm,
-    region: regionNorm,
+    region: regionAccess.regionCacheKey,
     maxFeeds,
     recentWindowHours,
   })
@@ -208,26 +217,27 @@ export const GET = api(async (req) => {
    * otherwise first `maxFeeds` across all categories (no list dimension).
    */
   let sources = useListQuery
-    ? filterNewsSources(undefined, region || undefined, undefined, listParam)
-    : filterNewsSources(itemCategory, region || undefined, itemCategory !== undefined ? listSubcategoryNorm : undefined)
+    ? filterNewsSources(undefined, regionAccess.regionFilter, undefined, listParam)
+    : filterNewsSources(itemCategory, regionAccess.regionFilter, itemCategory !== undefined ? listSubcategoryNorm : undefined)
   sources = sources.slice(0, maxFeeds)
 
   const logCategory = listParam !== '' ? `list:${listParam}` : category !== undefined && category !== '' ? category : 'all'
-  const logRegion = region !== undefined && region !== '' ? region : 'all'
+  const logRegion = regionAccess.regionCacheKey === '' ? 'all' : regionAccess.regionCacheKey
 
-  logger.info(
+  logNewsStructured(
+    logger,
+    'info',
+    NEWS_FEED_API_FLOW,
     `News feed request: ${logCategory}/${logRegion} offset=${offset} limit=${limit} maxFeeds=${maxFeeds} (${sources.length} sources)`,
-    JSON.stringify({
-      flow: 'GET /api/news/feed',
-      step: 'request_accepted',
-      event: 'news_feed_request',
+    'news_feed_request',
+    {
       cat: logCategory,
       region: logRegion,
       offset,
       limit,
       maxFeeds,
       sourceIds: sources.map((s) => s.id),
-    })
+    }
   )
 
   const poolPhaseStartedAt = Date.now()
@@ -242,59 +252,51 @@ export const GET = api(async (req) => {
   const poolPhaseMs = Date.now() - poolPhaseStartedAt
 
   const poolSourceLabel = describeNewsFeedPoolSource(poolLayerHit)
-  const poolResolvedMeta = JSON.stringify({
-    flow: 'GET /api/news/feed',
-    step: 'pool_resolved',
-    event: 'news_feed_pool_resolved',
+  const poolResolvedSummary = `News feed pool: ${poolSourceLabel} — ${poolPhaseMs}ms, ${poolPayload.pool.length} rows (before window prune)`
+  const poolResolvedDetail = {
     poolCacheLayer: poolLayerHit === 'l1' ? 'L1' : poolLayerHit === 'l2' ? 'L2' : null,
     poolCacheMiss: poolLayerHit === null,
     poolPhaseMs,
     poolRowsBeforePrune: poolPayload.pool.length,
     lastMergedAtMs: poolPayload.lastMergedAtMs ?? null,
-  })
-  const poolResolvedSummary = `News feed pool: ${poolSourceLabel} — ${poolPhaseMs}ms, ${poolPayload.pool.length} rows (before window prune)`
+  }
   if (poolPayload.pool.length === 0) {
-    logger.warn(poolResolvedSummary, poolResolvedMeta)
+    logNewsStructured(logger, 'warn', NEWS_FEED_API_FLOW, poolResolvedSummary, 'news_feed_pool_resolved', poolResolvedDetail)
   } else {
-    logger.info(poolResolvedSummary, poolResolvedMeta)
+    logNewsStructured(logger, 'ok', NEWS_FEED_API_FLOW, poolResolvedSummary, 'news_feed_pool_resolved', poolResolvedDetail)
   }
   if ((poolPayload.errors?.length ?? 0) > 0) {
-    logger.info(
+    logNewsStructured(
+      logger,
+      'warn',
+      NEWS_FEED_API_FLOW,
       `News feed pool: ${poolPayload.errors!.length} upstream source error(s) attached to pool`,
-      JSON.stringify({
-        flow: 'GET /api/news/feed',
-        step: 'pool_partial_errors',
-        event: 'news_feed_pool_errors_summary',
-        failedSourceIds: [...new Set(poolPayload.errors!.map((e) => e.sourceId))],
-      })
+      'news_feed_pool_errors_summary',
+      { failedSourceIds: [...new Set(poolPayload.errors!.map((e) => e.sourceId))] }
     )
     for (const e of poolPayload.errors!) {
-      logger.info(
-        `News feed pool error: ${e.sourceId} — ${e.message}`,
-        JSON.stringify({
-          flow: 'GET /api/news/feed',
-          step: 'pool_error_detail',
-          event: 'news_feed_pool_error',
-          sourceId: e.sourceId,
-          message: e.message,
-        })
-      )
+      logNewsStructured(logger, 'warn', NEWS_FEED_API_FLOW, `News feed pool error: ${e.sourceId} — ${e.message}`, 'news_feed_pool_error', {
+        sourceId: e.sourceId,
+        message: e.message,
+      })
     }
   }
 
   const prunedPayload = pruneNewsFeedPoolPayloadForWindow(poolPayload, windowAtMs)
+  const responsePoolPayload = attachFinalizedTopicKeywordsToNewsPool(prunedPayload)
 
   if (prunedPayload.pool.length === 0 && poolPayload.pool.length > 0) {
-    logger.warn(
+    logNewsStructured(
+      logger,
+      'warn',
+      NEWS_FEED_API_FLOW,
       `News feed pool: request window prune removed all rows (had ${poolPayload.pool.length} before anchor prune)`,
-      JSON.stringify({
-        flow: 'GET /api/news/feed',
-        step: 'pool_prune_empty',
-        event: 'news_feed_pool_prune_empty',
+      'news_feed_pool_prune_empty',
+      {
         poolRowsBeforePrune: poolPayload.pool.length,
         poolRowsAfterPrune: prunedPayload.pool.length,
         windowAtMs,
-      })
+      }
     )
   }
 
@@ -306,7 +308,7 @@ export const GET = api(async (req) => {
     facets,
     baseUrl: responseBaseUrl,
     sourceInventory,
-  } = sliceNewsFeedPageFromPool(prunedPayload, {
+  } = sliceNewsFeedPageFromPool(responsePoolPayload, {
     facetListFilter: facetParsed,
     itemOffset: offset,
     itemLimit: limit,
@@ -317,28 +319,23 @@ export const GET = api(async (req) => {
 
   if (sourceInventory !== undefined && sourceInventory.length > 0) {
     for (const row of sourceInventory) {
-      const invMeta = JSON.stringify({
-        flow: 'GET /api/news/feed',
-        step: 'source_inventory',
-        event: 'news_feed_source_inventory',
+      const invSummary = `News feed source tally: ${row.sourceId} — parsed=${row.parsedCount} pool=${row.poolCount}`
+      const invDetail = {
         sourceId: row.sourceId,
         label: row.label,
         parsedCount: row.parsedCount,
         poolCount: row.poolCount,
-      })
-      const invSummary = `News feed source tally: ${row.sourceId} — parsed=${row.parsedCount} pool=${row.poolCount}`
+      }
       if (row.poolCount === 0) {
-        logger.warn(invSummary, invMeta)
+        logNewsStructured(logger, 'warn', NEWS_FEED_API_FLOW, invSummary, 'news_feed_source_inventory', invDetail)
       } else {
-        logger.info(invSummary, invMeta)
+        logNewsStructured(logger, 'ok', NEWS_FEED_API_FLOW, invSummary, 'news_feed_source_inventory', invDetail)
       }
     }
   }
 
-  const responseMeta = JSON.stringify({
-    flow: 'GET /api/news/feed',
-    step: 'response_page',
-    event: 'news_feed_response',
+  const responseSummary = `News feed response: ${items.length} items returned (${logCategory}/${logRegion} offset=${offset} limit=${limit}, hasMore=${mergeStats.hasMore}, handler ${handlerDurationMs}ms)`
+  const responseDetail = {
     cat: logCategory,
     region: logRegion,
     offset,
@@ -350,18 +347,15 @@ export const GET = api(async (req) => {
     hasMore: mergeStats.hasMore,
     handlerDurationMs,
     poolCacheLayer: poolLayerHit === 'l1' ? 'L1' : poolLayerHit === 'l2' ? 'L2' : null,
-  })
-  const responseSummary = `News feed response: ${items.length} items returned (${logCategory}/${logRegion} offset=${offset} limit=${limit}, hasMore=${mergeStats.hasMore}, handler ${handlerDurationMs}ms)`
+  }
   if (items.length === 0 || mergeStats.uniqueAfterDedupe === 0) {
-    logger.warn(responseSummary, responseMeta)
+    logNewsStructured(logger, 'warn', NEWS_FEED_API_FLOW, responseSummary, 'news_feed_response', responseDetail)
   } else {
-    logger.info(responseSummary, responseMeta)
+    logNewsStructured(logger, 'ok', NEWS_FEED_API_FLOW, responseSummary, 'news_feed_response', responseDetail)
   }
 
-  const mergeStatsMeta = JSON.stringify({
-    flow: 'GET /api/news/feed',
-    step: 'merge_stats',
-    event: 'news_feed_merge_stats',
+  const mergeStatsSummary = `News feed merge stats: raw=${mergeStats.rawItemCount} deduped=${mergeStats.uniqueAfterDedupe} sources=${mergeStats.sourcesWithItems}/${mergeStats.sourcesRequested} dupUrl=${mergeStats.duplicateDropped} dupTitle=${mergeStats.duplicateDroppedByTitle} droppedWindow=${mergeStats.droppedOutsideRecentWindow} missingLink=${mergeStats.droppedMissingLink}`
+  const mergeStatsDetail = {
     rawItemCount: mergeStats.rawItemCount,
     uniqueAfterDedupe: mergeStats.uniqueAfterDedupe,
     sourcesWithItems: mergeStats.sourcesWithItems,
@@ -371,26 +365,19 @@ export const GET = api(async (req) => {
     duplicateDroppedByTitle: mergeStats.duplicateDroppedByTitle,
     droppedOutsideRecentWindow: mergeStats.droppedOutsideRecentWindow,
     droppedMissingLink: mergeStats.droppedMissingLink,
-  })
-  const mergeStatsSummary = `News feed merge stats: raw=${mergeStats.rawItemCount} deduped=${mergeStats.uniqueAfterDedupe} sources=${mergeStats.sourcesWithItems}/${mergeStats.sourcesRequested} dupUrl=${mergeStats.duplicateDropped} dupTitle=${mergeStats.duplicateDroppedByTitle} droppedWindow=${mergeStats.droppedOutsideRecentWindow} missingLink=${mergeStats.droppedMissingLink}`
+  }
   if (mergeStats.uniqueAfterDedupe === 0 || mergeStats.rawItemCount === 0) {
-    logger.warn(mergeStatsSummary, mergeStatsMeta)
+    logNewsStructured(logger, 'warn', NEWS_FEED_API_FLOW, mergeStatsSummary, 'news_feed_merge_stats', mergeStatsDetail)
   } else {
-    logger.info(mergeStatsSummary, mergeStatsMeta)
+    logNewsStructured(logger, 'ok', NEWS_FEED_API_FLOW, mergeStatsSummary, 'news_feed_merge_stats', mergeStatsDetail)
   }
 
   if (errors.length > 0) {
     for (const e of errors) {
-      logger.info(
-        `News feed response error field: ${e.sourceId}`,
-        JSON.stringify({
-          flow: 'GET /api/news/feed',
-          step: 'response_error',
-          event: 'news_feed_response_error',
-          sourceId: e.sourceId,
-          message: e.message,
-        })
-      )
+      logNewsStructured(logger, 'warn', NEWS_FEED_API_FLOW, `News feed response error field: ${e.sourceId}`, 'news_feed_response_error', {
+        sourceId: e.sourceId,
+        message: e.message,
+      })
     }
   }
 

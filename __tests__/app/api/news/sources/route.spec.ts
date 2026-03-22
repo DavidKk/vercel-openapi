@@ -2,7 +2,16 @@ import { NextRequest } from 'next/server'
 
 import { GET } from '@/app/api/news/sources/route'
 
+const mockGetAuthSession = jest.fn()
+jest.mock('@/services/auth/session', () => ({
+  getAuthSession: () => mockGetAuthSession(),
+}))
+
 describe('GET /api/news/sources', () => {
+  beforeEach(() => {
+    mockGetAuthSession.mockResolvedValue({ authenticated: true, username: 'test' })
+  })
+
   it('should return 200 with sources array and baseUrl', async () => {
     const req = new NextRequest('http://localhost/api/news/sources', { method: 'GET' })
     const res = await GET(req, { params: Promise.resolve({}) })
@@ -56,5 +65,14 @@ describe('GET /api/news/sources', () => {
     for (const s of rows) {
       expect(s.region).toBe('intl')
     }
+  })
+
+  it('should return 403 when unauthenticated and region is intl', async () => {
+    mockGetAuthSession.mockResolvedValueOnce({ authenticated: false, username: null })
+    const req = new NextRequest('http://localhost/api/news/sources?region=intl', { method: 'GET' })
+    const res = await GET(req, { params: Promise.resolve({}) })
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(String(body.message)).toMatch(/sign-in/i)
   })
 })

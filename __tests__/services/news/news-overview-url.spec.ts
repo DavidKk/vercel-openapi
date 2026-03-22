@@ -9,7 +9,7 @@ import {
   parseNewsOverviewQueryParam,
   resolveNewsFeedLandingHrefFromRootSearch,
   serializeNewsOverviewQueryParam,
-} from '@/services/news/news-overview-url'
+} from '@/services/news/routing/news-overview-url'
 
 describe('news-overview-url', () => {
   it('should default category to general-news when missing or invalid', () => {

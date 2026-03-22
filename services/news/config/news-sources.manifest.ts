@@ -1,8 +1,8 @@
-import type { NewsSourcesManifest } from './types'
+import type { NewsSourcesManifest } from '../types'
 
 /**
  * Curated RSS sources manifest for the News module. Each `rsshubPath` is appended to `RSSHUB_BASE_URL`.
- * `subcategory` must match a slug from `news-subcategories.ts` for the source’s `category`.
+ * `subcategory` must match a slug from `config/news-subcategories.ts` for the source’s `category`.
  *
  * Full manifest RSS checks: `pnpm verify:todo-rsshub` (`scripts/verify-todo-rsshub.mjs` reads this file).
  * `scripts/verify-rsshub-paths.sh` is a smaller curl batch for tech paths only. Routes that returned 503 on your
@@ -20,11 +20,13 @@ import type { NewsSourcesManifest } from './types'
  * **v11**: `zhihu-hot-total` moved from `tech-internet` / `developer` to `general-news` / `headlines` — site-wide hot list is not dev-community scoped.
  * **v12**: Removed `social-platform` category and `video` (视频平台热门) list; dropped `bilibili-popular` (News focuses on text/news RSS).
  * **v13**: Removed `general-news` / `headlines` source `people-headline` (人民网头条); removed `depth` list and sources `infzm-featured`, `caixin-weekly`, `nytimes-morning-briefing`.
+ * **v14**: Removed `general-news` / `opinion` (观点评论) list; `guancha-redian` and `thepaper-pinglun` now use `headlines`.
+ * **v15**: Removed `thepaper-pinglun` (澎湃评论) and `bbc-chinese` (BBC 中文网) from `general-news` / `headlines`.
  *
  * @returns Manifest object with `version` and `sources` list
  */
 export const newsSourcesManifest = {
-  version: 13,
+  version: 15,
   sources: [
     {
       id: 'thepaper',
@@ -57,7 +59,7 @@ export const newsSourcesManifest = {
       id: 'guancha-redian',
       label: '观察者网热点',
       category: 'general-news',
-      subcategory: 'opinion',
+      subcategory: 'headlines',
       region: 'cn',
       rsshubPath: '/guancha/redian',
       defaultUrl: 'https://www.guancha.cn',
@@ -79,15 +81,6 @@ export const newsSourcesManifest = {
       region: 'cn',
       rsshubPath: '/chinanews',
       defaultUrl: 'https://www.chinanews.com.cn',
-    },
-    {
-      id: 'thepaper-pinglun',
-      label: '澎湃评论',
-      category: 'general-news',
-      subcategory: 'opinion',
-      region: 'cn',
-      rsshubPath: '/thepaper/list/27224',
-      defaultUrl: 'https://www.thepaper.cn',
     },
     {
       id: 'eastday-24',
@@ -308,21 +301,12 @@ export const newsSourcesManifest = {
       defaultUrl: 'https://www.ccf.org.cn',
     },
     {
-      id: 'zaobao-realtime-china',
-      label: '联合早报（即时·中港台）',
+      id: 'zaobao',
+      label: '联合早报',
       category: 'general-news',
       subcategory: 'headlines',
       region: 'hk_tw',
-      rsshubPath: '/zaobao/realtime/china',
-      defaultUrl: 'https://www.zaobao.com.sg',
-    },
-    {
-      id: 'zaobao-znews-china',
-      label: '联合早报（中国新闻）',
-      category: 'general-news',
-      subcategory: 'headlines',
-      region: 'hk_tw',
-      rsshubPath: '/zaobao/znews/china',
+      rsshubPath: '/zaobao/realtime/world',
       defaultUrl: 'https://www.zaobao.com.sg',
     },
     {
@@ -351,15 +335,6 @@ export const newsSourcesManifest = {
       region: 'intl',
       rsshubPath: '/bbc/world',
       defaultUrl: 'https://www.bbc.com',
-    },
-    {
-      id: 'bbc-chinese',
-      label: 'BBC 中文网',
-      category: 'general-news',
-      subcategory: 'headlines',
-      region: 'intl',
-      rsshubPath: '/bbc/chinese',
-      defaultUrl: 'https://www.bbc.com/zhongwen',
     },
     {
       id: 'techcrunch-news',

@@ -1,4 +1,4 @@
-import { alignWindowMsToTtlBucket, buildNewsFeedPoolCacheKey, isNewsFeedPoolCachePayload, resolveNewsFeedWindowMs } from '@/services/news/feed-kv-cache'
+import { alignWindowMsToTtlBucket, buildNewsFeedPoolCacheKey, isNewsFeedPoolCachePayload, resolveNewsFeedWindowMs } from '@/services/news/feed/feed-kv-cache'
 
 describe('feed-kv-cache (pool)', () => {
   it('should produce the same pool cache key for identical pool dimensions', async () => {
@@ -20,7 +20,7 @@ describe('feed-kv-cache (pool)', () => {
     const base = {
       baseUrl: 'https://rss.example',
       category: 'general-news',
-      subcategory: 'opinion',
+      subcategory: 'headlines',
       region: '',
       maxFeeds: 15,
     }

@@ -1,11 +1,14 @@
 import { z } from 'zod'
 
 import { tool } from '@/initializer/mcp'
-import { pruneNewsFeedPoolPayloadForWindow, sliceNewsFeedPageFromPool } from '@/services/news/aggregate-feed'
-import type { NewsFacetListFilter } from '@/services/news/facet-list-filter'
-import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours, resolveNewsFeedWindowMs } from '@/services/news/feed-kv-cache'
-import { getNewsCategoryForListSlug, isValidNewsListSlug, normalizeNewsSubcategory } from '@/services/news/news-subcategories'
-import { filterNewsSources, getNewsFeedBaseUrl } from '@/services/news/sources'
+import { getAuthSession } from '@/services/auth/session'
+import { getNewsCategoryForListSlug, isValidNewsListSlug, normalizeNewsSubcategory } from '@/services/news/config/news-subcategories'
+import type { NewsFacetListFilter } from '@/services/news/facets/facet-list-filter'
+import { attachFinalizedTopicKeywordsToNewsPool, pruneNewsFeedPoolPayloadForWindow, sliceNewsFeedPageFromPool } from '@/services/news/feed/aggregate-feed'
+import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours, resolveNewsFeedWindowMs } from '@/services/news/feed/feed-kv-cache'
+import { resolveNewsFeedRegionAccess } from '@/services/news/region/news-feed-region-access'
+import { filterNewsSources, getNewsFeedBaseUrl } from '@/services/news/sources/sources'
+import type { NewsRegion } from '@/services/news/types'
 
 const DEFAULT_ITEM_LIMIT = 30
 const MAX_ITEM_LIMIT = 100
@@ -21,7 +24,7 @@ const FEED_SOURCE_ID_RE = /^[\w-]+$/
  */
 export const get_news_feed = tool(
   'get_news_feed',
-  'Aggregate latest news from RSS (RSSHub-compatible). Prefer `list` (flat slug, e.g. headlines, media) to match the overview UI; or use legacy `category` + optional `sub`. When neither is set, first maxFeeds across all categories. Optional region. At most one of feedCategory, feedKeyword, feedSourceId before pagination. Cached L1/L2. For offset>0 pass feedAnchor from first page fetchedAt. Returns { items, fetchedAt, baseUrl, mergeStats, facets, sourceInventory?, errors? } — `sourceInventory` lists parsed vs pool counts per RSS source.',
+  'Aggregate latest news from RSS (RSSHub-compatible). Prefer `list` (flat slug, e.g. headlines, media) to match the overview UI; or use legacy `category` + optional `sub`. When neither is set, first maxFeeds across all categories. Optional region (`cn` | `hk_tw` | `intl`): `hk_tw` and `intl` require a signed-in session; unsigned callers only receive mainland (`cn`) sources. At most one of feedCategory, feedKeyword, feedSourceId before pagination. Cached L1/L2. For offset>0 pass feedAnchor from first page fetchedAt. Returns { items, fetchedAt, baseUrl, mergeStats, facets, sourceInventory?, errors? } — `sourceInventory` lists parsed vs pool counts per RSS source.',
   z.object({
     list: z.string().min(1).max(48).optional().describe('Flat list slug (same as /news/[slug] and ?list= on the HTTP API); when set, category/sub are ignored'),
     category: z.enum(['general-news', 'tech-internet', 'game-entertainment', 'science-academic']).optional().describe('Legacy manifest tab when `list` is omitted'),
@@ -47,8 +50,14 @@ export const get_news_feed = tool(
       .describe('Manifest source id; filter list before pagination (exclusive with feedCategory / feedKeyword)'),
   }),
   async (params) => {
-    const { category, region } = params
+    const { category } = params
     const listTrimmed = params.list?.trim() ?? ''
+    const session = await getAuthSession()
+    const requestedRegion: '' | NewsRegion = params.region ?? ''
+    const regionAccess = resolveNewsFeedRegionAccess(session.authenticated, requestedRegion)
+    if (!regionAccess.ok) {
+      throw new Error(regionAccess.message)
+    }
     if (listTrimmed !== '' && !isValidNewsListSlug(listTrimmed)) {
       throw new Error('invalid list: use a known flat slug (e.g. headlines, media, games)')
     }
@@ -82,10 +91,10 @@ export const get_news_feed = tool(
     const baseUrl = getNewsFeedBaseUrl()
     const listSubNorm = useList ? listTrimmed : itemCategory !== undefined ? normalizeNewsSubcategory(itemCategory, params.sub) : ''
     let sources = useList
-      ? filterNewsSources(undefined, region, undefined, listTrimmed)
-      : filterNewsSources(itemCategory, region, itemCategory !== undefined ? listSubNorm : undefined)
+      ? filterNewsSources(undefined, regionAccess.regionFilter, undefined, listTrimmed)
+      : filterNewsSources(itemCategory, regionAccess.regionFilter, itemCategory !== undefined ? listSubNorm : undefined)
     sources = sources.slice(0, maxFeeds)
-    const regionNorm = region ?? ''
+    const regionNorm = regionAccess.regionCacheKey
     const resolvedCategory = useList ? getNewsCategoryForListSlug(listTrimmed) : itemCategory
     const categoryNorm = resolvedCategory ?? ''
 
@@ -110,6 +119,7 @@ export const get_news_feed = tool(
     })
 
     const prunedPayload = pruneNewsFeedPoolPayloadForWindow(poolPayload, windowAtMs)
+    const responsePoolPayload = attachFinalizedTopicKeywordsToNewsPool(prunedPayload)
 
     const {
       items,
@@ -119,7 +129,7 @@ export const get_news_feed = tool(
       facets,
       baseUrl: responseBaseUrl,
       sourceInventory,
-    } = sliceNewsFeedPageFromPool(prunedPayload, { facetListFilter, itemOffset: offset, itemLimit: limit })
+    } = sliceNewsFeedPageFromPool(responsePoolPayload, { facetListFilter, itemOffset: offset, itemLimit: limit })
 
     const out: {
       items: typeof items

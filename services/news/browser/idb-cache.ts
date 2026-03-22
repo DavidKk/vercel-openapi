@@ -5,8 +5,8 @@
  */
 
 import { createIdbCache, IDB_STORES, SHARED_DB_NAME } from '@/services/idb-cache'
-import type { NewsFacetListFilter } from '@/services/news/facet-list-filter'
-import { normalizeNewsListSlug } from '@/services/news/news-subcategories'
+import { normalizeNewsListSlug } from '@/services/news/config/news-subcategories'
+import type { NewsFacetListFilter } from '@/services/news/facets/facet-list-filter'
 import type { AggregatedNewsItem, NewsFeedFacets, NewsFeedSourceInventoryRow } from '@/services/news/types'
 
 /**

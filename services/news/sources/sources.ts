@@ -1,6 +1,6 @@
-import { newsSourcesManifest } from './news-sources.manifest'
-import { getNewsCategoryForListSlug, isValidNewsListSlug } from './news-subcategories'
-import type { NewsCategory, NewsRegion, NewsSourceConfig } from './types'
+import { newsSourcesManifest } from '../config/news-sources.manifest'
+import { getNewsCategoryForListSlug, isValidNewsListSlug } from '../config/news-subcategories'
+import type { NewsCategory, NewsRegion, NewsSourceConfig } from '../types'
 
 const doc = newsSourcesManifest
 

@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 
 import { createLogger } from '@/services/logger'
-import { resolveNewsFeedLandingHrefFromRootSearch } from '@/services/news/news-overview-url'
+import { resolveNewsFeedLandingHrefFromRootSearch } from '@/services/news/routing/news-overview-url'
+import { logNewsStructured, NEWS_PAGE_ROOT_FLOW } from '@/services/news/structured-news-log'
 
 const logger = createLogger('news-root-page')
 
@@ -27,21 +28,14 @@ export default async function NewsRootPage(props: Readonly<NewsRootPageProps>) {
   const pathMatch = /^\/news\/([^/?]+)/.exec(href)
   const targetList = pathMatch?.[1] ?? 'unknown'
   const redirectSummary = `News: redirect /news → /news/${targetList}${href.includes('?') ? ' (+ query)' : ''}`
-  logger.info(
-    redirectSummary,
-    JSON.stringify({
-      flow: 'Page /news',
-      step: 'redirect',
-      message: redirectSummary,
-      event: 'news_root_redirect',
-      targetList,
-      targetHasSearchParams: href.includes('?'),
-      inputHadLegacyCategory: searchParamsHasNonEmptyString(sp, 'category'),
-      inputHadLegacyQuery: searchParamsHasNonEmptyString(sp, 'query'),
-      inputHadModernSource: searchParamsHasNonEmptyString(sp, 'source'),
-      inputHadModernTag: searchParamsHasNonEmptyString(sp, 'tag'),
-      inputHadModernKeyword: searchParamsHasNonEmptyString(sp, 'keyword'),
-    })
-  )
+  logNewsStructured(logger, 'info', NEWS_PAGE_ROOT_FLOW, redirectSummary, 'news_root_redirect', {
+    targetList,
+    targetHasSearchParams: href.includes('?'),
+    inputHadLegacyCategory: searchParamsHasNonEmptyString(sp, 'category'),
+    inputHadLegacyQuery: searchParamsHasNonEmptyString(sp, 'query'),
+    inputHadModernSource: searchParamsHasNonEmptyString(sp, 'source'),
+    inputHadModernTag: searchParamsHasNonEmptyString(sp, 'tag'),
+    inputHadModernKeyword: searchParamsHasNonEmptyString(sp, 'keyword'),
+  })
   redirect(href)
 }

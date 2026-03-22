@@ -1,4 +1,4 @@
-import { filterToRecentPublished, getNewsFeedRecentWindowHoursForListSlug, isPublishedWithinRecentWindow } from '@/services/news/published-recent-window'
+import { filterToRecentPublished, getNewsFeedRecentWindowHoursForListSlug, isPublishedWithinRecentWindow } from '@/services/news/feed/published-recent-window'
 import type { AggregatedNewsItem } from '@/services/news/types'
 
 function mockItem(publishedAt: string | null): AggregatedNewsItem {
@@ -29,14 +29,14 @@ describe('published-recent-window', () => {
     delete process.env.NEWS_FEED_RECENT_HOURS
     expect(getNewsFeedRecentWindowHoursForListSlug('')).toBe(24)
     expect(getNewsFeedRecentWindowHoursForListSlug('headlines')).toBe(24)
-    expect(getNewsFeedRecentWindowHoursForListSlug('opinion')).toBe(168)
+    expect(getNewsFeedRecentWindowHoursForListSlug('stem')).toBe(168)
     expect(getNewsFeedRecentWindowHoursForListSlug('media')).toBe(72)
   })
 
   it('should use global env only for empty list slug (all-pool)', () => {
     process.env.NEWS_FEED_RECENT_HOURS = '48'
     expect(getNewsFeedRecentWindowHoursForListSlug('')).toBe(48)
-    expect(getNewsFeedRecentWindowHoursForListSlug('opinion')).toBe(168)
+    expect(getNewsFeedRecentWindowHoursForListSlug('stem')).toBe(168)
   })
 
   it('should accept timestamps within the last 24 hours', () => {

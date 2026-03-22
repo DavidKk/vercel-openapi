@@ -1,15 +1,18 @@
 import { z } from 'zod'
 
 import { tool } from '@/initializer/mcp'
-import { normalizeNewsSubcategory } from '@/services/news/news-subcategories'
-import { filterNewsSources, getNewsFeedBaseUrl } from '@/services/news/sources'
+import { getAuthSession } from '@/services/auth/session'
+import { normalizeNewsSubcategory } from '@/services/news/config/news-subcategories'
+import { resolveNewsFeedRegionAccess } from '@/services/news/region/news-feed-region-access'
+import { filterNewsSources, getNewsFeedBaseUrl } from '@/services/news/sources/sources'
+import type { NewsRegion } from '@/services/news/types'
 
 /**
  * MCP tool: list configured RSS/news sources (optional filters).
  */
 export const list_news_sources = tool(
   'list_news_sources',
-  'List RSS sources from the news manifest. Optional category, sub (flat list slug when category is set; default first list slug for that category), region (cn, hk_tw, intl). Returns { sources, baseUrl }.',
+  'List RSS sources from the news manifest. Optional category, sub (flat list slug when category is set; default first list slug for that category), region (cn, hk_tw, intl). `hk_tw` and `intl` require sign-in; unsigned callers only see `cn` sources. Returns { sources, baseUrl }.',
   z.object({
     category: z.enum(['general-news', 'tech-internet', 'game-entertainment', 'science-academic']).optional().describe('Filter by phase-1 category'),
     sub: z.string().min(1).max(48).optional().describe('Flat list slug when category is set (same as /news/[slug] segment)'),
@@ -17,7 +20,13 @@ export const list_news_sources = tool(
   }),
   async (params) => {
     const subNorm = params.category !== undefined ? normalizeNewsSubcategory(params.category, params.sub) : undefined
-    const sources = filterNewsSources(params.category, params.region, subNorm)
+    const session = await getAuthSession()
+    const requestedRegion: '' | NewsRegion = params.region ?? ''
+    const regionAccess = resolveNewsFeedRegionAccess(session.authenticated, requestedRegion)
+    if (!regionAccess.ok) {
+      throw new Error(regionAccess.message)
+    }
+    const sources = filterNewsSources(params.category, regionAccess.regionFilter, subNorm)
     return { sources, baseUrl: getNewsFeedBaseUrl() }
   }
 )

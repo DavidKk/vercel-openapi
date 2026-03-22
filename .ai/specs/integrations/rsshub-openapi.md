@@ -1,19 +1,19 @@
 # RSSHub ↔ OpenAPI (News module)
 
-This project’s **News** module reads RSS/Atom XML from URLs built as `{RSSHUB_BASE_URL}{rsshubPath}` for each row in `services/news/news-sources.manifest.ts` (`newsSourcesManifest`). Paths follow [RSSHub](https://docs.rsshub.app/) route conventions; verify them on **your** instance.
+This project’s **News** module reads RSS/Atom XML from URLs built as `{RSSHUB_BASE_URL}{rsshubPath}` for each row in `services/news/config/news-sources.manifest.ts` (`newsSourcesManifest`). Paths follow [RSSHub](https://docs.rsshub.app/) route conventions; verify them on **your** instance.
 
 ---
 
 ## Environment
 
-| Variable                      | Required | Description                                                                                                                                                                                                                                                     |
-| ----------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RSSHUB_BASE_URL`             | No       | Base URL without trailing path (e.g. `https://rsshub.app`). Default: `https://rsshub.app`.                                                                                                                                                                      |
-| `RSSHUB_REQUEST_HEADERS_JSON` | No       | Optional JSON object of extra request headers for News RSS upstream fetches (`header-name` → string value). Use for any gateway/proxy auth (e.g. Cloudflare Access: `CF-Access-Client-Id` / `CF-Access-Client-Secret`). Invalid JSON or non-object is ignored.  |
-| `NEWS_RSS_FETCH_TIMEOUT_MS`   | No       | Per-source fetch timeout (ms), clamped 5000–120000. Default `30000`. Short timeouts cause `AbortError` while the same URL still loads in a browser.                                                                                                             |
-| `NEWS_RSS_FETCH_CONCURRENCY`  | No       | Max parallel upstream requests, clamped 1–16. Default `8`. Lower (e.g. `1`) if the instance returns `503` under burst.                                                                                                                                          |
-| `NEWS_RSS_FETCH_MAX_ATTEMPTS` | No       | Attempts per feed for retryable HTTP errors (`429`, `502`, `503`, `504`), clamped 1–5. Default `3` (backoff + jitter between tries). Set `1` to disable retries.                                                                                                |
-| `NEWS_FEED_RECENT_HOURS`      | No       | Rolling window (hours) for `/api/news/feed` **only when neither `list` nor `category` is set** (all-category pool). Clamped 1–168; default `24`. When `list` or `category` is set, the window comes from **per-slug defaults** in `published-recent-window.ts`. |
+| Variable                      | Required | Description                                                                                                                                                                                                                                                          |
+| ----------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RSSHUB_BASE_URL`             | No       | Base URL without trailing path (e.g. `https://rsshub.app`). Default: `https://rsshub.app`.                                                                                                                                                                           |
+| `RSSHUB_REQUEST_HEADERS_JSON` | No       | Optional JSON object of extra request headers for News RSS upstream fetches (`header-name` → string value). Use for any gateway/proxy auth (e.g. Cloudflare Access: `CF-Access-Client-Id` / `CF-Access-Client-Secret`). Invalid JSON or non-object is ignored.       |
+| `NEWS_RSS_FETCH_TIMEOUT_MS`   | No       | Per-source fetch timeout (ms), clamped 5000–120000. Default `30000`. Short timeouts cause `AbortError` while the same URL still loads in a browser.                                                                                                                  |
+| `NEWS_RSS_FETCH_CONCURRENCY`  | No       | Max parallel upstream requests, clamped 1–16. Default `8`. Lower (e.g. `1`) if the instance returns `503` under burst.                                                                                                                                               |
+| `NEWS_RSS_FETCH_MAX_ATTEMPTS` | No       | Attempts per feed for retryable HTTP errors (`429`, `502`, `503`, `504`), clamped 1–5. Default `3` (backoff + jitter between tries). Set `1` to disable retries.                                                                                                     |
+| `NEWS_FEED_RECENT_HOURS`      | No       | Rolling window (hours) for `/api/news/feed` **only when neither `list` nor `category` is set** (all-category pool). Clamped 1–168; default `24`. When `list` or `category` is set, the window comes from **per-slug defaults** in `feed/published-recent-window.ts`. |
 
 ---
 
@@ -39,15 +39,15 @@ Optional **warm / refresh** of merged pools (same RSS merge + L1 + Upstash write
 | **Query**        | `maxFeeds` (default 15, max 25), `region` (`cn` \| `hk_tw`), `categories=comma-separated-slugs` (subset), `allPool=1` (also refresh the API pool when `category` is omitted). Refreshes **each list sub-tab** per category (category × sub), not one pool per category only. |
 | **Response**     | JSON envelope `data`: `{ ok, refreshed[], failures[], jobCount, durationMs, … }`.                                                                                                                                                                                            |
 
-See `.env.example` (Cron / automation) for URL examples. Implementation: `app/api/cron/sync/news-feed-pools/route.ts`, `refreshNewsFeedMergedPool` in `services/news/feed-kv-cache.ts`.
+See `.env.example` (Cron / automation) for URL examples. Implementation: `app/api/cron/sync/news-feed-pools/route.ts`, `refreshNewsFeedMergedPool` in `services/news/feed/feed-kv-cache.ts`.
 
 ---
 
 ## Data files
 
-| File                                     | Role                                                                                                                                                                     |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `services/news/news-sources.manifest.ts` | Curated list (`newsSourcesManifest`): `id`, `label`, `category`, `region`, `rsshubPath`, optional `defaultUrl` (outlet homepage for tag links when RSS link is missing). |
+| File                                            | Role                                                                                                                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `services/news/config/news-sources.manifest.ts` | Curated list (`newsSourcesManifest`): `id`, `label`, `category`, `region`, `rsshubPath`, optional `defaultUrl` (outlet homepage for tag links when RSS link is missing). |
 
 To align with the broader RSSHub pipeline described in `TODO.md` (filter scripts, allowlists, resolved hot routes), you can replace or extend this JSON with generated output once those scripts land in the repo.
 

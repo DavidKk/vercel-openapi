@@ -1,9 +1,14 @@
 jest.mock('next/server', () => jest.requireActual('next/server'))
 
+const mockGetAuthSession = jest.fn()
+jest.mock('@/services/auth/session', () => ({
+  getAuthSession: () => mockGetAuthSession(),
+}))
+
 const mockGetOrBuildNewsFeedMergedPool = jest.fn()
 
-jest.mock('@/services/news/feed-kv-cache', () => {
-  const actual = jest.requireActual('@/services/news/feed-kv-cache')
+jest.mock('@/services/news/feed/feed-kv-cache', () => {
+  const actual = jest.requireActual('@/services/news/feed/feed-kv-cache')
   return {
     ...actual,
     getOrBuildNewsFeedMergedPool: (...args: Parameters<typeof actual.getOrBuildNewsFeedMergedPool>) => mockGetOrBuildNewsFeedMergedPool(...args),
@@ -13,7 +18,7 @@ jest.mock('@/services/news/feed-kv-cache', () => {
 import { NextRequest } from 'next/server'
 
 import { GET } from '@/app/api/news/feed/route'
-import type { NewsFeedPoolCachePayload } from '@/services/news/aggregate-feed'
+import type { NewsFeedPoolCachePayload } from '@/services/news/feed/aggregate-feed'
 import type { AggregatedNewsItem } from '@/services/news/types'
 
 function makePoolPayload(overrides: Partial<NewsFeedPoolCachePayload> = {}): NewsFeedPoolCachePayload {
@@ -51,6 +56,7 @@ function makePoolPayload(overrides: Partial<NewsFeedPoolCachePayload> = {}): New
 
 describe('GET /api/news/feed', () => {
   beforeEach(() => {
+    mockGetAuthSession.mockResolvedValue({ authenticated: true, username: 'test' })
     mockGetOrBuildNewsFeedMergedPool.mockResolvedValue({
       payload: makePoolPayload(),
       poolLayerHit: null,
@@ -71,6 +77,30 @@ describe('GET /api/news/feed', () => {
     const req = new NextRequest('http://localhost/api/news/feed?region=eu', { method: 'GET' })
     const res = await GET(req, { params: Promise.resolve({}) })
     expect(res.status).toBe(400)
+  })
+
+  it('should return 403 when unauthenticated and region is intl', async () => {
+    mockGetAuthSession.mockResolvedValueOnce({ authenticated: false, username: null })
+    const req = new NextRequest('http://localhost/api/news/feed?region=intl&limit=5', { method: 'GET' })
+    const res = await GET(req, { params: Promise.resolve({}) })
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(String(body.message)).toMatch(/sign-in/i)
+    expect(mockGetOrBuildNewsFeedMergedPool).not.toHaveBeenCalled()
+  })
+
+  it('should use cn-only sources when unauthenticated and no region query', async () => {
+    mockGetAuthSession.mockResolvedValueOnce({ authenticated: false, username: null })
+    const req = new NextRequest('http://localhost/api/news/feed?list=headlines&limit=5', { method: 'GET' })
+    const res = await GET(req, { params: Promise.resolve({}) })
+    expect(res.status).toBe(200)
+    expect(mockGetOrBuildNewsFeedMergedPool).toHaveBeenCalled()
+    const arg = mockGetOrBuildNewsFeedMergedPool.mock.calls[0]![0] as {
+      sources: { region: string }[]
+      poolCacheKey: string
+    }
+    expect(arg.sources.length).toBeGreaterThan(0)
+    expect(arg.sources.every((s) => s.region === 'cn')).toBe(true)
   })
 
   it('should return 400 for invalid list', async () => {

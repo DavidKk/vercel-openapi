@@ -1,14 +1,32 @@
 import { createLogger } from '@/services/logger'
+import { capItemFeedKeywordList, MAX_POOL_KEYWORD_FACETS } from '@/services/news/config/feed-keyword-budgets'
+import { logNewsStructured, NEWS_RSS_MERGE_FLOW } from '@/services/news/structured-news-log'
 
-import { filterPoolByFacetList, type NewsFacetListFilter } from './facet-list-filter'
-import { normalizeLink } from './normalize-link'
-import { normalizeTitleKey } from './normalize-title'
-import { parseRssItems } from './parse-rss'
+import { dedupeFacetLabelListForItem, mergeFacetHistogramRowsBySubstring } from '../facets/dedupe-facet-label-substrings'
+import { filterPoolByFacetList, type NewsFacetListFilter } from '../facets/facet-list-filter'
+import { buildFinalFeedKeywordsForNewsItem } from '../facets/finalize-news-item-topic-keywords'
+import { filterRssFacetLabels, shouldDropRssFacetLabel, stripRssFacetLabelsFromAggregatedItem } from '../facets/rss-facet-label-filter'
+import { buildPlainDocumentForKeywordCheck, filterFeedKeywordsLiteralInPlain } from '../facets/rss-feed-keyword-document-match'
+import {
+  getNewsManifestSourceLabelSet,
+  stripAggregatedItemRssAnnotationsAgainstOutletNames,
+  stripAllAggregatedItemsRssAnnotationsAgainstOutletNames,
+  stripFeedCategoriesMatchingOutletNames,
+  stripFeedKeywordsMatchingSourceLabels,
+} from '../facets/strip-feed-keywords-matching-source-labels'
+import { stripRedundantCategoryLikeLabelsFromAggregatedItem, stripRedundantCategoryLikeTopicLabels } from '../facets/strip-redundant-topic-category-labels'
+import { normalizeLink } from '../parsing/normalize-link'
+import { normalizeTitleKey } from '../parsing/normalize-title'
+import { parseRssItems } from '../parsing/parse-rss'
+import { sortNewsItemSourceRefsByRegion } from '../region/news-source-region-order'
+import { resolveOutletHref } from '../sources/resolve-outlet-href'
+import type { AggregatedNewsItem, NewsCategory, NewsFeedFacets, NewsFeedMergeStats, NewsFeedSourceInventoryRow, NewsPlatformTag, NewsSourceConfig, ParsedFeedItem } from '../types'
 import { filterToRecentPublished, getNewsFeedRecentWindowHours, getNewsFeedRecentWindowHoursForListSlug, MAX_RECENT_HOURS, MIN_RECENT_HOURS } from './published-recent-window'
-import { resolveOutletHref } from './resolve-outlet-href'
-import type { AggregatedNewsItem, NewsCategory, NewsFeedFacets, NewsFeedMergeStats, NewsFeedSourceInventoryRow, NewsPlatformTag, NewsSourceConfig, ParsedFeedItem } from './types'
 
 const logger = createLogger('news-aggregate')
+
+/** Manifest outlet display names; RSS keywords equal to any label are dropped (avoid duplicating Sources facet). */
+const MANIFEST_SOURCE_LABELS_FOR_KEYWORD_STRIP = getNewsManifestSourceLabelSet()
 
 const MIN_TIMEOUT_MS = 5_000
 const MAX_TIMEOUT_MS = 120_000
@@ -363,21 +381,15 @@ export async function mergeNewsFeedsToPool(
     const path = source.rsshubPath.startsWith('/') ? source.rsshubPath : `/${source.rsshubPath}`
     const url = `${baseUrl}${path}`
     const fetchStartedAt = Date.now()
-    logger.info(
-      `RSS fetch start: ${source.id} — GET ${url}`,
-      JSON.stringify({
-        flow: 'News merged pool',
-        step: 'rss_fetch_start',
-        event: 'news_rss_fetch_start',
-        sourceId: source.id,
-        sourceLabel: source.label,
-        url,
-        rsshubPath: path,
-        concurrency,
-        mergeBatchStartedAt,
-        startedAtMs: fetchStartedAt,
-      })
-    )
+    logNewsStructured(logger, 'info', NEWS_RSS_MERGE_FLOW, `RSS fetch start: ${source.id} — GET ${url}`, 'news_rss_fetch_start', {
+      sourceId: source.id,
+      sourceLabel: source.label,
+      url,
+      rsshubPath: path,
+      concurrency,
+      mergeBatchStartedAt,
+      startedAtMs: fetchStartedAt,
+    })
     try {
       const xml = await fetchRssXml(url, timeoutMs)
       const parsed = parseRssItems(xml)
@@ -385,10 +397,7 @@ export async function mergeNewsFeedsToPool(
       if (parsed.length > 0) {
         sourceHadItems.set(source.id, true)
       }
-      const rssOkMeta = JSON.stringify({
-        flow: 'News merged pool',
-        step: 'rss_fetch_ok',
-        event: 'news_rss_fetch_ok',
+      const rssOkDetail = {
         sourceId: source.id,
         sourceLabel: source.label,
         parsedCount: parsed.length,
@@ -397,12 +406,12 @@ export async function mergeNewsFeedsToPool(
         url,
         concurrency,
         mergeBatchStartedAt,
-      })
+      }
       const rssOkSummary = `RSS ok: ${source.id} — ${parsed.length} parsed in ${fetchMs}ms`
       if (parsed.length === 0) {
-        logger.warn(rssOkSummary, rssOkMeta)
+        logNewsStructured(logger, 'warn', NEWS_RSS_MERGE_FLOW, rssOkSummary, 'news_rss_fetch_ok', rssOkDetail)
       } else {
-        logger.info(rssOkSummary, rssOkMeta)
+        logNewsStructured(logger, 'ok', NEWS_RSS_MERGE_FLOW, rssOkSummary, 'news_rss_fetch_ok', rssOkDetail)
       }
       for (const row of parsed) {
         parsedCountBySource.set(source.id, (parsedCountBySource.get(source.id) ?? 0) + 1)
@@ -412,21 +421,14 @@ export async function mergeNewsFeedsToPool(
       const fetchMs = Date.now() - fetchStartedAt
       const message = formatFetchError(e, timeoutMs)
       const sourceFailSummary = `RSS source "${source.id}" failed — ${message}`
-      logger.warn(
-        sourceFailSummary,
-        JSON.stringify({
-          flow: 'News merged pool',
-          step: 'rss_fetch',
-          message: sourceFailSummary,
-          event: 'news_feed_source_failed',
-          sourceId: source.id,
-          fetchMs,
-          url,
-          concurrency,
-          mergeBatchStartedAt,
-          errorDetail: message,
-        })
-      )
+      logNewsStructured(logger, 'warn', NEWS_RSS_MERGE_FLOW, sourceFailSummary, 'news_feed_source_failed', {
+        sourceId: source.id,
+        fetchMs,
+        url,
+        concurrency,
+        mergeBatchStartedAt,
+        errorDetail: message,
+      })
       errors.push({ sourceId: source.id, message })
     }
   })
@@ -438,6 +440,7 @@ export async function mergeNewsFeedsToPool(
   const recentHours = getNewsFeedRecentWindowHoursForListSlug(listSlugNorm)
   const { kept: recentItems, droppedOutsideRecentWindow } = filterToRecentPublished(mergedItems, recentHours, nowMs)
   attachPlatformTags(recentItems, sourceById)
+  stripAllAggregatedItemsRssAnnotationsAgainstOutletNames(recentItems, MANIFEST_SOURCE_LABELS_FOR_KEYWORD_STRIP)
   const itemCategory = options.itemCategory
   const pool = itemCategory !== undefined ? recentItems.filter((row) => row.category === itemCategory) : recentItems
   const facets = buildFeedFacetsFromPool(pool)
@@ -506,6 +509,41 @@ export function pruneNewsFeedPoolPayloadForWindow(payload: NewsFeedPoolCachePayl
 }
 
 /**
+ * Recompute each item's `feedKeywords` from RSS-only refinement (no segmentation) and rebuild pool facet histograms.
+ * Call on every HTTP/MCP response after {@link pruneNewsFeedPoolPayloadForWindow} so L1/L2 cache picks up updated rules.
+ * @param payload Pruned pool row (or any payload with `pool` + optional `sourceInventory`)
+ * @returns New payload; does not mutate input
+ */
+export function attachFinalizedTopicKeywordsToNewsPool(payload: NewsFeedPoolCachePayload): NewsFeedPoolCachePayload {
+  const pool = payload.pool.map((item) => {
+    const kws = buildFinalFeedKeywordsForNewsItem(item)
+    const next: AggregatedNewsItem = { ...item }
+    if (kws.length > 0) {
+      next.feedKeywords = kws
+    } else {
+      delete next.feedKeywords
+    }
+    stripRedundantCategoryLikeLabelsFromAggregatedItem(next)
+    return next
+  })
+  const facets = buildFeedFacetsFromPool(pool)
+  const poolFacetMap = facetSourceCountMap(facets)
+  let sourceInventory = payload.sourceInventory
+  if (sourceInventory !== undefined && sourceInventory.length > 0) {
+    sourceInventory = sourceInventory.map((row) => ({
+      ...row,
+      poolCount: poolFacetMap.get(row.sourceId) ?? 0,
+    }))
+  }
+  return {
+    ...payload,
+    pool,
+    facets,
+    sourceInventory,
+  }
+}
+
+/**
  * Merge a previously cached pool with a fresh RSS merge: dedupe again, sort, apply rolling window from “now”, optional manifest category.
  * @param args Previous rows, fresh merge result, manifest sources, optional article taxonomy filter
  * @returns New merged pool stats suitable for L1/L2 storage
@@ -526,6 +564,7 @@ export function reconcileNewsFeedPoolAfterRssFetch(args: {
   const nowMs = Date.now()
   const { kept: recentItems, droppedOutsideRecentWindow } = filterToRecentPublished(mergedItems, recentHours, nowMs)
   attachPlatformTags(recentItems, sourceById)
+  stripAllAggregatedItemsRssAnnotationsAgainstOutletNames(recentItems, MANIFEST_SOURCE_LABELS_FOR_KEYWORD_STRIP)
   const pool = itemCategory !== undefined ? recentItems.filter((row) => row.category === itemCategory) : recentItems
   const facets = buildFeedFacetsFromPool(pool)
   const poolFacetMap = facetSourceCountMap(facets)
@@ -576,6 +615,7 @@ export function reconcileNewsFeedPoolAfterFailedSourceRetry(args: {
   const nowMs = Date.now()
   const { kept: recentItems, droppedOutsideRecentWindow } = filterToRecentPublished(mergedItems, recentHours, nowMs)
   attachPlatformTags(recentItems, sourceById)
+  stripAllAggregatedItemsRssAnnotationsAgainstOutletNames(recentItems, MANIFEST_SOURCE_LABELS_FOR_KEYWORD_STRIP)
   const pool = itemCategory !== undefined ? recentItems.filter((row) => row.category === itemCategory) : recentItems
   const facets = buildFeedFacetsFromPool(pool)
 
@@ -664,7 +704,11 @@ export function sliceNewsFeedPageFromPool(
   const listPool = options.facetListFilter !== undefined ? filterPoolByFacetList(pool, options.facetListFilter) : pool
   const uniqueAfterDedupe = listPool.length
   const safeOffset = Math.max(0, Math.min(options.itemOffset, uniqueAfterDedupe))
-  const items = listPool.slice(safeOffset, safeOffset + options.itemLimit)
+  const items = listPool.slice(safeOffset, safeOffset + options.itemLimit).map((row) => {
+    const sanitized = stripRssFacetLabelsFromAggregatedItem(row)
+    stripAggregatedItemRssAnnotationsAgainstOutletNames(sanitized, MANIFEST_SOURCE_LABELS_FOR_KEYWORD_STRIP)
+    return sanitized
+  })
   const hasMore = safeOffset + items.length < uniqueAfterDedupe
   const truncatedByLimit = Math.max(0, uniqueAfterDedupe - safeOffset - items.length)
 
@@ -731,7 +775,27 @@ export async function aggregateNewsFeeds(
 }
 
 /**
+ * Trim RSS labels and drop denylisted entries for facet counting.
+ * @param values Optional category or keyword list from one item
+ * @returns Non-empty trimmed labels that pass {@link shouldDropRssFacetLabel}
+ */
+function collectTrimmedFacetLabelsForCount(values: readonly string[] | undefined): string[] {
+  const out: string[] = []
+  for (const raw of values ?? []) {
+    const t = raw.trim()
+    if (!t || shouldDropRssFacetLabel(t)) {
+      continue
+    }
+    out.push(t)
+  }
+  return out
+}
+
+/**
  * Build RSS category / keyword / source facet counts over the full merged pool (before pagination).
+ * Categories: each distinct label on an item counts at most once (per-item dedupe). Keywords: **topic union**
+ * of `feedCategories` ∪ `feedKeywords` per item, deduped once per item, so the same string in both fields does not
+ * double-count and sidebar totals align with “articles carrying this topic”. Rows are capped by {@link MAX_POOL_KEYWORD_FACETS}.
  * @param pool Rows after dedupe, sort, recent window, and optional article-category filter
  * @returns Sorted facet lists for API clients
  */
@@ -741,11 +805,15 @@ export function buildFeedFacetsFromPool(pool: AggregatedNewsItem[]): NewsFeedFac
   const srcMap = new Map<string, { label: string; count: number }>()
 
   for (const item of pool) {
-    for (const c of item.feedCategories ?? []) {
-      fcMap.set(c, (fcMap.get(c) ?? 0) + 1)
+    const catRaw = collectTrimmedFacetLabelsForCount(item.feedCategories)
+    const kwRaw = collectTrimmedFacetLabelsForCount(item.feedKeywords)
+    const cats = dedupeFacetLabelListForItem(catRaw)
+    for (const t of cats) {
+      fcMap.set(t, (fcMap.get(t) ?? 0) + 1)
     }
-    for (const k of item.feedKeywords ?? []) {
-      fkMap.set(k, (fkMap.get(k) ?? 0) + 1)
+    const topicUnion = dedupeFacetLabelListForItem([...catRaw, ...kwRaw])
+    for (const t of topicUnion) {
+      fkMap.set(t, (fkMap.get(t) ?? 0) + 1)
     }
     const seenSrc = new Set<string>()
     const bumpSrc = (id: string, label: string) => {
@@ -769,8 +837,15 @@ export function buildFeedFacetsFromPool(pool: AggregatedNewsItem[]): NewsFeedFac
     }
   }
 
-  const categories = [...fcMap.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
-  const keywords = [...fkMap.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+  const categories = mergeFacetHistogramRowsBySubstring([...fcMap.entries()].map(([value, count]) => ({ value, count })))
+  /**
+   * `feedKeyword` facets must keep exact canonical-topic semantics so the sidebar count matches
+   * the number of rows returned by `?keyword=<value>`.
+   */
+  const keywords = [...fkMap.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+    .slice(0, MAX_POOL_KEYWORD_FACETS)
   const sources = [...srcMap.entries()].map(([sourceId, { label, count }]) => ({ sourceId, label, count })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
 
   return { categories, keywords, sources }
@@ -797,10 +872,27 @@ function attachMeta(row: ParsedFeedItem, source: NewsSourceConfig): AggregatedNe
     item.imageUrl = row.imageUrl.trim()
   }
   if (row.feedCategories?.length) {
-    item.feedCategories = [...row.feedCategories]
+    const catStripped = stripRedundantCategoryLikeTopicLabels(
+      stripFeedCategoriesMatchingOutletNames(dedupeLabelList(row.feedCategories), source.label, MANIFEST_SOURCE_LABELS_FOR_KEYWORD_STRIP)
+    )
+    const cats = dedupeFacetLabelListForItem(filterRssFacetLabels(catStripped))
+    if (cats.length > 0) {
+      item.feedCategories = cats
+    }
   }
-  if (row.feedKeywords?.length) {
-    item.feedKeywords = [...row.feedKeywords]
+  const rssKwNormalized = row.feedKeywords?.length ? dedupeLabelList(row.feedKeywords) : []
+  const plainDoc = buildPlainDocumentForKeywordCheck(row.title, row.summary)
+  let keywordCandidates: string[] = []
+  if (rssKwNormalized.length > 0) {
+    keywordCandidates = filterFeedKeywordsLiteralInPlain(rssKwNormalized, plainDoc)
+  }
+  keywordCandidates = filterFeedKeywordsLiteralInPlain(keywordCandidates, plainDoc)
+  if (keywordCandidates.length > 0) {
+    const stripped = stripRedundantCategoryLikeTopicLabels(stripFeedKeywordsMatchingSourceLabels(keywordCandidates, source.label, MANIFEST_SOURCE_LABELS_FOR_KEYWORD_STRIP))
+    const kws = capItemFeedKeywordList(dedupeFacetLabelListForItem(filterRssFacetLabels(stripped)))
+    if (kws.length > 0) {
+      item.feedKeywords = kws
+    }
   }
   return item
 }
@@ -830,8 +922,13 @@ function dedupeLabelList(values: string[]): string[] {
  * @param incoming Row being merged in (same story, other feed or duplicate row)
  */
 function mergeFeedAnnotations(kept: AggregatedNewsItem, incoming: AggregatedNewsItem): void {
-  const cats = dedupeLabelList([...(kept.feedCategories ?? []), ...(incoming.feedCategories ?? [])])
-  const kws = dedupeLabelList([...(kept.feedKeywords ?? []), ...(incoming.feedKeywords ?? [])])
+  const cats = dedupeFacetLabelListForItem(filterRssFacetLabels(dedupeLabelList([...(kept.feedCategories ?? []), ...(incoming.feedCategories ?? [])])))
+  const mergedPlain = `${buildPlainDocumentForKeywordCheck(kept.title, kept.summary)} ${buildPlainDocumentForKeywordCheck(incoming.title, incoming.summary)}`
+    .replace(/\s+/g, ' ')
+    .trim()
+  let kws = dedupeLabelList([...(kept.feedKeywords ?? []), ...(incoming.feedKeywords ?? [])])
+  kws = capItemFeedKeywordList(dedupeFacetLabelListForItem(filterRssFacetLabels(kws)))
+  kws = filterFeedKeywordsLiteralInPlain(kws, mergedPlain)
   if (!kept.imageUrl?.trim() && incoming.imageUrl?.trim()) {
     kept.imageUrl = incoming.imageUrl.trim()
   }
@@ -845,6 +942,7 @@ function mergeFeedAnnotations(kept: AggregatedNewsItem, incoming: AggregatedNews
   } else {
     delete kept.feedKeywords
   }
+  stripAggregatedItemRssAnnotationsAgainstOutletNames(kept, MANIFEST_SOURCE_LABELS_FOR_KEYWORD_STRIP)
 }
 
 /**
@@ -857,6 +955,7 @@ function attachPlatformTags(items: AggregatedNewsItem[], sourceById: Map<string,
     if (!item.alsoFromSources?.length) {
       continue
     }
+    item.alsoFromSources = sortNewsItemSourceRefsByRegion(item.alsoFromSources, sourceById)
     const primaryCfg = sourceById.get(item.sourceId)
     const primaryHref = resolveOutletHref(item.link, primaryCfg)
     const tags: NewsPlatformTag[] = [

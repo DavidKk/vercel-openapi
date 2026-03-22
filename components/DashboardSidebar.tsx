@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { Tooltip } from '@/components/Tooltip'
-import { isNewsManifestCategoryFeedPath } from '@/services/news/news-overview-url'
+import { isNewsManifestCategoryFeedPath } from '@/services/news/routing/news-overview-url'
 
 export interface DashboardSidebarItem {
   href: string

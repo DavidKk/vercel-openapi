@@ -1,4 +1,4 @@
-import { decodeXmlEntities, parseItemImageUrl, parseRssItems } from '@/services/news/parse-rss'
+import { decodeXmlEntities, parseItemImageUrl, parseRssItems } from '@/services/news/parsing/parse-rss'
 
 describe('parseRssItems', () => {
   it('should parse two RSS items with title, link, pubDate', () => {
@@ -81,6 +81,20 @@ describe('parseRssItems', () => {
 </item></channel></rss>`
     const items = parseRssItems(xml)
     expect(items[0].feedKeywords).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('should cap RSS feedKeywords per item after dedupe', () => {
+    const many = Array.from({ length: 30 }, (_, i) => `k${i}`).join(',')
+    const xml = `<?xml version="1.0"?>
+<rss xmlns:media="http://search.yahoo.com/mrss/"><channel><item>
+<title>K</title>
+<link>https://example.com/k</link>
+<media:keywords>${many}</media:keywords>
+</item></channel></rss>`
+    const items = parseRssItems(xml)
+    expect(items[0].feedKeywords).toHaveLength(24)
+    expect(items[0].feedKeywords?.[0]).toBe('k0')
+    expect(items[0].feedKeywords?.[23]).toBe('k23')
   })
 })
 

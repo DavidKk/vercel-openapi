@@ -73,7 +73,7 @@ export async function getMoviesListWithTimestamp(): Promise<{
 }
 
 export interface GetMoviesListWithAutoUpdateOptions extends GetMergedMoviesListOptions {
-  /** When true, skip cache freshness check and always fetch Maoyan + TMDB and write to KV */
+  /** When true, skip cache freshness check and always fetch upstream (Maoyan; TMDB only if merge options enabled) and write to KV */
   forceRefresh?: boolean
 }
 

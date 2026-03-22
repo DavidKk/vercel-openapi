@@ -1,4 +1,4 @@
-import type { NewsCategory } from './types'
+import type { NewsCategory } from '../types'
 
 /**
  * Manifest top-level category order used to flatten {@link NEWS_SUBCATEGORY_ORDER} into {@link NEWS_LIST_SLUGS_ORDER}.
@@ -11,7 +11,7 @@ const NEWS_CATEGORY_ORDER_FOR_LISTS: readonly NewsCategory[] = ['general-news', 
  * Sources in the manifest must use these slugs in {@link NewsSourceConfig.subcategory}.
  */
 export const NEWS_SUBCATEGORY_ORDER: Record<NewsCategory, readonly string[]> = {
-  'general-news': ['headlines', 'opinion'],
+  'general-news': ['headlines'],
   'tech-internet': ['media', 'developer', 'product'],
   'game-entertainment': ['games'],
   'science-academic': ['stem'],
@@ -33,7 +33,6 @@ export const NEWS_LIST_SLUG_TO_CATEGORY: Record<string, NewsCategory> = Object.f
 const SUB_LABELS: Record<NewsCategory, Record<string, string>> = {
   'general-news': {
     headlines: '要闻速递',
-    opinion: '观点评论',
   },
   'tech-internet': {
     media: '科技资讯',
@@ -54,7 +53,6 @@ const SUB_LABELS: Record<NewsCategory, Record<string, string>> = {
 const SUB_LABELS_EN: Record<NewsCategory, Record<string, string>> = {
   'general-news': {
     headlines: 'Headlines',
-    opinion: 'Opinion',
   },
   'tech-internet': {
     media: 'Tech media',

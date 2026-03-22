@@ -1,10 +1,15 @@
+import { randomUUID } from 'node:crypto'
+
+import { MAX_POOL_KEYWORD_FACETS } from '@/services/news/config/feed-keyword-budgets'
 import {
+  attachFinalizedTopicKeywordsToNewsPool,
+  buildFeedFacetsFromPool,
   type NewsFeedPoolCachePayload,
   pruneNewsFeedPoolPayloadForWindow,
   reconcileNewsFeedPoolAfterFailedSourceRetry,
   reconcileNewsFeedPoolAfterRssFetch,
   sliceNewsFeedPageFromPool,
-} from '@/services/news/aggregate-feed'
+} from '@/services/news/feed/aggregate-feed'
 import type { NewsSourceConfig } from '@/services/news/types'
 
 const mockSources: NewsSourceConfig[] = [
@@ -48,6 +53,45 @@ function basePayload(pool: NewsFeedPoolCachePayload['pool']): NewsFeedPoolCacheP
 }
 
 describe('aggregate-feed pool slice + reconcile', () => {
+  it('should cap keyword facet histogram rows by pool budget', () => {
+    const now = Date.now()
+    const iso = new Date(now).toISOString()
+    /** Distinct labels so substring/fuzzy facet merge does not fold the pool into one row. */
+    const pool = Array.from({ length: 130 }, () => ({
+      title: 'T',
+      link: `https://ex.test/kw-cap/${randomUUID()}`,
+      publishedAt: iso,
+      summary: null,
+      sourceId: 'src-a',
+      sourceLabel: 'A',
+      category: 'general-news' as const,
+      region: 'cn' as const,
+      feedKeywords: [randomUUID()],
+    }))
+    const facets = buildFeedFacetsFromPool(pool)
+    expect(facets.keywords).toHaveLength(MAX_POOL_KEYWORD_FACETS)
+  })
+
+  it('should omit denylisted RSS labels from facet histogram (including cached pool rows)', () => {
+    const now = Date.now()
+    const row = {
+      title: 'T',
+      link: 'https://ex.test/facet-deny',
+      publishedAt: new Date(now).toISOString(),
+      summary: null,
+      sourceId: 'src-a',
+      sourceLabel: 'A',
+      category: 'general-news' as const,
+      region: 'cn' as const,
+      feedCategories: ['國際', '重庆大学'],
+      feedKeywords: ['政治', 'BTS'],
+    }
+    const facets = buildFeedFacetsFromPool([row])
+    expect(facets.categories.map((x) => x.value)).toEqual(['重庆大学'])
+    /** Keywords histogram is category ∪ keyword per item (deduped once per article). */
+    expect(facets.keywords.map((x) => x.value).sort()).toEqual(['BTS', '重庆大学'].sort())
+  })
+
   it('should slice page with offset and limit', () => {
     const now = Date.now()
     const pool = [1, 2, 3].map((i) => ({
@@ -196,5 +240,49 @@ describe('aggregate-feed pool slice + reconcile', () => {
     const pruned = pruneNewsFeedPoolPayloadForWindow(payload, nowMs)
     expect(pruned.pool).toHaveLength(1)
     expect(pruned.droppedOutsideRecentWindow).toBe(23)
+  })
+
+  it('should keep keyword facet count aligned with exact keyword matches after canonicalization', () => {
+    const iso = '2026-03-21T12:00:00.000Z'
+    const payload = basePayload([
+      {
+        title: '中国发展高层论坛2026年年会今日开幕',
+        link: 'https://ex.test/forum-1',
+        publishedAt: iso,
+        summary: '中国发展高层论坛2026年年会今日开幕',
+        sourceId: 'src-a',
+        sourceLabel: 'A',
+        category: 'general-news' as const,
+        region: 'cn' as const,
+        feedKeywords: ['高层论坛'],
+      },
+      {
+        title: '韩文秀：稳步提升消费对经济增长的贡献',
+        link: 'https://ex.test/forum-2',
+        publishedAt: iso,
+        summary: '韩文秀在中国发展高层论坛2026年年会表示将稳步提升消费对经济增长的贡献',
+        sourceId: 'src-b',
+        sourceLabel: 'B',
+        category: 'general-news' as const,
+        region: 'cn' as const,
+        feedKeywords: ['高层论坛'],
+      },
+      {
+        title: '发展高层会议讨论产业升级',
+        link: 'https://ex.test/forum-3',
+        publishedAt: iso,
+        summary: '发展高层会议聚焦产业升级',
+        sourceId: 'src-a',
+        sourceLabel: 'A',
+        category: 'general-news' as const,
+        region: 'cn' as const,
+        feedKeywords: ['发展高层'],
+      },
+    ])
+    const out = attachFinalizedTopicKeywordsToNewsPool(payload)
+    const keywordRow = out.facets.keywords.find((row) => row.value === '高层论坛')
+    expect(keywordRow?.count).toBe(2)
+    const matched = out.pool.filter((item) => item.feedKeywords?.includes('高层论坛'))
+    expect(matched).toHaveLength(2)
   })
 })

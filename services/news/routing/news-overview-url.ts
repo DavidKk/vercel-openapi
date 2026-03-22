@@ -1,7 +1,7 @@
-import type { NewsFacetListFilter } from './facet-list-filter'
-import { getDefaultNewsSubcategory, isValidNewsListSlug, isValidNewsSubcategoryForCategory, normalizeNewsListSlug } from './news-subcategories'
-import { isValidNewsCategory } from './sources'
-import type { NewsCategory } from './types'
+import { getDefaultNewsSubcategory, isValidNewsListSlug, isValidNewsSubcategoryForCategory, normalizeNewsListSlug } from '../config/news-subcategories'
+import type { NewsFacetListFilter } from '../facets/facet-list-filter'
+import { isValidNewsCategory } from '../sources/sources'
+import type { NewsCategory } from '../types'
 
 /** `query` param (legacy): facet kind, comma, value (value may contain commas). */
 const QUERY_KIND_PREFIX = /^(fc|fk|src),/i

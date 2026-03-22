@@ -1,4 +1,4 @@
-import type { NewsSourceConfig } from './types'
+import type { NewsSourceConfig } from '../types'
 
 /**
  * Pick a URL users can open for a feed row: prefer the RSS item link when it looks like http(s), else the manifest homepage.
