@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TbAlertCircle, TbCheck, TbCircleX, TbX } from 'react-icons/tb'
+import { TbAlertCircle, TbCheck, TbCircleX, TbHourglassHigh, TbX } from 'react-icons/tb'
 
 import { Spinner } from '@/components/Spinner'
 
@@ -30,6 +30,8 @@ function getNotificationIcon(type: NotificationType) {
       return <TbCircleX className="h-5 w-5 text-red-600" />
     case NotificationType.Loading:
       return <Spinner color="text-gray-500" />
+    case NotificationType.Countdown:
+      return <TbHourglassHigh className="h-5 w-5 text-sky-600" />
     default:
       return null
   }
@@ -48,6 +50,8 @@ function getNotificationBorderColor(type: NotificationType): string {
       return 'border-l-red-500'
     case NotificationType.Loading:
       return 'border-l-gray-400'
+    case NotificationType.Countdown:
+      return 'border-l-sky-500'
     default:
       return 'border-l-gray-300'
   }
@@ -83,6 +87,8 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
   }
 
   const isLoading = notification.type === NotificationType.Loading
+  const isCountdown = notification.type === NotificationType.Countdown
+  const countdownMs = Math.max(1000, Math.min(120_000, notification.countdownMs ?? notification.duration ?? 5000))
   const showProgressBar = isLoading && (notification.indeterminate !== false || notification.progress != null)
   const isIndeterminate = isLoading && (notification.indeterminate === true || notification.progress == null)
 
@@ -128,6 +134,11 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
           </button>
         ) : null}
       </div>
+      {isCountdown ? (
+        <div className="h-1 w-full bg-gray-200" role="progressbar" aria-valuemin={0} aria-valuemax={countdownMs} aria-label="Notification dismiss timer">
+          <div className="notification-countdown-bar-fill h-full w-full bg-sky-500" style={{ ['--notification-countdown-ms' as string]: `${countdownMs}ms` }} />
+        </div>
+      ) : null}
     </div>
   )
 }

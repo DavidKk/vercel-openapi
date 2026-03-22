@@ -99,22 +99,13 @@ export function newsOverviewSourceSidebarCountLabel(poolCount: number, parsedCou
  * @param parts Row metadata
  * @returns Single-line tooltip string
  */
-export function newsOverviewSourceSidebarRowTitle(parts: {
-  label: string
-  siteUrl: string
-  poolCount: number
-  parsedCount: number
-  fetchError?: string
-  warmingHint?: string
-}): string {
+export function newsOverviewSourceSidebarRowTitle(parts: { label: string; siteUrl: string; poolCount: number; parsedCount: number; fetchError?: string }): string {
   const segments: string[] = [parts.label]
   if (parts.siteUrl) {
     segments.push(parts.siteUrl)
   }
   if (parts.fetchError) {
     segments.push(parts.fetchError)
-  } else if (parts.warmingHint) {
-    segments.push(parts.warmingHint)
   } else if (parts.parsedCount > 0) {
     if (parts.poolCount > 0) {
       segments.push(

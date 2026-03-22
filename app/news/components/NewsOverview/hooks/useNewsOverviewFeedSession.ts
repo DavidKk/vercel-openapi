@@ -27,7 +27,7 @@ import {
 import type { AggregatedNewsItem, NewsFeedFacets, NewsFeedSourceInventoryRow } from '@/services/news/types'
 
 /**
- * Feed session state, scroll refs, fetch orchestration, warmup polling, and infinite scroll for the news overview.
+ * Feed session state, scroll refs, fetch orchestration, optional one-shot warmup refetch, and infinite scroll.
  * @param args Pathname, current list/facet, mirrored refs from {@link useNewsOverviewRouteFacets}, and search-param key for UI resets
  * @returns State, refs, and actions consumed by overview layout components
  */
@@ -54,13 +54,8 @@ export function useNewsOverviewFeedSession(args: {
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [partialErrors, setPartialErrors] = useState<{ sourceId: string; message: string }[]>([])
-  /** Transient RSS issues (timeouts / merge cap); polled with `retrySourceIds` until cleared. */
+  /** Transient RSS issues (timeouts / merge cap); overview issues one silent follow-up `retrySourceIds` request when non-empty. */
   const [warmupSources, setWarmupSources] = useState<{ sourceId: string; message: string }[]>([])
-  const [manualWarmupRetryUnlocked, setManualWarmupRetryUnlocked] = useState(false)
-  /** True while the 5s interval warmup poll request is in flight (head skeleton + status line). */
-  const [warmupPollBusy, setWarmupPollBusy] = useState(false)
-  /** True while the user-triggered warmup retry request is in flight (same skeleton; separate from poll so they do not clear each other’s busy flag). */
-  const [manualWarmupBusy, setManualWarmupBusy] = useState(false)
   /** Facet histograms from the API over the full merged pool (not derived from loaded pages). */
   const [feedFacets, setFeedFacets] = useState<NewsFeedFacets | null>(null)
   /** Per-source parsed vs pool counts from the API (explains 0 in list when RSS still returned rows). */
@@ -83,17 +78,16 @@ export function useNewsOverviewFeedSession(args: {
   /** Prevents overlapping load-more requests before `loadingMore` state updates. */
   const loadMoreInFlightRef = useRef(false)
   /**
-   * Skips a new interval tick while the previous warmup poll fetch is still running (avoids piling requests and bogus busy=false).
+   * Prevents overlapping warmup refetches if the effect re-runs while a request is still in flight.
    */
-  const warmupPollTickInFlightRef = useRef(false)
+  const warmupRefetchInFlightRef = useRef(false)
   /**
    * First-page `data.fetchedAt` (ISO). Sent as `feedAnchor` on load-more so the server uses the same
    * rolling time window and stable merge order for `offset` slices.
    */
   const feedSessionAnchorRef = useRef<string | null>(null)
-  /** Latest `warmupSources` for background poll ticks (ids only). */
+  /** Latest `warmupSources` for the one-shot `retrySourceIds` request (ids only). */
   const warmupSourcesRef = useRef<{ sourceId: string; message: string }[]>([])
-  const manualWarmupRetryAbortRef = useRef<AbortController | null>(null)
   /** Monotonic token for the current first-page session; stale async results must match this token before mutating state. */
   const feedSessionTokenRef = useRef(0)
   /** Mirrors `initialFeedRequestSettled` for async guards without waiting for React state to flush. */
@@ -105,8 +99,6 @@ export function useNewsOverviewFeedSession(args: {
     return () => {
       loadMoreAbortRef.current?.abort()
       loadMoreAbortRef.current = null
-      manualWarmupRetryAbortRef.current?.abort()
-      manualWarmupRetryAbortRef.current = null
       if (scrollBackToTopRafRef.current !== null) {
         window.cancelAnimationFrame(scrollBackToTopRafRef.current)
         scrollBackToTopRafRef.current = null
@@ -159,23 +151,35 @@ export function useNewsOverviewFeedSession(args: {
   }
 
   /**
-   * Apply first-page refresh from warmup / partial-retry: prepend unseen rows, keep tail order, optional enter animation.
+   * Apply first-page refresh from background warmup `retrySourceIds`: prepend unseen rows, keep tail order.
+   * When `silent` is true, skip list enter animation and persist L0 (unfiltered list only) so the user does not perceive a refresh.
+   * @param r Parsed first-page payload from the warmup request
+   * @param silent Use true for background warmup merges (no enter animation, write IDB when facet is null)
    */
   const applyWarmupFirstPageMerge = useCallback(
-    (r: {
-      list: AggregatedNewsItem[]
-      errors: { sourceId: string; message: string }[]
-      feedWarmupSources: { sourceId: string; message: string }[]
-      fetchedAt?: string
-      facets?: NewsFeedFacets
-      sourceInventory?: NewsFeedSourceInventoryRow[]
-      uniqueAfterDedupe?: number
-      hasMore?: boolean
-    }) => {
+    (
+      r: {
+        list: AggregatedNewsItem[]
+        errors: { sourceId: string; message: string }[]
+        feedWarmupSources: { sourceId: string; message: string }[]
+        fetchedAt?: string
+        facets?: NewsFeedFacets
+        sourceInventory?: NewsFeedSourceInventoryRow[]
+        uniqueAfterDedupe?: number
+        hasMore?: boolean
+      },
+      silent: boolean
+    ) => {
       const prev = itemsRef.current
       const { merged, prependedKeys } = mergeNewsFeedItemsPreferIncomingHead(prev, r.list)
       setItems(merged)
-      if (prependedKeys.length > 0) {
+      if (silent) {
+        if (newsEnterClearTimeoutRef.current !== null) {
+          clearTimeout(newsEnterClearTimeoutRef.current)
+          newsEnterClearTimeoutRef.current = null
+        }
+        setEnteringItemKeys(new Set())
+      } else if (prependedKeys.length > 0) {
         setEnteringItemKeys(new Set(prependedKeys))
         scheduleNewsEnterAnimationClear()
       } else {
@@ -204,6 +208,20 @@ export function useNewsOverviewFeedSession(args: {
       if (r.hasMore !== undefined) {
         setHasMore(r.hasMore)
       }
+      if (silent && shouldPersistNewsOverviewL0(tagFilterRef.current, 0)) {
+        const idbKey = buildNewsFeedOverviewIdbKey(listSlugRef.current)
+        void setNewsFeedOverviewInIdb(idbKey, {
+          items: merged,
+          errors: r.errors,
+          warmupSources: r.feedWarmupSources,
+          fetchedAt: r.fetchedAt,
+          facets: r.facets ?? null,
+          sourceInventory: r.sourceInventory ?? null,
+          uniqueAfterDedupe: r.uniqueAfterDedupe ?? null,
+          hasMore: r.hasMore ?? true,
+          warmupPending: r.feedWarmupSources.length > 0,
+        }).catch(() => undefined)
+      }
     },
     [scheduleNewsEnterAnimationClear]
   )
@@ -217,19 +235,6 @@ export function useNewsOverviewFeedSession(args: {
     [warmupSources]
   )
 
-  /**
-   * After warmup sources appear, allow manual `retrySourceIds` after the same delay as the server hint.
-   */
-  useEffect(() => {
-    if (warmupSources.length === 0) {
-      setManualWarmupRetryUnlocked(false)
-      return
-    }
-    setManualWarmupRetryUnlocked(false)
-    const t = window.setTimeout(() => setManualWarmupRetryUnlocked(true), 5000)
-    return () => window.clearTimeout(t)
-  }, [warmupSourceIdsKey, warmupSources.length])
-
   useEffect(() => {
     setExpandedSummaryKeys({})
   }, [listSlug, searchParamsKey])
@@ -240,7 +245,8 @@ export function useNewsOverviewFeedSession(args: {
   )
 
   /**
-   * Poll only failing warmup sources every 5s while the user stays on this list/facet; aborts on navigation.
+   * Background-only: one first-page request with `retrySourceIds` when the API reports warming sources.
+   * No loading UI; server merges into L1/L2. Client merges into list + L0 when unfiltered; aborts on list/facet change.
    */
   useEffect(() => {
     if (warmupSourceIdsKey === '') {
@@ -256,11 +262,10 @@ export function useNewsOverviewFeedSession(args: {
       if (ids.length === 0) {
         return
       }
-      if (warmupPollTickInFlightRef.current) {
+      if (warmupRefetchInFlightRef.current) {
         return
       }
-      warmupPollTickInFlightRef.current = true
-      setWarmupPollBusy(true)
+      warmupRefetchInFlightRef.current = true
       const session: NewsOverviewSessionSnapshot = {
         token: feedSessionTokenRef.current,
         listSlug: slug,
@@ -270,92 +275,41 @@ export function useNewsOverviewFeedSession(args: {
         const r = await fetchFeedPage(slug, 0, {
           signal: ac.signal,
           listTagFilter: session.facet,
-          requestIntent: 'warmup_poll',
+          requestIntent: 'warmup_refetch',
           retrySourceIds: ids,
         })
         if (ac.signal.aborted || !isActiveNewsOverviewSession(session)) {
           return
         }
         if (r.ok && (r.code === undefined || r.code === 0)) {
-          applyWarmupFirstPageMerge({
-            list: r.list,
-            errors: r.errors,
-            feedWarmupSources: r.feedWarmupSources,
-            fetchedAt: r.fetchedAt,
-            facets: r.facets,
-            sourceInventory: r.sourceInventory,
-            uniqueAfterDedupe: r.uniqueAfterDedupe,
-            hasMore: r.hasMore,
-          })
+          applyWarmupFirstPageMerge(
+            {
+              list: r.list,
+              errors: r.errors,
+              feedWarmupSources: r.feedWarmupSources,
+              fetchedAt: r.fetchedAt,
+              facets: r.facets,
+              sourceInventory: r.sourceInventory,
+              uniqueAfterDedupe: r.uniqueAfterDedupe,
+              hasMore: r.hasMore,
+            },
+            true
+          )
         }
       } catch (e) {
         if (e instanceof Error && e.name === 'AbortError') {
           return
         }
       } finally {
-        warmupPollTickInFlightRef.current = false
-        setWarmupPollBusy(false)
+        warmupRefetchInFlightRef.current = false
       }
     }
-    const intervalId = window.setInterval(run, 5000)
+    void run()
     return () => {
       ac.abort()
-      window.clearInterval(intervalId)
-      warmupPollTickInFlightRef.current = false
-      setWarmupPollBusy(false)
+      warmupRefetchInFlightRef.current = false
     }
   }, [listSlug, tagFilter, warmupSourceIdsKey, fetchFeedPage, applyWarmupFirstPageMerge])
-
-  const runManualWarmupRetry = useCallback(async () => {
-    const ids = warmupSourcesRef.current.map((r) => r.sourceId)
-    if (ids.length === 0 || !manualWarmupRetryUnlocked) {
-      return
-    }
-    manualWarmupRetryAbortRef.current?.abort()
-    const ac = new AbortController()
-    manualWarmupRetryAbortRef.current = ac
-    setManualWarmupBusy(true)
-    const session: NewsOverviewSessionSnapshot = {
-      token: feedSessionTokenRef.current,
-      listSlug: listSlugRef.current,
-      facet: tagFilterRef.current,
-    }
-    try {
-      const r = await fetchFeedPage(session.listSlug, 0, {
-        signal: ac.signal,
-        listTagFilter: session.facet,
-        requestIntent: 'warmup_manual',
-        retrySourceIds: ids,
-      })
-      if (ac.signal.aborted || !isActiveNewsOverviewSession(session)) {
-        return
-      }
-      if (r.ok && (r.code === undefined || r.code === 0)) {
-        applyWarmupFirstPageMerge({
-          list: r.list,
-          errors: r.errors,
-          feedWarmupSources: r.feedWarmupSources,
-          fetchedAt: r.fetchedAt,
-          facets: r.facets,
-          sourceInventory: r.sourceInventory,
-          uniqueAfterDedupe: r.uniqueAfterDedupe,
-          hasMore: r.hasMore,
-        })
-      }
-    } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') {
-        return
-      }
-    } finally {
-      const shouldClearBusy = manualWarmupRetryAbortRef.current === ac
-      if (shouldClearBusy) {
-        manualWarmupRetryAbortRef.current = null
-      }
-      if (shouldClearBusy) {
-        setManualWarmupBusy(false)
-      }
-    }
-  }, [fetchFeedPage, manualWarmupRetryUnlocked, applyWarmupFirstPageMerge])
 
   useEffect(() => {
     let cancelled = false
@@ -380,12 +334,8 @@ export function useNewsOverviewFeedSession(args: {
     setInitialFeedRequestSettledState(false)
     setFeedSessionBootstrap(true)
     setLoadingMore(false)
-    setManualWarmupBusy(false)
-    setWarmupPollBusy(false)
     loadMoreAbortRef.current?.abort()
     loadMoreAbortRef.current = null
-    manualWarmupRetryAbortRef.current?.abort()
-    manualWarmupRetryAbortRef.current = null
     loadMoreInFlightRef.current = false
     setError(null)
     setPartialErrors([])
@@ -601,8 +551,6 @@ export function useNewsOverviewFeedSession(args: {
       cancelled = true
       loadMoreAbortRef.current?.abort()
       loadMoreAbortRef.current = null
-      manualWarmupRetryAbortRef.current?.abort()
-      manualWarmupRetryAbortRef.current = null
       ac.abort()
     }
   }, [listSlug, fetchFeedPage, tagFilter, pathname])
@@ -734,8 +682,6 @@ export function useNewsOverviewFeedSession(args: {
     scrollRootRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const warmupRefreshUiBusy = warmupPollBusy || manualWarmupBusy
-
   return {
     items,
     loading,
@@ -746,8 +692,6 @@ export function useNewsOverviewFeedSession(args: {
     error,
     partialErrors,
     warmupSources,
-    manualWarmupRetryUnlocked,
-    warmupRefreshUiBusy,
     feedFacets,
     sourceInventory,
     totalArticleCount,
@@ -758,7 +702,6 @@ export function useNewsOverviewFeedSession(args: {
     scrollRootRef,
     sentinelRef,
     itemRowKeys,
-    runManualWarmupRetry,
     scrollArticleListToTop,
   }
 }

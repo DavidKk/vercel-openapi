@@ -63,14 +63,6 @@ export function NewsOverview() {
     return m
   }, [feed.partialErrors])
 
-  const partialWarmupBySourceId = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const e of feed.warmupSources) {
-      m.set(e.sourceId, e.message)
-    }
-    return m
-  }, [feed.warmupSources])
-
   const sourceInventoryById = useMemo(() => new Map((feed.sourceInventory ?? []).map((r) => [r.sourceId, r])), [feed.sourceInventory])
 
   /** All manifest sources for this channel (same cap as default feed merge), with pool + parsed counts when API sends inventory. */
@@ -131,7 +123,7 @@ export function NewsOverview() {
 
   /** Full-column skeleton: network wait, or list cleared while L0 (IndexedDB) is still being read for this session. */
   const showMainFeedSkeleton = getNewsOverviewMainFeedSkeleton(feed.loading, feed.feedSessionBootstrap, feed.items.length)
-  const showHeadRefreshSkeleton = getNewsOverviewHeadRefreshVisible(feed.loading, feed.initialFeedRequestSettled, feed.items.length, feed.warmupRefreshUiBusy)
+  const showHeadRefreshSkeleton = getNewsOverviewHeadRefreshVisible(feed.loading, feed.initialFeedRequestSettled, feed.items.length)
   const showEmptyState = getNewsOverviewEmptyStateVisible(showMainFeedSkeleton, feed.items.length, feed.error)
   const showErrorBanner = getNewsOverviewErrorBannerVisible(feed.error, feed.loading, feed.feedSessionBootstrap, feed.items.length)
   const loadMoreEnabled = getNewsOverviewLoadMoreEnabled(feed.loading, feed.loadingMore, feed.hasMore, feed.initialFeedRequestSettled, feed.items.length)
@@ -153,7 +145,6 @@ export function NewsOverview() {
             itemRowKeys={feed.itemRowKeys}
             tagFilter={tagFilter}
             showHeadRefreshSkeleton={showHeadRefreshSkeleton}
-            warmupRefreshUiBusy={feed.warmupRefreshUiBusy}
             onToggleFeedCategoryFacet={toggleFeedCategoryFacet}
             enteringItemKeys={feed.enteringItemKeys}
             expandedSummaryKeys={feed.expandedSummaryKeys}
@@ -162,9 +153,6 @@ export function NewsOverview() {
             loadMoreEnabled={loadMoreEnabled}
             hasMore={feed.hasMore}
             partialErrors={feed.partialErrors}
-            warmupSources={feed.warmupSources}
-            manualWarmupRetryUnlocked={feed.manualWarmupRetryUnlocked}
-            onManualWarmupRetry={feed.runManualWarmupRetry}
           />
           <NewsOverviewBackToTop visible={feed.showBackToTop} onClick={feed.scrollArticleListToTop} />
         </div>
@@ -174,7 +162,6 @@ export function NewsOverview() {
           sourceSidebarRows={sourceSidebarRows}
           tagFilter={tagFilter}
           partialErrorBySourceId={partialErrorBySourceId}
-          partialWarmupBySourceId={partialWarmupBySourceId}
           onToggleSourceFacet={handleSourceFacetToggle}
           showTopicSidebar={showTopicSidebar}
           topicSidebar={topicSidebar}

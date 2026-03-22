@@ -75,3 +75,25 @@ body {
     animation: none;
   }
 }
+
+@keyframes notification-countdown-shrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Bottom bar for notification countdown type; duration via --notification-countdown-ms (inline). */
+.notification-countdown-bar-fill {
+  transform-origin: left center;
+  animation: notification-countdown-shrink var(--notification-countdown-ms, 5000ms) linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-countdown-bar-fill {
+    animation: none;
+    transform: scaleX(1);
+  }
+}

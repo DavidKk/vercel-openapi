@@ -37,14 +37,14 @@ export function getNewsOverviewMainFeedSkeleton(loading: boolean, feedSessionBoo
 
 /**
  * Whether the article list should show the small head refresh skeleton while cached rows stay visible.
+ * Warmup `retrySourceIds` refetches are silent (no skeleton).
  * @param loading First-page request state
  * @param initialRequestSettled True after the current session's first network request settles
  * @param itemCount Current `items.length`
- * @param warmupRefreshUiBusy True when warmup poll/manual retry is refreshing the first page
  * @returns True when the top-of-list refresh skeleton should render
  */
-export function getNewsOverviewHeadRefreshVisible(loading: boolean, initialRequestSettled: boolean, itemCount: number, warmupRefreshUiBusy: boolean): boolean {
-  return warmupRefreshUiBusy || (!loading && !initialRequestSettled && itemCount > 0)
+export function getNewsOverviewHeadRefreshVisible(loading: boolean, initialRequestSettled: boolean, itemCount: number): boolean {
+  return !loading && !initialRequestSettled && itemCount > 0
 }
 
 /**

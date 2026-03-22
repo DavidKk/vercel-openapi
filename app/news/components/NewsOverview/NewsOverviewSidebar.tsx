@@ -19,25 +19,14 @@ export const NewsOverviewSidebar = memo(function NewsOverviewSidebar(props: {
   sourceSidebarRows: { sourceId: string; label: string; siteUrl: string; poolCount: number; parsedCount: number }[]
   tagFilter: NewsOverviewTagFilter
   partialErrorBySourceId: Map<string, string>
-  partialWarmupBySourceId: Map<string, string>
   onToggleSourceFacet: (args: { sourceId: string; currentlySelected: boolean }) => void
   showTopicSidebar: boolean
   topicSidebar: NewsOverviewTopicSidebarBuckets
   onToggleTopicFacetRow: (row: NewsOverviewTopicFacetRow) => void
   onClearFilters: () => void
 }) {
-  const {
-    showSourceSidebar,
-    sourceSidebarRows,
-    tagFilter,
-    partialErrorBySourceId,
-    partialWarmupBySourceId,
-    onToggleSourceFacet,
-    showTopicSidebar,
-    topicSidebar,
-    onToggleTopicFacetRow,
-    onClearFilters,
-  } = props
+  const { showSourceSidebar, sourceSidebarRows, tagFilter, partialErrorBySourceId, onToggleSourceFacet, showTopicSidebar, topicSidebar, onToggleTopicFacetRow, onClearFilters } =
+    props
 
   return (
     <aside
@@ -53,7 +42,6 @@ export const NewsOverviewSidebar = memo(function NewsOverviewSidebar(props: {
                 const on = tagFilter?.kind === 'src' && tagFilter.sourceId === sourceId
                 const hasPool = poolCount > 0
                 const fetchError = partialErrorBySourceId.get(sourceId)
-                const warmingHint = partialWarmupBySourceId.has(sourceId) ? '正在预热' : undefined
                 const idleVisual = hasPool
                   ? 'border border-violet-200/90 bg-violet-50/90 text-violet-950 hover:bg-violet-100'
                   : 'border border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100/90'
@@ -66,7 +54,7 @@ export const NewsOverviewSidebar = memo(function NewsOverviewSidebar(props: {
                     className={`flex w-full max-w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[11px] transition-colors ${
                       on ? 'bg-violet-700 text-white' : idleVisual
                     }`}
-                    title={newsOverviewSourceSidebarRowTitle({ label, siteUrl, poolCount, parsedCount, fetchError, warmingHint })}
+                    title={newsOverviewSourceSidebarRowTitle({ label, siteUrl, poolCount, parsedCount, fetchError })}
                   >
                     <span className="min-w-0 truncate font-medium">{label}</span>
                     <span className={`shrink-0 tabular-nums ${on ? 'text-violet-100' : hasPool ? 'text-violet-700/90' : 'text-gray-400'}`}>{countLabel}</span>

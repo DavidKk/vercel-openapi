@@ -5,7 +5,7 @@ import { normalizeNewsListSlug } from '@/services/news/config/news-subcategories
 import type { AggregatedNewsItem, NewsFeedFacets, NewsFeedSourceInventoryRow } from '@/services/news/types'
 
 /** Intent label for client logging and server-facing request shape. */
-export type NewsOverviewFeedRequestIntent = 'initial' | 'load_more' | 'warmup_poll' | 'warmup_manual'
+export type NewsOverviewFeedRequestIntent = 'initial' | 'load_more' | 'warmup_refetch'
 
 /**
  * Options for {@link fetchNewsOverviewFeedPage}.
