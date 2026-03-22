@@ -1,15 +1,10 @@
-import { after } from 'next/server'
-
 import { isAppCacheDisabled } from '@/services/config/cache-debug'
 import { getJsonKv, getKvClient, setJsonKvEx } from '@/services/kv/client'
-import { createLogger } from '@/services/logger'
 import { createLruCache } from '@/services/lru-cache'
 
-import { mergeNewsFeedsToPool, type NewsFeedPoolCachePayload, reconcileNewsFeedPoolAfterFailedSourceRetry, reconcileNewsFeedPoolAfterRssFetch } from './aggregate-feed'
+import { mergeNewsFeedsToPool, type NewsFeedPoolCachePayload, reconcileNewsFeedPoolAfterRssFetch } from './aggregate-feed'
 import { getNewsFeedRecentWindowHoursForListSlug } from './published-recent-window'
 import type { NewsCategory, NewsSourceConfig } from './types'
-
-const logger = createLogger('news-feed-kv-cache')
 
 const POOL_KEY_PREFIX = 'news:feedpool:v3'
 /** Bumped when pool payload shape changes (e.g. `sourceInventory`); invalidates KV keys via {@link buildNewsFeedPoolCacheKey}. */
@@ -19,17 +14,6 @@ const POOL_CACHE_SCHEMA_VERSION = 13
 const POOL_MIN_TTL_SEC = 3_600
 const POOL_MAX_TTL_SEC = 86_400
 const POOL_DEFAULT_TTL_SEC = 86_400
-
-const DEFAULT_REFRESH_MIN_INTERVAL_MS = 600_000
-const MIN_REFRESH_INTERVAL_MS = 60_000
-const MAX_REFRESH_INTERVAL_MS = 3_600_000
-
-const DEFAULT_FAILED_RETRY_DELAY_MS = 60_000
-const MIN_FAILED_RETRY_DELAY_MS = 30_000
-const MAX_FAILED_RETRY_DELAY_MS = 300_000
-
-/** One delayed `after()` retry per pool key at a time (avoid stacking timers on burst traffic). */
-const failedRetryInFlight = new Set<string>()
 
 /**
  * KV TTL for the merged news pool (`NEWS_FEED_KV_TTL_SECONDS`), clamped 3600–86400. Default 86400 (24 hours).
@@ -53,49 +37,6 @@ export function getNewsFeedPoolKvTtlSeconds(): number {
  */
 export function getNewsFeedPoolCacheTtlMs(): number {
   return getNewsFeedPoolKvTtlSeconds() * 1000
-}
-
-/**
- * Minimum time between background RSS reconciles for the same pool key (`NEWS_FEED_POOL_REFRESH_MIN_INTERVAL_MS`).
- * @returns Milliseconds
- */
-export function getNewsFeedPoolRefreshMinIntervalMs(): number {
-  const raw = process.env.NEWS_FEED_POOL_REFRESH_MIN_INTERVAL_MS?.trim()
-  if (!raw) {
-    return DEFAULT_REFRESH_MIN_INTERVAL_MS
-  }
-  const n = Number.parseInt(raw, 10)
-  if (!Number.isFinite(n)) {
-    return DEFAULT_REFRESH_MIN_INTERVAL_MS
-  }
-  return Math.min(MAX_REFRESH_INTERVAL_MS, Math.max(MIN_REFRESH_INTERVAL_MS, n))
-}
-
-/**
- * Wait before re-fetching sources that failed (rate-limit / 429). `NEWS_FEED_FAILED_RETRY_DELAY_MS`, clamped 30s–300s, default 60s.
- * @returns Delay in milliseconds
- */
-export function getNewsFeedFailedRetryDelayMs(): number {
-  const raw = process.env.NEWS_FEED_FAILED_RETRY_DELAY_MS?.trim()
-  if (!raw) {
-    return DEFAULT_FAILED_RETRY_DELAY_MS
-  }
-  const n = Number.parseInt(raw, 10)
-  if (!Number.isFinite(n)) {
-    return DEFAULT_FAILED_RETRY_DELAY_MS
-  }
-  return Math.min(MAX_FAILED_RETRY_DELAY_MS, Math.max(MIN_FAILED_RETRY_DELAY_MS, n))
-}
-
-/**
- * Sleep for RSSHub / upstream cooldown between the user-facing response and a retry.
- * @param ms Duration in milliseconds
- * @returns Promise that resolves after `ms`
- */
-function delayMs(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
 }
 
 /**
@@ -286,7 +227,7 @@ async function executeNewsFeedPoolBackgroundRefresh(args: {
 }
 
 /**
- * Blocking refresh: fetch RSS, reconcile with the previous pool, write L1 and KV. Same logic as the `after()` background job.
+ * Blocking refresh: fetch RSS, reconcile with the previous pool, write L1 and KV.
  * Use from cron or manual warm; keep pool key dimensions aligned with `GET /api/news/feed`.
  * @param args Pool cache key, sources slice, base URL, optional list category filter
  */
@@ -298,235 +239,6 @@ export async function refreshNewsFeedMergedPool(args: {
   listSlug: string
 }): Promise<void> {
   await executeNewsFeedPoolBackgroundRefresh(args)
-}
-
-/**
- * Whether a cached pool is due for background RSS reconcile (same rule as {@link scheduleNewsFeedPoolBackgroundRefreshIfStale}).
- * @param poolLayerHit L1/L2 hit or null on miss
- * @param payload Current pool row
- * @returns True when `after()` refresh would run
- */
-export function isNewsFeedPoolBackgroundRefreshDue(poolLayerHit: 'l1' | 'l2' | null, payload: NewsFeedPoolCachePayload): boolean {
-  if (poolLayerHit === null) {
-    return false
-  }
-  const last = payload.lastMergedAtMs ?? 0
-  return Date.now() - last >= getNewsFeedPoolRefreshMinIntervalMs()
-}
-
-/**
- * Schedule a non-blocking RSS refresh when the pool was served from cache and is older than {@link getNewsFeedPoolRefreshMinIntervalMs}.
- * Uses `after()` from Next.js (Node.js runtime).
- * @param params Hit layer, payload, key, merge inputs
- */
-export function scheduleNewsFeedPoolBackgroundRefreshIfStale(params: {
-  poolLayerHit: 'l1' | 'l2' | null
-  payload: NewsFeedPoolCachePayload
-  poolCacheKey: string
-  sources: NewsSourceConfig[]
-  baseUrl: string
-  itemCategory?: NewsCategory
-  listSlug: string
-}): void {
-  const { poolLayerHit, payload, poolCacheKey, sources, baseUrl, itemCategory, listSlug } = params
-  if (!isNewsFeedPoolBackgroundRefreshDue(poolLayerHit, payload)) {
-    return
-  }
-
-  try {
-    after(async () => {
-      try {
-        await executeNewsFeedPoolBackgroundRefresh({ poolCacheKey, sources, baseUrl, itemCategory, listSlug })
-        const refreshOkSummary = 'Background RSS refresh finished (pool cache updated).'
-        logger.info(
-          refreshOkSummary,
-          JSON.stringify({
-            flow: 'News merged pool',
-            step: 'background_refresh',
-            message: refreshOkSummary,
-            event: 'news_feed_pool_refresh',
-            ok: true,
-          })
-        )
-      } catch (e) {
-        const errText = e instanceof Error ? e.message : String(e)
-        const refreshFailSummary = `Background RSS refresh failed — ${errText}`
-        logger.warn(
-          refreshFailSummary,
-          JSON.stringify({
-            flow: 'News merged pool',
-            step: 'background_refresh',
-            message: refreshFailSummary,
-            event: 'news_feed_pool_refresh',
-            ok: false,
-            errorDetail: errText,
-          })
-        )
-      }
-    })
-  } catch (e) {
-    const skipErr = e instanceof Error ? e.message : String(e)
-    const skipSummary = `Skipped background refresh (after() unavailable) — ${skipErr}`
-    logger.warn(
-      skipSummary,
-      JSON.stringify({
-        flow: 'News merged pool',
-        step: 'background_refresh',
-        message: skipSummary,
-        event: 'news_feed_pool_refresh_skip',
-        reason: 'after_unavailable',
-        errorDetail: skipErr,
-      })
-    )
-  }
-}
-
-/**
- * Re-fetch only sources still listed in `payload.errors`, merge into the current pool, write L1/L2.
- * Reloads the pool after the delay so concurrent stale refresh can clear errors first.
- * @param args Pool key, same `sources` slice as the API request, base URL, optional category filter
- */
-async function executeNewsFeedFailedSourcesRetry(args: {
-  poolCacheKey: string
-  sources: NewsSourceConfig[]
-  baseUrl: string
-  itemCategory?: NewsCategory
-  listSlug: string
-  /** Milliseconds waited before this re-fetch (for logs). */
-  waitedMs: number
-}): Promise<void> {
-  if (isAppCacheDisabled()) {
-    return
-  }
-  const { poolCacheKey, sources, baseUrl, itemCategory, listSlug, waitedMs } = args
-  let previous = getNewsFeedPoolMemoryCached(poolCacheKey)
-  const kv = getKvClient()
-  if (previous === null && kv) {
-    const raw = await getJsonKv<unknown>(poolCacheKey)
-    if (raw !== null && isNewsFeedPoolCachePayload(raw)) {
-      previous = raw
-    }
-  }
-  if (previous === null) {
-    logger.info('Failed-source retry skipped (no pool in L1/KV)', JSON.stringify({ event: 'news_feed_failed_retry_skip', reason: 'no_pool' }))
-    return
-  }
-
-  const failedIds = [...new Set((previous.errors ?? []).map((e) => e.sourceId))]
-  if (failedIds.length === 0) {
-    logger.info('Failed-source retry skipped (no errors on snapshot)', JSON.stringify({ event: 'news_feed_failed_retry_skip', reason: 'no_errors' }))
-    return
-  }
-
-  const retrySources = sources.filter((s) => failedIds.includes(s.id))
-  if (retrySources.length === 0) {
-    logger.info(
-      'Failed-source retry skipped (failed ids not in current source slice)',
-      JSON.stringify({ event: 'news_feed_failed_retry_skip', reason: 'no_matching_sources', failedIds })
-    )
-    return
-  }
-
-  const nowMs = Date.now()
-  const freshPartial = await mergeNewsFeedsToPool(retrySources, baseUrl, { windowAtMs: nowMs, itemCategory, listSlug })
-  const reconciled = reconcileNewsFeedPoolAfterFailedSourceRetry({
-    previousItems: previous.pool,
-    previousErrors: previous.errors ?? [],
-    freshPartial,
-    retriedSourceIds: retrySources.map((s) => s.id),
-    allSources: sources,
-    itemCategory,
-  })
-  const payload: NewsFeedPoolCachePayload = { ...reconciled, baseUrl }
-  if (kv) {
-    await setJsonKvEx(poolCacheKey, payload, getNewsFeedPoolKvTtlSeconds())
-  }
-  setNewsFeedPoolMemoryCached(poolCacheKey, payload)
-
-  const retryOkSummary = `Failed-source retry finished (waited ${waitedMs}ms before re-fetch, ${retrySources.length} sources).`
-  logger.info(
-    retryOkSummary,
-    JSON.stringify({
-      flow: 'News merged pool',
-      step: 'failed_source_retry',
-      message: retryOkSummary,
-      event: 'news_feed_failed_retry',
-      ok: true,
-      waitedMs,
-      retriedSourceIds: retrySources.map((s) => s.id),
-      remainingErrors: payload.errors.length,
-    })
-  )
-}
-
-/**
- * When the merged pool reports fetch errors, schedule one `after()` job: wait {@link getNewsFeedFailedRetryDelayMs}, then re-fetch those sources only and reconcile into L1/KV.
- * Idempotent per `poolCacheKey` until the job finishes (avoids piling timers). Re-reads errors after the delay.
- * @param params Pool key and same merge inputs as the HTTP handler
- */
-export function scheduleNewsFeedFailedSourcesRetryIfNeeded(params: {
-  poolCacheKey: string
-  sources: NewsSourceConfig[]
-  baseUrl: string
-  itemCategory?: NewsCategory
-  listSlug: string
-}): void {
-  if (isAppCacheDisabled()) {
-    return
-  }
-  const { poolCacheKey, sources, baseUrl, itemCategory, listSlug } = params
-  if (failedRetryInFlight.has(poolCacheKey)) {
-    return
-  }
-  failedRetryInFlight.add(poolCacheKey)
-
-  try {
-    after(async () => {
-      try {
-        const waitedMs = getNewsFeedFailedRetryDelayMs()
-        await delayMs(waitedMs)
-        await executeNewsFeedFailedSourcesRetry({
-          poolCacheKey,
-          sources,
-          baseUrl,
-          itemCategory,
-          listSlug,
-          waitedMs,
-        })
-      } catch (e) {
-        const errText = e instanceof Error ? e.message : String(e)
-        const failSummary = `Failed-source retry error — ${errText}`
-        logger.warn(
-          failSummary,
-          JSON.stringify({
-            flow: 'News merged pool',
-            step: 'failed_source_retry',
-            message: failSummary,
-            event: 'news_feed_failed_retry',
-            ok: false,
-            errorDetail: errText,
-          })
-        )
-      } finally {
-        failedRetryInFlight.delete(poolCacheKey)
-      }
-    })
-  } catch (e) {
-    failedRetryInFlight.delete(poolCacheKey)
-    const skipErr = e instanceof Error ? e.message : String(e)
-    const skipSummary = `Skipped failed-source retry (after() unavailable) — ${skipErr}`
-    logger.warn(
-      skipSummary,
-      JSON.stringify({
-        flow: 'News merged pool',
-        step: 'failed_source_retry',
-        message: skipSummary,
-        event: 'news_feed_failed_retry_skip',
-        reason: 'after_unavailable',
-        errorDetail: skipErr,
-      })
-    )
-  }
 }
 
 /**

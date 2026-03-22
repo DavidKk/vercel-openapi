@@ -1,9 +1,3 @@
-jest.mock('next/server', () => ({
-  after: jest.fn((cb: () => void | Promise<void>) => {
-    void Promise.resolve().then(cb)
-  }),
-}))
-
 import { alignWindowMsToTtlBucket, buildNewsFeedPoolCacheKey, isNewsFeedPoolCachePayload, resolveNewsFeedWindowMs } from '@/services/news/feed-kv-cache'
 
 describe('feed-kv-cache (pool)', () => {

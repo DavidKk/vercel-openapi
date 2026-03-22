@@ -3,20 +3,12 @@ import { jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import { createLogger } from '@/services/logger'
 import { pruneNewsFeedPoolPayloadForWindow, sliceNewsFeedPageFromPool } from '@/services/news/aggregate-feed'
 import type { NewsFacetListFilter } from '@/services/news/facet-list-filter'
-import {
-  buildNewsFeedPoolCacheKey,
-  getOrBuildNewsFeedMergedPool,
-  isNewsFeedPoolBackgroundRefreshDue,
-  resolveNewsFeedPoolRecentWindowHours,
-  resolveNewsFeedWindowMs,
-  scheduleNewsFeedFailedSourcesRetryIfNeeded,
-  scheduleNewsFeedPoolBackgroundRefreshIfStale,
-} from '@/services/news/feed-kv-cache'
+import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours, resolveNewsFeedWindowMs } from '@/services/news/feed-kv-cache'
 import { getNewsCategoryForListSlug, isValidNewsListSlug, normalizeNewsSubcategory } from '@/services/news/news-subcategories'
 import { filterNewsSources, getNewsFeedBaseUrl, isValidNewsCategory, isValidNewsRegion } from '@/services/news/sources'
 import type { NewsCategory } from '@/services/news/types'
 
-/** Node runtime: `after()` schedules RSS pool reconcile without blocking the JSON response. */
+/** Node runtime: merged pool is built or read from cache synchronously before the JSON response (no post-response RSS jobs). */
 export const runtime = 'nodejs'
 
 const logger = createLogger('api-news-feed')
@@ -249,28 +241,6 @@ export const GET = api(async (req) => {
   })
   const poolPhaseMs = Date.now() - poolPhaseStartedAt
 
-  const backgroundRefreshDue = isNewsFeedPoolBackgroundRefreshDue(poolLayerHit, poolPayload)
-
-  scheduleNewsFeedPoolBackgroundRefreshIfStale({
-    poolLayerHit,
-    payload: poolPayload,
-    poolCacheKey,
-    sources,
-    baseUrl,
-    itemCategory,
-    listSlug: listSubcategoryNorm,
-  })
-
-  if ((poolPayload.errors?.length ?? 0) > 0) {
-    scheduleNewsFeedFailedSourcesRetryIfNeeded({
-      poolCacheKey,
-      sources,
-      baseUrl,
-      itemCategory,
-      listSlug: listSubcategoryNorm,
-    })
-  }
-
   const poolSourceLabel = describeNewsFeedPoolSource(poolLayerHit)
   const poolResolvedMeta = JSON.stringify({
     flow: 'GET /api/news/feed',
@@ -281,7 +251,6 @@ export const GET = api(async (req) => {
     poolPhaseMs,
     poolRowsBeforePrune: poolPayload.pool.length,
     lastMergedAtMs: poolPayload.lastMergedAtMs ?? null,
-    backgroundRefreshScheduled: backgroundRefreshDue,
   })
   const poolResolvedSummary = `News feed pool: ${poolSourceLabel} — ${poolPhaseMs}ms, ${poolPayload.pool.length} rows (before window prune)`
   if (poolPayload.pool.length === 0) {

@@ -1,10 +1,4 @@
-jest.mock('next/server', () => {
-  const actual = jest.requireActual('next/server')
-  return {
-    ...actual,
-    after: jest.fn(),
-  }
-})
+jest.mock('next/server', () => jest.requireActual('next/server'))
 
 const mockGetOrBuildNewsFeedMergedPool = jest.fn()
 
