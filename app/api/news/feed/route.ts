@@ -4,20 +4,61 @@ import { getAuthSession } from '@/services/auth/session'
 import { createLogger } from '@/services/logger'
 import { getNewsCategoryForListSlug, isValidNewsListSlug, normalizeNewsSubcategory } from '@/services/news/config/news-subcategories'
 import type { NewsFacetListFilter } from '@/services/news/facets/facet-list-filter'
-import { attachFinalizedTopicKeywordsToNewsPool, pruneNewsFeedPoolPayloadForWindow, sliceNewsFeedPageFromPool } from '@/services/news/feed/aggregate-feed'
-import { buildNewsFeedPoolCacheKey, getOrBuildNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours, resolveNewsFeedWindowMs } from '@/services/news/feed/feed-kv-cache'
+import type { NewsFeedPoolCachePayload } from '@/services/news/feed/aggregate-feed'
+import {
+  attachFinalizedTopicKeywordsToNewsPool,
+  newsFeedErrorsIncludeMergeBudgetSkip,
+  pruneNewsFeedPoolPayloadForWindow,
+  sliceNewsFeedPageFromPool,
+} from '@/services/news/feed/aggregate-feed'
+import {
+  applyRetrySourcesToNewsFeedPool,
+  buildNewsFeedPoolCacheKey,
+  createEmptyDeadlinePoolPayload,
+  getNewsFeedHandlerTailReserveMs,
+  getNewsFeedHttpHandlerBudgetMs,
+  getNewsFeedHttpHandlerDeadlineEpochMs,
+  getOrBuildNewsFeedMergedPool,
+  type NewsFeedHandlerDeadlineStatus,
+  type NewsFeedPoolRefreshStatus,
+  resolveNewsFeedPoolRecentWindowHours,
+  resolveNewsFeedWindowMs,
+  tryReadNewsFeedPoolFromCacheOnly,
+} from '@/services/news/feed/feed-kv-cache'
+import { NEWS_FEED_WARMUP_MANUAL_UNLOCK_SECONDS, NEWS_FEED_WARMUP_POLL_INTERVAL_SECONDS, splitNewsFeedPoolErrors } from '@/services/news/feed/news-feed-source-issue'
 import { resolveNewsFeedRegionAccess } from '@/services/news/region/news-feed-region-access'
 import { filterNewsSources, getNewsFeedBaseUrl, isValidNewsCategory, isValidNewsRegion } from '@/services/news/sources/sources'
 import { logNewsStructured, NEWS_FEED_API_FLOW } from '@/services/news/structured-news-log'
-import type { NewsCategory, NewsRegion } from '@/services/news/types'
+import type { NewsCategory, NewsRegion, NewsSourceConfig } from '@/services/news/types'
 
 /** Node runtime: merged pool is built or read from cache synchronously before the JSON response (no post-response RSS jobs). */
 export const runtime = 'nodejs'
+
+/**
+ * Allows longer RSS merge on supported plans; cache-miss merges still honor `NEWS_FEED_MERGE_WALL_MS` (partial pool when budget is exceeded).
+ * Hobby may remain capped at 10s regardless.
+ */
+export const maxDuration = 60
 
 const logger = createLogger('api-news-feed')
 
 /** Same as geo API: `X-Cache-Hit` = `L1` (memory) or `L2` (KV). Omitted when the merged pool was built fresh (miss). */
 const HEADER_CACHE_HIT = 'X-Cache-Hit'
+
+/** Set when at least one source was skipped before fetch due to merge wall budget (partial pool). */
+const HEADER_POOL_PARTIAL = 'X-News-Pool-Partial'
+
+/** Set when the handler kept the previous L1/L2 pool after an inline RSS refresh threw (stale-safe). */
+const HEADER_POOL_STALE = 'X-News-Pool-Stale'
+
+/** Set when this request ran an inline reconcile refresh successfully (`X-Cache-Hit` may be absent). */
+const HEADER_POOL_REFRESH_INLINE = 'X-News-Pool-Refresh'
+
+/** `cache_only` | `empty_timeout` when the HTTP handler pool budget was exhausted before `getOrBuild` finished (see `NEWS_FEED_HANDLER_DEADLINE_MS`). */
+const HEADER_FEED_DEADLINE_STATUS = 'X-News-Feed-Deadline-Status'
+
+/** Set when the request used `retrySourceIds` and merged RSS for those ids only into the pool. */
+const HEADER_PARTIAL_RETRY = 'X-News-Feed-Partial-Retry'
 
 const DEFAULT_ITEM_LIMIT = 30
 const MAX_ITEM_LIMIT = 100
@@ -123,6 +164,33 @@ function parseFeedOffset(raw: string | null): number | null {
 }
 
 /**
+ * Parse `retrySourceIds` (comma / semicolon / whitespace separated manifest ids). Only ids present in `sources` are kept.
+ * @param raw Raw query value
+ * @param sources Manifest slice for this request
+ * @returns Unique ids in manifest order, capped at `sources.length`
+ */
+function parseRetrySourceIdsFromQuery(raw: string | undefined, sources: NewsSourceConfig[]): string[] {
+  if (raw === undefined || raw.trim() === '') {
+    return []
+  }
+  const allowed = new Set(sources.map((s) => s.id))
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const part of raw.split(/[\s,;]+/)) {
+    const id = part.trim()
+    if (id === '' || seen.has(id) || !allowed.has(id) || !FEED_SOURCE_ID_RE.test(id)) {
+      continue
+    }
+    seen.add(id)
+    out.push(id)
+    if (out.length >= sources.length) {
+      break
+    }
+  }
+  return out
+}
+
+/**
  * GET /api/news/feed — fetch RSS feeds, merge, dedupe, return latest items.
  */
 export const GET = api(async (req) => {
@@ -221,6 +289,10 @@ export const GET = api(async (req) => {
     : filterNewsSources(itemCategory, regionAccess.regionFilter, itemCategory !== undefined ? listSubcategoryNorm : undefined)
   sources = sources.slice(0, maxFeeds)
 
+  const retrySourceIdsRaw = searchParams.get('retrySourceIds')?.trim() ?? ''
+  const retrySourceIds = parseRetrySourceIdsFromQuery(retrySourceIdsRaw, sources)
+  const partialRetryRequested = retrySourceIds.length > 0 && offset === 0
+
   const logCategory = listParam !== '' ? `list:${listParam}` : category !== undefined && category !== '' ? category : 'all'
   const logRegion = regionAccess.regionCacheKey === '' ? 'all' : regionAccess.regionCacheKey
 
@@ -237,25 +309,115 @@ export const GET = api(async (req) => {
       limit,
       maxFeeds,
       sourceIds: sources.map((s) => s.id),
+      ...(partialRetryRequested ? { retrySourceIds } : {}),
     }
   )
 
+  /**
+   * HTTP timeline (default 10s total, see `NEWS_FEED_HANDLER_DEADLINE_MS`):
+   * 1. Auth + param parsing (above) consumes wall clock.
+   * 2. Pool phase must finish by `handlerDeadlineEpochMs - tailReserveMs` so prune/slice/JSON fit in the tail (`NEWS_FEED_HANDLER_TAIL_RESERVE_MS`).
+   * 3. If the pool phase races past budget, serve L1/L2 only or an empty shell so the client still gets a response within the platform limit.
+   */
+  const handlerDeadlineEpochMs = getNewsFeedHttpHandlerDeadlineEpochMs(handlerStartedAt)
+  const tailReserveMs = getNewsFeedHandlerTailReserveMs()
   const poolPhaseStartedAt = Date.now()
-  const { payload: poolPayload, poolLayerHit } = await getOrBuildNewsFeedMergedPool({
-    poolCacheKey,
-    sources,
-    baseUrl,
-    windowAtMs,
-    itemCategory,
-    listSlug: listSubcategoryNorm,
-  })
+  const maxPoolWaitMs = Math.max(0, handlerDeadlineEpochMs - tailReserveMs - poolPhaseStartedAt)
+
+  let poolPayload: NewsFeedPoolCachePayload
+  let poolLayerHit: 'l1' | 'l2' | null
+  let poolRefreshStatus: NewsFeedPoolRefreshStatus
+  let handlerDeadlineStatus: NewsFeedHandlerDeadlineStatus
+  let partialRetryApplied = false
+
+  if (maxPoolWaitMs <= 0) {
+    const fb = await tryReadNewsFeedPoolFromCacheOnly({ poolCacheKey, listSlug: listSubcategoryNorm })
+    if (fb) {
+      poolPayload = fb.payload
+      poolLayerHit = fb.poolLayerHit
+      poolRefreshStatus = 'none'
+      handlerDeadlineStatus = 'cache_only'
+    } else {
+      poolPayload = createEmptyDeadlinePoolPayload(baseUrl, windowAtMs, sources, listSubcategoryNorm)
+      poolLayerHit = null
+      poolRefreshStatus = 'none'
+      handlerDeadlineStatus = 'empty_timeout'
+    }
+  } else {
+    type PoolPhaseOk = {
+      payload: NewsFeedPoolCachePayload
+      poolLayerHit: 'l1' | 'l2' | null
+      poolRefreshStatus: NewsFeedPoolRefreshStatus
+      partialRetry: boolean
+    }
+    const built = await Promise.race([
+      (async (): Promise<PoolPhaseOk> => {
+        if (partialRetryRequested) {
+          const fb = await tryReadNewsFeedPoolFromCacheOnly({ poolCacheKey, listSlug: listSubcategoryNorm })
+          if (fb !== null) {
+            const payload = await applyRetrySourcesToNewsFeedPool({
+              poolCacheKey,
+              cachedPayload: fb.payload,
+              allSources: sources,
+              retrySourceIds,
+              baseUrl,
+              itemCategory,
+              listSlug: listSubcategoryNorm,
+              handlerDeadlineEpochMs,
+            })
+            return { payload, poolLayerHit: null, poolRefreshStatus: 'none', partialRetry: true }
+          }
+        }
+        const r = await getOrBuildNewsFeedMergedPool({
+          poolCacheKey,
+          sources,
+          baseUrl,
+          windowAtMs,
+          itemCategory,
+          listSlug: listSubcategoryNorm,
+          allowInlinePoolRefresh: offset === 0,
+          handlerDeadlineEpochMs,
+        })
+        return { ...r, partialRetry: false }
+      })(),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), maxPoolWaitMs)
+      }),
+    ])
+    if (built === null) {
+      const fb = await tryReadNewsFeedPoolFromCacheOnly({ poolCacheKey, listSlug: listSubcategoryNorm })
+      if (fb) {
+        poolPayload = fb.payload
+        poolLayerHit = fb.poolLayerHit
+        poolRefreshStatus = 'none'
+        handlerDeadlineStatus = 'cache_only'
+      } else {
+        poolPayload = createEmptyDeadlinePoolPayload(baseUrl, windowAtMs, sources, listSubcategoryNorm)
+        poolLayerHit = null
+        poolRefreshStatus = 'none'
+        handlerDeadlineStatus = 'empty_timeout'
+      }
+    } else {
+      poolPayload = built.payload
+      poolLayerHit = built.poolLayerHit
+      poolRefreshStatus = built.poolRefreshStatus
+      handlerDeadlineStatus = 'ok'
+      partialRetryApplied = built.partialRetry
+    }
+  }
+
   const poolPhaseMs = Date.now() - poolPhaseStartedAt
 
   const poolSourceLabel = describeNewsFeedPoolSource(poolLayerHit)
   const poolResolvedSummary = `News feed pool: ${poolSourceLabel} — ${poolPhaseMs}ms, ${poolPayload.pool.length} rows (before window prune)`
   const poolResolvedDetail = {
     poolCacheLayer: poolLayerHit === 'l1' ? 'L1' : poolLayerHit === 'l2' ? 'L2' : null,
-    poolCacheMiss: poolLayerHit === null,
+    /** True only for cold build this request, not inline reconcile refresh (`inline_ok` also has null layer hit). */
+    poolCacheMiss: poolLayerHit === null && poolRefreshStatus === 'none',
+    poolRefreshStatus,
+    handlerDeadlineStatus,
+    handlerBudgetMs: getNewsFeedHttpHandlerBudgetMs(),
+    maxPoolWaitMs,
     poolPhaseMs,
     poolRowsBeforePrune: poolPayload.pool.length,
     lastMergedAtMs: poolPayload.lastMergedAtMs ?? null,
@@ -372,8 +534,9 @@ export const GET = api(async (req) => {
     logNewsStructured(logger, 'ok', NEWS_FEED_API_FLOW, mergeStatsSummary, 'news_feed_merge_stats', mergeStatsDetail)
   }
 
-  if (errors.length > 0) {
-    for (const e of errors) {
+  const { warmup: warmupIssues, failures: failureIssues } = splitNewsFeedPoolErrors(errors)
+  if (failureIssues.length > 0) {
+    for (const e of failureIssues) {
       logNewsStructured(logger, 'warn', NEWS_FEED_API_FLOW, `News feed response error field: ${e.sourceId}`, 'news_feed_response_error', {
         sourceId: e.sourceId,
         message: e.message,
@@ -389,14 +552,31 @@ export const GET = api(async (req) => {
     facets: typeof facets
     sourceInventory?: typeof sourceInventory
     errors?: { sourceId: string; message: string }[]
+    feedWarmup?: {
+      pending: true
+      sources: { sourceId: string; message: string }[]
+      suggestedRetryAfterSeconds: number
+      suggestedManualRetryAfterSeconds: number
+    }
   } = { items, fetchedAt, baseUrl: responseBaseUrl, mergeStats, facets }
 
   if (sourceInventory !== undefined && sourceInventory.length > 0) {
     responsePayload.sourceInventory = sourceInventory
   }
 
-  if (errors.length > 0) {
-    responsePayload.errors = errors
+  const suppressErrorsForStaleOnly = poolRefreshStatus === 'inline_failed_stale'
+  if (!suppressErrorsForStaleOnly) {
+    if (failureIssues.length > 0) {
+      responsePayload.errors = failureIssues
+    }
+    if (warmupIssues.length > 0) {
+      responsePayload.feedWarmup = {
+        pending: true,
+        sources: warmupIssues,
+        suggestedRetryAfterSeconds: NEWS_FEED_WARMUP_POLL_INTERVAL_SECONDS,
+        suggestedManualRetryAfterSeconds: NEWS_FEED_WARMUP_MANUAL_UNLOCK_SECONDS,
+      }
+    }
   }
 
   const headers = new Headers({
@@ -405,6 +585,21 @@ export const GET = api(async (req) => {
   })
   if (poolLayerHit !== null) {
     headers.set(HEADER_CACHE_HIT, poolLayerHit === 'l1' ? 'L1' : 'L2')
+  }
+  if (newsFeedErrorsIncludeMergeBudgetSkip(poolPayload.errors)) {
+    headers.set(HEADER_POOL_PARTIAL, '1')
+  }
+  if (poolRefreshStatus === 'inline_failed_stale') {
+    headers.set(HEADER_POOL_STALE, '1')
+  }
+  if (poolRefreshStatus === 'inline_ok') {
+    headers.set(HEADER_POOL_REFRESH_INLINE, 'inline')
+  }
+  if (handlerDeadlineStatus !== 'ok') {
+    headers.set(HEADER_FEED_DEADLINE_STATUS, handlerDeadlineStatus)
+  }
+  if (partialRetryApplied) {
+    headers.set(HEADER_PARTIAL_RETRY, '1')
   }
 
   return jsonSuccess(responsePayload, { headers })

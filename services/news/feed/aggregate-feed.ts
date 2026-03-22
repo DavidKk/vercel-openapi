@@ -41,6 +41,15 @@ const MIN_MAX_ATTEMPTS = 1
 const MAX_MAX_ATTEMPTS = 5
 const DEFAULT_MAX_ATTEMPTS = 3
 
+/**
+ * Default merge wall on Vercel when `NEWS_FEED_MERGE_WALL_MS` is unset: **9s** after which no **new** source fetch starts.
+ * Aim for ~1s headroom on a **10s** Hobby limit for dedupe, reconcile, prune, and JSON (see `.env.example`).
+ * Already-running fetches can still finish later — use lower `NEWS_RSS_FETCH_CONCURRENCY`, cron-warm pools, or `NEWS_FEED_POOL_REFRESH_MS=0` on Hobby if you still hit 504.
+ */
+const DEFAULT_VERCEL_MERGE_WALL_MS = 9000
+const MIN_MERGE_WALL_MS = 1000
+const MAX_MERGE_WALL_MS = 115_000
+
 /** HTTP statuses that often clear after a short wait (overload / gateway / rate limit). */
 const RETRYABLE_HTTP_STATUSES = new Set([429, 502, 503, 504])
 
@@ -163,6 +172,55 @@ function getNewsRssFetchConcurrency(): number {
  */
 function getNewsRssFetchMaxAttempts(): number {
   return parseEnvInt('NEWS_RSS_FETCH_MAX_ATTEMPTS', DEFAULT_MAX_ATTEMPTS, MIN_MAX_ATTEMPTS, MAX_MAX_ATTEMPTS)
+}
+
+/**
+ * Fragment in {@link mergeNewsFeedsToPool} skip errors when the merge wall-clock budget was exceeded (partial pool).
+ * The feed API uses this to set `X-News-Pool-Partial`.
+ */
+export const NEWS_FEED_MERGE_BUDGET_SKIP_PHRASE = 'merge time budget exceeded (partial pool)'
+
+/**
+ * Whether any pool error row indicates a source was skipped due to merge wall budget (partial merge).
+ * @param errors Per-source messages from a merged pool
+ * @returns True when at least one error is a budget skip
+ */
+export function newsFeedErrorsIncludeMergeBudgetSkip(errors: readonly { message: string }[] | undefined): boolean {
+  if (errors === undefined || errors.length === 0) {
+    return false
+  }
+  return errors.some((e) => e.message.includes(NEWS_FEED_MERGE_BUDGET_SKIP_PHRASE))
+}
+
+/**
+ * Absolute epoch deadline for HTTP-triggered RSS merges so serverless can return a partial pool before hard runtime limits.
+ * Set `NEWS_FEED_MERGE_WALL_MS` to a positive number (milliseconds of wall time from this call). Use `0`, `off`, or `false` to disable.
+ * On Vercel (`VERCEL=1`), when the variable is unset, defaults to now + {@link DEFAULT_VERCEL_MERGE_WALL_MS} ms
+ * (9s budget for **starting** fetches; ~1s left for post-merge + JSON on a 10s cap).
+ * Background/cron merges should omit {@link mergeNewsFeedsToPool}'s `mergeWallDeadlineMs` instead of calling this.
+ * @returns Epoch ms when fetches that have not started should be skipped, or `undefined` when uncapped
+ */
+export function resolveNewsFeedMergeWallDeadlineMs(): number | undefined {
+  const raw = process.env.NEWS_FEED_MERGE_WALL_MS?.trim()
+  if (raw !== undefined && raw !== '') {
+    const lower = raw.toLowerCase()
+    if (lower === '0' || lower === 'off' || lower === 'false') {
+      return undefined
+    }
+    const n = Number.parseInt(raw, 10)
+    if (!Number.isFinite(n)) {
+      return process.env.VERCEL === '1' ? Date.now() + DEFAULT_VERCEL_MERGE_WALL_MS : undefined
+    }
+    if (n <= 0) {
+      return undefined
+    }
+    const clamped = Math.min(MAX_MERGE_WALL_MS, Math.max(MIN_MERGE_WALL_MS, n))
+    return Date.now() + clamped
+  }
+  if (process.env.VERCEL === '1') {
+    return Date.now() + DEFAULT_VERCEL_MERGE_WALL_MS
+  }
+  return undefined
 }
 
 /**
@@ -338,13 +396,15 @@ function buildSourceInventoryRows(
  * Fetch all feeds, merge, dedupe, recent window, optional manifest `itemCategory` — **no** RSS facet filter, **no** page slice.
  * @param sources Sources to query (already filtered and sliced)
  * @param baseUrl RSS base (no trailing slash); used only for upstream fetch URLs
- * @param options `windowAtMs` for rolling window + pagination anchor; optional manifest category; `listSlug` for per-list recent window (empty = global default)
+ * @param options `windowAtMs` for rolling window + pagination anchor; optional manifest category; `listSlug` for
+ *   per-list recent window (empty = global default); optional `mergeWallDeadlineMs` (epoch ms) to skip sources that
+ *   have not started fetching after the deadline (partial pool)
  * @returns Full pool and facet histograms over that pool
  */
 export async function mergeNewsFeedsToPool(
   sources: NewsSourceConfig[],
   baseUrl: string,
-  options: { windowAtMs: number; itemCategory?: NewsCategory; listSlug?: string }
+  options: { windowAtMs: number; itemCategory?: NewsCategory; listSlug?: string; mergeWallDeadlineMs?: number }
 ): Promise<NewsFeedMergedPool> {
   const nowMs = options.windowAtMs
   const errors: { sourceId: string; message: string }[] = []
@@ -377,7 +437,16 @@ export async function mergeNewsFeedsToPool(
     })
   )
 
+  const mergeWallDeadlineMs = options.mergeWallDeadlineMs
+
   await runWithConcurrencyLimit(sources, concurrency, async (source) => {
+    if (mergeWallDeadlineMs !== undefined && Date.now() >= mergeWallDeadlineMs) {
+      errors.push({
+        sourceId: source.id,
+        message: `skipped: ${NEWS_FEED_MERGE_BUDGET_SKIP_PHRASE}`,
+      })
+      return
+    }
     const path = source.rsshubPath.startsWith('/') ? source.rsshubPath : `/${source.rsshubPath}`
     const url = `${baseUrl}${path}`
     const fetchStartedAt = Date.now()
@@ -603,8 +672,10 @@ export function reconcileNewsFeedPoolAfterFailedSourceRetry(args: {
   retriedSourceIds: string[]
   allSources: NewsSourceConfig[]
   itemCategory?: NewsCategory
+  /** When set, parsed counts for non-retried sources are preserved (partial HTTP retry). */
+  previousParsedBySourceId?: Record<string, number>
 }): NewsFeedMergedPool {
-  const { previousItems, previousErrors, freshPartial, retriedSourceIds, allSources, itemCategory } = args
+  const { previousItems, previousErrors, freshPartial, retriedSourceIds, allSources, itemCategory, previousParsedBySourceId } = args
   const retried = new Set(retriedSourceIds)
   const sourceById = new Map(allSources.map((s) => [s.id, s]))
   const combined = [...previousItems, ...freshPartial.pool]
@@ -620,25 +691,23 @@ export function reconcileNewsFeedPoolAfterFailedSourceRetry(args: {
   const facets = buildFeedFacetsFromPool(pool)
 
   const mergedErrors = [...previousErrors.filter((e) => !retried.has(e.sourceId)), ...freshPartial.errors]
-
-  function hasPrimaryForSource(sourceId: string): boolean {
-    return pool.some((row) => row.sourceId === sourceId)
-  }
-
+  const poolFacetMap = facetSourceCountMap(facets)
+  const failedSourceIds = new Set(mergedErrors.map((e) => e.sourceId))
   let sourcesWithItems = 0
   let sourcesEmptyOrFailed = 0
   for (const s of allSources) {
-    const has = hasPrimaryForSource(s.id)
-    const err = mergedErrors.some((e) => e.sourceId === s.id)
-    if (has && !err) {
+    const hasPoolCredit = (poolFacetMap.get(s.id) ?? 0) > 0
+    if (hasPoolCredit && !failedSourceIds.has(s.id)) {
       sourcesWithItems++
     } else {
       sourcesEmptyOrFailed++
     }
   }
-
-  const poolFacetMap = facetSourceCountMap(facets)
-  const sourceInventory = buildSourceInventoryRows(allSources, poolFacetMap, freshPartial.parsedBySourceId)
+  const mergedParsedBySourceId: Record<string, number> = {
+    ...(previousParsedBySourceId ?? {}),
+    ...(freshPartial.parsedBySourceId ?? {}),
+  }
+  const sourceInventory = buildSourceInventoryRows(allSources, poolFacetMap, mergedParsedBySourceId)
 
   return {
     pool,
@@ -656,7 +725,7 @@ export function reconcileNewsFeedPoolAfterFailedSourceRetry(args: {
     duplicateDroppedByTitle,
     droppedOutsideRecentWindow,
     recentWindowHours: recentHours,
-    parsedBySourceId: freshPartial.parsedBySourceId,
+    parsedBySourceId: mergedParsedBySourceId,
     sourceInventory,
   }
 }
@@ -747,7 +816,7 @@ export function sliceNewsFeedPageFromPool(
  * @param baseUrl RSS base (no trailing slash)
  * @param itemLimit Max items in this page (slice length)
  * @param itemOffset Skip this many rows after sort/today filter (for pagination)
- * @param options Optional `windowAtMs`, `itemCategory`, `listSlug` (recent window), and/or `facetListFilter`
+ * @param options Optional `windowAtMs`, `itemCategory`, `listSlug` (recent window), `mergeWallDeadlineMs`, and/or `facetListFilter`
  *   (RSS category / keyword / source id — after pool build; facets stay over full pool)
  * @returns Items, per-source errors, ISO fetch timestamp, merge diagnostics
  */
@@ -756,7 +825,13 @@ export async function aggregateNewsFeeds(
   baseUrl: string,
   itemLimit: number,
   itemOffset = 0,
-  options?: { windowAtMs?: number; itemCategory?: NewsCategory; listSlug?: string; facetListFilter?: NewsFacetListFilter }
+  options?: {
+    windowAtMs?: number
+    itemCategory?: NewsCategory
+    listSlug?: string
+    facetListFilter?: NewsFacetListFilter
+    mergeWallDeadlineMs?: number
+  }
 ): Promise<{
   items: AggregatedNewsItem[]
   errors: { sourceId: string; message: string }[]
@@ -770,6 +845,7 @@ export async function aggregateNewsFeeds(
     windowAtMs,
     itemCategory: options?.itemCategory,
     listSlug: options?.listSlug,
+    mergeWallDeadlineMs: options?.mergeWallDeadlineMs,
   })
   return sliceNewsFeedPageFromPool({ ...merged, baseUrl }, { facetListFilter: options?.facetListFilter, itemOffset, itemLimit })
 }

@@ -18,6 +18,7 @@ const DEFAULT_NEWS_OVERVIEW_LOG_MESSAGES: Record<string, string> = {
   feed_envelope_error: 'Overview: feed JSON envelope reports failure (non-zero code).',
   feed_session_start: 'Overview: starting a new feed session (first page).',
   feed_idb_hit: 'Overview: hydrated first page from IndexedDB (TTL aligned with API stale-while-revalidate).',
+  feed_kept_idb_after_api_error: 'Overview: API request failed but kept showing IndexedDB snapshot (stale-safe).',
   load_more_trigger: 'Overview: infinite scroll requested the next page.',
 }
 

@@ -218,6 +218,63 @@ describe('aggregate-feed pool slice + reconcile', () => {
     expect(out.pool.some((r) => r.link === 'https://ex.test/b')).toBe(true)
   })
 
+  it('should count attributed co-sources as sourcesWithItems after partial retry succeeds', () => {
+    const now = Date.now()
+    const iso = new Date(now).toISOString()
+    const sharedLink = 'https://ex.test/shared-story'
+    const previousItems = [
+      {
+        title: 'Shared story from A',
+        link: sharedLink,
+        publishedAt: iso,
+        summary: null,
+        sourceId: 'src-a',
+        sourceLabel: 'A',
+        category: 'general-news' as const,
+        region: 'cn' as const,
+      },
+    ]
+    const freshPartial = {
+      pool: [
+        {
+          title: 'Shared story from B',
+          link: sharedLink,
+          publishedAt: iso,
+          summary: null,
+          sourceId: 'src-b',
+          sourceLabel: 'B',
+          category: 'general-news' as const,
+          region: 'cn' as const,
+        },
+      ],
+      facets: { categories: [], keywords: [], sources: [] },
+      errors: [] as { sourceId: string; message: string }[],
+      fetchedAt: iso,
+      windowAtMs: now,
+      sourcesRequested: 1,
+      sourcesWithItems: 1,
+      sourcesEmptyOrFailed: 0,
+      rawItemCount: 1,
+      droppedMissingLink: 0,
+      duplicateDropped: 0,
+      duplicateDroppedByTitle: 0,
+      droppedOutsideRecentWindow: 0,
+      recentWindowHours: 24,
+    }
+    const out = reconcileNewsFeedPoolAfterFailedSourceRetry({
+      previousItems,
+      previousErrors: [{ sourceId: 'src-b', message: 'timeout' }],
+      freshPartial,
+      retriedSourceIds: ['src-b'],
+      allSources: mockSources,
+      itemCategory: undefined,
+    })
+    expect(out.pool).toHaveLength(1)
+    expect(out.sourcesWithItems).toBe(2)
+    expect(out.sourcesEmptyOrFailed).toBe(0)
+    expect(out.sourceInventory?.find((row) => row.sourceId === 'src-b')?.poolCount).toBe(1)
+  })
+
   it('should preserve merge droppedOutsideRecentWindow when pruning pool for feedAnchor', () => {
     const nowMs = Date.parse('2026-03-21T12:00:00.000Z')
     const freshIso = new Date(nowMs).toISOString()

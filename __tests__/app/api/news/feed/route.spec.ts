@@ -60,6 +60,7 @@ describe('GET /api/news/feed', () => {
     mockGetOrBuildNewsFeedMergedPool.mockResolvedValue({
       payload: makePoolPayload(),
       poolLayerHit: null,
+      poolRefreshStatus: 'none',
     })
   })
 
@@ -155,6 +156,10 @@ describe('GET /api/news/feed', () => {
     expect(body.data.mergeStats).toBeDefined()
     expect(body.data.facets).toBeDefined()
     expect(mockGetOrBuildNewsFeedMergedPool).toHaveBeenCalled()
+    const arg = mockGetOrBuildNewsFeedMergedPool.mock.calls[0]![0] as { handlerDeadlineEpochMs?: number }
+    expect(typeof arg.handlerDeadlineEpochMs).toBe('number')
+    expect(arg.handlerDeadlineEpochMs).toBeGreaterThan(Date.now())
+    expect(arg.handlerDeadlineEpochMs).toBeLessThanOrEqual(Date.now() + 15_000)
   })
 
   it('should pass only manifest sources for game-entertainment (not global first-15 slice)', async () => {
@@ -203,10 +208,41 @@ describe('GET /api/news/feed', () => {
     mockGetOrBuildNewsFeedMergedPool.mockResolvedValue({
       payload: makePoolPayload(),
       poolLayerHit: 'l1',
+      poolRefreshStatus: 'none',
     })
     const req = new NextRequest('http://localhost/api/news/feed', { method: 'GET' })
     const res = await GET(req, { params: Promise.resolve({}) })
     expect(res.status).toBe(200)
     expect(res.headers.get('X-Cache-Hit')).toBe('L1')
+  })
+
+  it('should pass allowInlinePoolRefresh true when offset is 0', async () => {
+    const req = new NextRequest('http://localhost/api/news/feed?list=headlines&limit=5', { method: 'GET' })
+    await GET(req, { params: Promise.resolve({}) })
+    const arg = mockGetOrBuildNewsFeedMergedPool.mock.calls[0]![0] as { allowInlinePoolRefresh?: boolean }
+    expect(arg.allowInlinePoolRefresh).toBe(true)
+  })
+
+  it('should pass allowInlinePoolRefresh false when offset > 0', async () => {
+    const req = new NextRequest('http://localhost/api/news/feed?list=headlines&offset=30&limit=5', { method: 'GET' })
+    await GET(req, { params: Promise.resolve({}) })
+    const arg = mockGetOrBuildNewsFeedMergedPool.mock.calls[0]![0] as { allowInlinePoolRefresh?: boolean }
+    expect(arg.allowInlinePoolRefresh).toBe(false)
+  })
+
+  it('should omit errors and set X-News-Pool-Stale when inline refresh failed stale', async () => {
+    mockGetOrBuildNewsFeedMergedPool.mockResolvedValue({
+      payload: makePoolPayload({
+        errors: [{ sourceId: 'a', message: 'timeout' }],
+      }),
+      poolLayerHit: 'l1',
+      poolRefreshStatus: 'inline_failed_stale',
+    })
+    const req = new NextRequest('http://localhost/api/news/feed?list=headlines&limit=5', { method: 'GET' })
+    const res = await GET(req, { params: Promise.resolve({}) })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('X-News-Pool-Stale')).toBe('1')
+    const body = await res.json()
+    expect(body.data?.errors).toBeUndefined()
   })
 })
