@@ -11,6 +11,10 @@ export enum NotificationType {
   Error = 'error',
   /** Progress/loading notification with optional linear progress bar */
   Loading = 'loading',
+  /**
+   * Auto-dismiss after a fixed delay with a bottom bar that shrinks like a countdown (default 5s).
+   */
+  Countdown = 'countdown',
 }
 
 /**
@@ -33,6 +37,10 @@ export interface Notification {
   progress?: number
   /** If true, show indeterminate progress bar (no percentage) */
   indeterminate?: boolean
+  /**
+   * For {@link NotificationType.Countdown}: bar animation and auto-dismiss length (ms). Defaults to 5000 when omitted.
+   */
+  countdownMs?: number
 }
 
 /**
@@ -44,7 +52,7 @@ export interface NotificationContextValue {
   /** Add a new notification */
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => string
   /** Update an existing notification (e.g. progress) */
-  updateNotification: (id: string, updates: Partial<Pick<Notification, 'message' | 'title' | 'progress' | 'indeterminate'>>) => void
+  updateNotification: (id: string, updates: Partial<Pick<Notification, 'message' | 'title' | 'progress' | 'indeterminate' | 'countdownMs' | 'duration'>>) => void
   /** Remove a notification by ID */
   removeNotification: (id: string) => void
   /** Clear all notifications */
@@ -113,7 +121,7 @@ export function NotificationProvider({ maxNotifications = 10, children }: Notifi
    * @param id Notification ID
    * @param updates Partial fields to merge
    */
-  const updateNotification = useCallback((id: string, updates: Partial<Pick<Notification, 'message' | 'title' | 'progress' | 'indeterminate'>>) => {
+  const updateNotification = useCallback((id: string, updates: Partial<Pick<Notification, 'message' | 'title' | 'progress' | 'indeterminate' | 'countdownMs' | 'duration'>>) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, ...updates } : n)))
   }, [])
 

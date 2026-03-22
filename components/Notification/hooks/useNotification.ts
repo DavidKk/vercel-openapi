@@ -113,6 +113,26 @@ export function useNotification() {
   )
 
   /**
+   * Show a notification with a bottom countdown bar (default 5s) and auto-dismiss when it completes.
+   * @param message Body text
+   * @param options Optional title and countdown length (ms), clamped between 1000 and 120000
+   * @returns Notification ID
+   */
+  const countdown = useCallback(
+    (message: string, options?: { title?: string; countdownMs?: number }) => {
+      const ms = Math.min(120_000, Math.max(1000, options?.countdownMs ?? 5000))
+      return addNotification({
+        type: NotificationType.Countdown,
+        message,
+        title: options?.title,
+        duration: ms,
+        countdownMs: ms,
+      })
+    },
+    [addNotification]
+  )
+
+  /**
    * Show a loading notification with optional linear progress bar.
    * Does not auto-dismiss; call handle.close() when done.
    * Progress updates are throttled (see PROGRESS_THROTTLE_MS).
@@ -191,6 +211,7 @@ export function useNotification() {
     warning,
     error,
     notify,
+    countdown,
     loading,
     remove: removeNotification,
     clearAll,

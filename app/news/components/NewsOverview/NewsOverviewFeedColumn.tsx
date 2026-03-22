@@ -3,7 +3,6 @@ import { TbNews } from 'react-icons/tb'
 
 import { getNewsFeedItemListKey } from '@/app/news/lib/news-feed-item-key'
 import type { NewsOverviewTagFilter } from '@/app/news/lib/news-overview-ui'
-import { Button } from '@/components/Button'
 import { EmptyState } from '@/components/EmptyState'
 import type { AggregatedNewsItem } from '@/services/news/types'
 
@@ -22,7 +21,7 @@ const MemoizedNewsOverviewArticleCard = memo(
 )
 
 /**
- * Scrollable main column: error banner, skeletons, article list, load-more sentinel, warmup / partial-error status.
+ * Scrollable main column: error banner, skeletons, article list, load-more sentinel, partial-error status.
  * @param props Refs and visibility flags from the parent container
  * @returns Feed column (scroll root + inner content)
  */
@@ -37,7 +36,6 @@ export const NewsOverviewFeedColumn = memo(function NewsOverviewFeedColumn(props
   itemRowKeys: string[]
   tagFilter: NewsOverviewTagFilter
   showHeadRefreshSkeleton: boolean
-  warmupRefreshUiBusy: boolean
   onToggleFeedCategoryFacet: (value: string) => void
   enteringItemKeys: ReadonlySet<string>
   expandedSummaryKeys: Record<string, true>
@@ -46,9 +44,6 @@ export const NewsOverviewFeedColumn = memo(function NewsOverviewFeedColumn(props
   loadMoreEnabled: boolean
   hasMore: boolean
   partialErrors: { sourceId: string; message: string }[]
-  warmupSources: { sourceId: string; message: string }[]
-  manualWarmupRetryUnlocked: boolean
-  onManualWarmupRetry: () => void
 }) {
   const {
     scrollRootRef,
@@ -61,7 +56,6 @@ export const NewsOverviewFeedColumn = memo(function NewsOverviewFeedColumn(props
     itemRowKeys,
     tagFilter,
     showHeadRefreshSkeleton,
-    warmupRefreshUiBusy,
     onToggleFeedCategoryFacet,
     enteringItemKeys,
     expandedSummaryKeys,
@@ -70,9 +64,6 @@ export const NewsOverviewFeedColumn = memo(function NewsOverviewFeedColumn(props
     loadMoreEnabled,
     hasMore,
     partialErrors,
-    warmupSources,
-    manualWarmupRetryUnlocked,
-    onManualWarmupRetry,
   } = props
 
   const onToggleSummaryByRowKey = useCallback(
@@ -177,20 +168,9 @@ export const NewsOverviewFeedColumn = memo(function NewsOverviewFeedColumn(props
         </p>
       ) : null}
 
-      {!showMainFeedSkeleton && (warmupSources.length > 0 || partialErrors.length > 0) ? (
-        <div className="mx-auto mt-4 max-w-3xl space-y-2 text-[11px]" role="region" aria-label="Feed source status">
-          {warmupSources.length > 0 ? (
-            <p className="text-sky-900/90">
-              部分来源仍在预热；每 5 秒仅对未就绪来源自动重试（离开页面后停止）。
-              {warmupRefreshUiBusy ? ' 正在重试…' : ''}
-            </p>
-          ) : null}
-          {partialErrors.length > 0 ? <p className="text-amber-900/90">部分来源返回错误（如 HTTP 403/500）：{partialErrors.map((e) => e.sourceId).join(', ')}</p> : null}
-          {warmupSources.length > 0 ? (
-            <Button type="button" variant="outline" size="sm" disabled={!manualWarmupRetryUnlocked || warmupRefreshUiBusy} onClick={() => void onManualWarmupRetry()}>
-              {manualWarmupRetryUnlocked ? '立即重试未就绪来源' : '约 5 秒后可手动重试'}
-            </Button>
-          ) : null}
+      {!showMainFeedSkeleton && partialErrors.length > 0 ? (
+        <div className="mx-auto mt-4 max-w-3xl space-y-2 text-[11px]" role="region" aria-label="Feed source errors">
+          <p className="text-amber-900/90">部分来源返回错误（如 HTTP 403/500）：{partialErrors.map((e) => e.sourceId).join(', ')}</p>
         </div>
       ) : null}
     </div>

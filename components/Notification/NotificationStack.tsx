@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 
-import { useNotificationContext } from './context/NotificationContext'
+import { NotificationType, useNotificationContext } from './context/NotificationContext'
 import { NotificationItem } from './NotificationItem'
 
 /**
@@ -18,7 +18,8 @@ export function NotificationStack() {
    */
   useEffect(() => {
     notifications.forEach((notification) => {
-      if (notification.duration && notification.duration > 0) {
+      const dismissMs = notification.type === NotificationType.Countdown ? Math.max(1000, notification.countdownMs ?? notification.duration ?? 5000) : (notification.duration ?? 0)
+      if (dismissMs > 0) {
         // Clear existing timeout if any
         const existingTimeout = timeoutRefs.current.get(notification.id)
         if (existingTimeout) {
@@ -29,7 +30,7 @@ export function NotificationStack() {
         const timeout = setTimeout(() => {
           removeNotification(notification.id)
           timeoutRefs.current.delete(notification.id)
-        }, notification.duration)
+        }, dismissMs)
 
         timeoutRefs.current.set(notification.id, timeout)
       }

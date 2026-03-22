@@ -96,19 +96,19 @@ describe('news-feed-overview-display', () => {
 
   describe('getNewsOverviewHeadRefreshVisible', () => {
     it('should show top refresh skeleton while cached rows stay visible during the first network refresh', () => {
-      expect(getNewsOverviewHeadRefreshVisible(false, false, 5, false)).toBe(true)
+      expect(getNewsOverviewHeadRefreshVisible(false, false, 5)).toBe(true)
     })
 
     it('should hide top refresh skeleton once the first request settles', () => {
-      expect(getNewsOverviewHeadRefreshVisible(false, true, 5, false)).toBe(false)
+      expect(getNewsOverviewHeadRefreshVisible(false, true, 5)).toBe(false)
     })
 
     it('should hide top refresh skeleton when there are no visible rows yet', () => {
-      expect(getNewsOverviewHeadRefreshVisible(false, false, 0, false)).toBe(false)
+      expect(getNewsOverviewHeadRefreshVisible(false, false, 0)).toBe(false)
     })
 
-    it('should still show top refresh skeleton during warmup poll or manual retry', () => {
-      expect(getNewsOverviewHeadRefreshVisible(false, true, 5, true)).toBe(true)
+    it('should hide top refresh skeleton during silent warmup refetch (same as settled + items)', () => {
+      expect(getNewsOverviewHeadRefreshVisible(false, true, 5)).toBe(false)
     })
   })
 
