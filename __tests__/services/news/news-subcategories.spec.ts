@@ -5,7 +5,7 @@ import {
   getNewsSubcategorySlugsForCategory,
   isValidNewsSubcategoryForCategory,
   normalizeNewsSubcategory,
-} from '@/services/news/news-subcategories'
+} from '@/services/news/config/news-subcategories'
 
 describe('news-subcategories', () => {
   it('should default tech-internet to media slug', () => {

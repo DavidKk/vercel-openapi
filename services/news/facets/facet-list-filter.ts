@@ -1,9 +1,10 @@
-import type { AggregatedNewsItem } from './types'
-
-/**
- * Sidebar / API list filter: RSS-derived category, keyword, or manifest source id.
- */
+import type { AggregatedNewsItem } from '../types'
 export type NewsFacetListFilter = { kind: 'fc'; value: string } | { kind: 'fk'; value: string } | { kind: 'src'; sourceId: string }
+
+function labelsMatchFacetExact(labels: readonly string[] | undefined, fv: string): boolean {
+  const t = fv.trim()
+  return !!t && !!labels?.includes(t)
+}
 
 /**
  * Whether the item is attributed to the given manifest source (primary, merged, or platform tag).
@@ -32,10 +33,13 @@ function itemHasSourceId(item: AggregatedNewsItem, sourceId: string): boolean {
  */
 export function itemMatchesFacetListFilter(item: AggregatedNewsItem, filter: NewsFacetListFilter): boolean {
   if (filter.kind === 'fc') {
-    return item.feedCategories?.includes(filter.value) ?? false
+    const fv = filter.value.trim()
+    return labelsMatchFacetExact(item.feedCategories, fv)
   }
   if (filter.kind === 'fk') {
-    return item.feedKeywords?.includes(filter.value) ?? false
+    const fv = filter.value.trim()
+    /** Topic histogram uses category ∪ keyword per item; `feedKeyword` filter must match either field. */
+    return labelsMatchFacetExact(item.feedKeywords, fv) || labelsMatchFacetExact(item.feedCategories, fv)
   }
   return itemHasSourceId(item, filter.sourceId)
 }

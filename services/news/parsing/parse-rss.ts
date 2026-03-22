@@ -1,4 +1,5 @@
-import type { ParsedFeedItem } from './types'
+import { MAX_RSS_KEYWORDS_PER_ITEM } from '../config/feed-keyword-budgets'
+import type { ParsedFeedItem } from '../types'
 
 /**
  * Decode a small subset of XML entities used in RSS titles/descriptions.
@@ -106,7 +107,7 @@ function parseItemFeedCategories(itemBlock: string): string[] {
 /**
  * Keyword blobs split into tokens (`media:keywords`, plain `keywords`).
  * @param itemBlock XML for one item
- * @returns Deduped keyword strings
+ * @returns Deduped keyword strings (capped by {@link MAX_RSS_KEYWORDS_PER_ITEM}, order preserved)
  */
 function parseItemFeedKeywords(itemBlock: string): string[] {
   const blobs = [...allTagInnerTexts(itemBlock, 'media:keywords'), ...allTagInnerTexts(itemBlock, 'keywords')]
@@ -119,7 +120,11 @@ function parseItemFeedKeywords(itemBlock: string): string[] {
       }
     }
   }
-  return dedupePreserveOrder(parts)
+  const deduped = dedupePreserveOrder(parts)
+  if (deduped.length <= MAX_RSS_KEYWORDS_PER_ITEM) {
+    return deduped
+  }
+  return deduped.slice(0, MAX_RSS_KEYWORDS_PER_ITEM)
 }
 
 /**

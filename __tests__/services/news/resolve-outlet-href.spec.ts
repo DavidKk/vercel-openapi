@@ -1,4 +1,4 @@
-import { resolveOutletHref } from '@/services/news/resolve-outlet-href'
+import { resolveOutletHref } from '@/services/news/sources/resolve-outlet-href'
 import type { NewsSourceConfig } from '@/services/news/types'
 
 describe('resolveOutletHref', () => {

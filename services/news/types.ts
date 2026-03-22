@@ -9,7 +9,7 @@ export type NewsCategory = 'general-news' | 'tech-internet' | 'game-entertainmen
 export type NewsRegion = 'cn' | 'hk_tw' | 'intl'
 
 /**
- * One row from `services/news/news-sources.manifest.ts` (`newsSourcesManifest.sources`)
+ * One row from `services/news/config/news-sources.manifest.ts` (`newsSourcesManifest.sources`)
  */
 export interface NewsSourceConfig {
   /** Stable id for logs and API */
@@ -31,7 +31,7 @@ export interface NewsSourceConfig {
 }
 
 /**
- * Root shape of `newsSourcesManifest` in `services/news/news-sources.manifest.ts`
+ * Root shape of `newsSourcesManifest` in `services/news/config/news-sources.manifest.ts`
  */
 export interface NewsSourcesManifest {
   version: number

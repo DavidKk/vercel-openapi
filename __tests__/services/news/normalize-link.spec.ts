@@ -1,4 +1,4 @@
-import { normalizeLink } from '@/services/news/normalize-link'
+import { normalizeLink } from '@/services/news/parsing/normalize-link'
 
 describe('normalizeLink', () => {
   it('should strip utm params and trailing slash on path', () => {

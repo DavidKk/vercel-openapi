@@ -1,9 +1,9 @@
 import { cron } from '@/initializer/controller'
 import { cacheControlNoStoreHeaders, jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import { createLogger } from '@/services/logger'
-import { buildNewsFeedPoolCacheKey, refreshNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours } from '@/services/news/feed-kv-cache'
-import { getNewsCategoryForListSlug, NEWS_LIST_SLUGS_ORDER } from '@/services/news/news-subcategories'
-import { filterNewsSources, getNewsFeedBaseUrl, isValidNewsCategory, isValidNewsRegion, NEWS_MANIFEST_CATEGORY_ORDER } from '@/services/news/sources'
+import { getNewsCategoryForListSlug, NEWS_LIST_SLUGS_ORDER } from '@/services/news/config/news-subcategories'
+import { buildNewsFeedPoolCacheKey, refreshNewsFeedMergedPool, resolveNewsFeedPoolRecentWindowHours } from '@/services/news/feed/feed-kv-cache'
+import { filterNewsSources, getNewsFeedBaseUrl, isValidNewsCategory, isValidNewsRegion, NEWS_MANIFEST_CATEGORY_ORDER } from '@/services/news/sources/sources'
 import type { NewsCategory } from '@/services/news/types'
 
 export const runtime = 'nodejs'

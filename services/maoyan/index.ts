@@ -149,12 +149,13 @@ export interface GetMergedMoviesListOptions {
 
 /**
  * Get merged movie list without request-level cache (for GIST cache refresh).
- * Data: Maoyan (topRated + mostExpected) + Maoyan detail for overview + TMDB popular/upcoming by title merge only (no per-movie TMDB search).
- * @param options includeTMDBPopular, includeTMDBUpcoming (default true when TMDB_API_KEY set)
+ * Data: Maoyan (topRated + mostExpected) + Maoyan detail for overview (dra).
+ * TMDB popular/upcoming merge is opt-in via options (default off); Maoyan rows are not backfilled from TMDB.
+ * @param options includeTMDBPopular, includeTMDBUpcoming (default false; requires TMDB_API_KEY when true)
  * @returns Merged list of movies
  */
 export async function getMergedMoviesListWithoutCache(options: GetMergedMoviesListOptions = {}): Promise<MergedMovie[]> {
-  const { includeTMDBPopular = true, includeTMDBUpcoming = true } = options
+  const { includeTMDBPopular = false, includeTMDBUpcoming = false } = options
   logger.info('Fetching movie list from Maoyan (no request cache)')
   const [topRatedRes, mostExpectedRes] = await Promise.allSettled([fetchTopRatedMoviesWithoutCache(), fetchMostExpectedWithoutCache(20, 0)])
   const topRated = topRatedRes.status === 'fulfilled' ? topRatedRes.value : []

@@ -2,13 +2,13 @@ import { isAppCacheDisabled } from '@/services/config/cache-debug'
 import { getJsonKv, getKvClient, setJsonKvEx } from '@/services/kv/client'
 import { createLruCache } from '@/services/lru-cache'
 
+import type { NewsCategory, NewsSourceConfig } from '../types'
 import { mergeNewsFeedsToPool, type NewsFeedPoolCachePayload, reconcileNewsFeedPoolAfterRssFetch } from './aggregate-feed'
 import { getNewsFeedRecentWindowHoursForListSlug } from './published-recent-window'
-import type { NewsCategory, NewsSourceConfig } from './types'
 
 const POOL_KEY_PREFIX = 'news:feedpool:v3'
 /** Bumped when pool payload shape changes (e.g. `sourceInventory`); invalidates KV keys via {@link buildNewsFeedPoolCacheKey}. */
-const POOL_CACHE_SCHEMA_VERSION = 13
+const POOL_CACHE_SCHEMA_VERSION = 15
 
 /** Pool KV TTL: default 24h so repeat visitors hit L2 instead of waiting on RSS. */
 const POOL_MIN_TTL_SEC = 3_600

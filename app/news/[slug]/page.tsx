@@ -2,8 +2,9 @@ import { notFound, redirect } from 'next/navigation'
 import { Suspense } from 'react'
 
 import { createLogger } from '@/services/logger'
-import { getDefaultNewsSubcategory, isValidNewsListSlug, isValidNewsSubcategoryForCategory } from '@/services/news/news-subcategories'
-import { isValidNewsCategory } from '@/services/news/sources'
+import { getDefaultNewsSubcategory, isValidNewsListSlug, isValidNewsSubcategoryForCategory } from '@/services/news/config/news-subcategories'
+import { isValidNewsCategory } from '@/services/news/sources/sources'
+import { logNewsStructured, NEWS_PAGE_LIST_FLOW } from '@/services/news/structured-news-log'
 import type { NewsCategory } from '@/services/news/types'
 
 import { NewsOverview } from '../components'
@@ -69,16 +70,7 @@ export default async function NewsListPage(props: Readonly<NewsListPageProps>) {
   }
 
   const listSummary = `News: SSR page /news/${listSegment} (overview shell)`
-  logger.info(
-    listSummary,
-    JSON.stringify({
-      flow: 'Page /news/[slug]',
-      step: 'render',
-      message: listSummary,
-      event: 'news_list_page',
-      list: listSegment,
-    })
-  )
+  logNewsStructured(logger, 'info', NEWS_PAGE_LIST_FLOW, listSummary, 'news_list_page', { list: listSegment })
 
   return (
     <Suspense

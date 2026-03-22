@@ -10,10 +10,11 @@ import { DropdownSelect } from '@/components/DropdownSelect'
 import { EmptyState } from '@/components/EmptyState'
 import { LazyImage } from '@/components/LazyImage'
 import { buildNewsFeedOverviewIdbKey, getNewsFeedOverviewFromIdb, setNewsFeedOverviewInIdb } from '@/services/news/browser/idb-cache'
-import type { NewsFacetListFilter } from '@/services/news/facet-list-filter'
-import { buildNewsOverviewHref, newsOverviewTagFiltersEqual, parseNewsFacetFromUrlSearchParams } from '@/services/news/news-overview-url'
-import { getNewsListLabel, NEWS_LIST_SLUGS_ORDER, normalizeNewsListSlug } from '@/services/news/news-subcategories'
-import { filterNewsSources } from '@/services/news/sources'
+import { getNewsListLabel, NEWS_LIST_SLUGS_ORDER, normalizeNewsListSlug } from '@/services/news/config/news-subcategories'
+import type { NewsFacetListFilter } from '@/services/news/facets/facet-list-filter'
+import { newsRegionSidebarRank } from '@/services/news/region/news-source-region-order'
+import { buildNewsOverviewHref, newsOverviewTagFiltersEqual, parseNewsFacetFromUrlSearchParams } from '@/services/news/routing/news-overview-url'
+import { filterNewsSources } from '@/services/news/sources/sources'
 import type { AggregatedNewsItem, NewsFeedFacets, NewsFeedSourceInventoryRow } from '@/services/news/types'
 
 /** Page size for `/api/news/feed` (infinite scroll loads additional pages with `offset`). */
@@ -30,16 +31,16 @@ const DEFAULT_FEED_MAX_SOURCES = 15
  */
 const SIDEBAR_TAG_GROUP_SHOW_WHEN_LENGTH_EXCEEDS = 0
 
-/**
- * Minimum per-row count in the merged pool to list in the sidebar (server facets are full histograms).
- * Use 1 so small category pools still show RSS tags / sources that appear only once in the recent window.
- */
-const MIN_SIDEBAR_TAG_ITEM_COUNT = 1
+/** Max topic rows shown in the Topics sidebar (pool histogram, count desc). */
+const TOPIC_SIDEBAR_DISPLAY_LIMIT = 10
 
 /**
- * UI copy for RSS `feedCategories` (maps to `tag` URL param and `feedCategory` API query).
+ * Card chip group: RSS `feedCategories` (still maps to `tag` / `feedCategory` when used as a filter).
  */
 const RSS_TAG_LABEL = 'Tags'
+
+/** Merged sidebar section: RSS categories + keywords in one list */
+const TOPICS_SIDEBAR_LABEL = 'Topics'
 
 /** Cap chips under each title so dense RSS category lists do not stretch cards. */
 const MAX_RSS_SECTION_CHIPS_PER_CARD = 8
@@ -52,15 +53,23 @@ const SUMMARY_EXPAND_THRESHOLD_CHARS = 320
 /** Show the list “back to top” control after scrolling this many pixels inside the article column. */
 const BACK_TO_TOP_SCROLL_THRESHOLD_PX = 240
 
-/** Sidebar buckets after server facet + client display thresholds */
-interface TagSidebarBuckets {
-  categories: { value: string; count: number }[]
-  keywords: { value: string; count: number }[]
+/** One merged topic row: RSS category (`fc`) or keyword (`fk`) after pool aggregation */
+interface TopicFacetRow {
+  value: string
+  count: number
+  /** Prefer `fk` when the same label exists as both category and keyword */
+  facetKind: 'fc' | 'fk'
 }
 
-const EMPTY_TAG_SIDEBAR: TagSidebarBuckets = {
-  categories: [],
-  keywords: [],
+/**
+ * Sidebar list: top {@link TOPIC_SIDEBAR_DISPLAY_LIMIT} topic rows from the pool histogram (count descending).
+ */
+interface TopicSidebarBuckets {
+  main: TopicFacetRow[]
+}
+
+const EMPTY_TOPIC_SIDEBAR: TopicSidebarBuckets = {
+  main: [],
 }
 
 /**
@@ -305,6 +314,27 @@ export function NewsOverview() {
     [tagFilter, replaceOverviewUrl]
   )
 
+  /**
+   * Toggle merged Topics row (`feedKeyword` vs `feedCategory` per {@link TopicFacetRow.facetKind}).
+   * @param row Merged facet row from the pool histogram
+   */
+  const toggleTopicFacetRow = useCallback(
+    (row: TopicFacetRow) => {
+      if (row.facetKind === 'fk') {
+        const slug = listSlugRef.current
+        const on = tagFilter?.kind === 'fk' && tagFilter.value === row.value
+        if (on) {
+          replaceOverviewUrl({ listSlug: slug, tagFilter: null })
+        } else {
+          replaceOverviewUrl({ listSlug: slug, tagFilter: { kind: 'fk', value: row.value } })
+        }
+      } else {
+        toggleFeedCategoryFacet(row.value)
+      }
+    },
+    [tagFilter, replaceOverviewUrl, toggleFeedCategoryFacet]
+  )
+
   /** Sync tab + sidebar selection from path + search params (back/forward, shared links). */
   const facetSearchKey = searchParams.toString()
   useEffect(() => {
@@ -324,13 +354,22 @@ export function NewsOverview() {
     setTagFilter((prev) => (newsOverviewTagFiltersEqual(prev, q) ? prev : q))
   }, [params.slug, facetSearchKey, searchParams, pathname])
 
-  const tagSidebar = useMemo((): TagSidebarBuckets => {
+  const topicSidebar = useMemo((): TopicSidebarBuckets => {
     if (!feedFacets) {
-      return EMPTY_TAG_SIDEBAR
+      return EMPTY_TOPIC_SIDEBAR
     }
-    const categories = feedFacets.categories.filter((row) => row.count >= MIN_SIDEBAR_TAG_ITEM_COUNT)
-    const keywords = feedFacets.keywords.filter((row) => row.count >= MIN_SIDEBAR_TAG_ITEM_COUNT)
-    return { categories, keywords }
+    /** API `facets.keywords` is the per-article topic union histogram; do not add `categories` again (avoids double counts). */
+    const rows: TopicFacetRow[] = feedFacets.keywords
+      .filter((r) => r.count >= 1)
+      .map((r) => ({
+        value: r.value,
+        count: r.count,
+        facetKind: 'fk' as const,
+      }))
+    rows.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+    return {
+      main: rows.slice(0, TOPIC_SIDEBAR_DISPLAY_LIMIT),
+    }
   }, [feedFacets])
 
   const facetSourceCountById = useMemo(() => {
@@ -354,13 +393,15 @@ export function NewsOverview() {
   /** All manifest sources for this channel (same cap as default feed merge), with pool + parsed counts when API sends inventory. */
   const sourceSidebarRows = useMemo(() => {
     const slug = normalizeNewsListSlug(listSlug)
-    return filterNewsSources(undefined, undefined, undefined, slug)
-      .slice(0, DEFAULT_FEED_MAX_SOURCES)
-      .map((s) => {
+    const base = filterNewsSources(undefined, undefined, undefined, slug).slice(0, DEFAULT_FEED_MAX_SOURCES)
+    return base
+      .map((s, manifestIdx) => {
         const inv = sourceInventoryById.get(s.id)
         const poolCount = inv?.poolCount ?? facetSourceCountById.get(s.id) ?? 0
         const parsedCount = inv?.parsedCount ?? 0
         return {
+          manifestIdx,
+          region: s.region,
           sourceId: s.id,
           label: s.label,
           siteUrl: s.defaultUrl?.trim() ?? '',
@@ -368,12 +409,24 @@ export function NewsOverview() {
           parsedCount,
         }
       })
+      .sort((a, b) => {
+        const dr = newsRegionSidebarRank(a.region) - newsRegionSidebarRank(b.region)
+        if (dr !== 0) {
+          return dr
+        }
+        return a.manifestIdx - b.manifestIdx
+      })
+      .map(({ manifestIdx, region, ...row }) => {
+        void manifestIdx
+        void region
+        return row
+      })
   }, [listSlug, facetSourceCountById, sourceInventoryById])
 
   const channelOptions = useMemo(() => NEWS_LIST_SLUGS_ORDER.map((slug) => ({ value: slug, label: getNewsListLabel(slug) })), [])
 
-  const showCategorySidebar = tagSidebar.categories.length > SIDEBAR_TAG_GROUP_SHOW_WHEN_LENGTH_EXCEEDS
-  const showKeywordSidebar = tagSidebar.keywords.length > SIDEBAR_TAG_GROUP_SHOW_WHEN_LENGTH_EXCEEDS
+  const topicFacetCount = topicSidebar.main.length
+  const showTopicSidebar = topicFacetCount > SIDEBAR_TAG_GROUP_SHOW_WHEN_LENGTH_EXCEEDS
   const showSourceSidebar = sourceSidebarRows.length > 0
 
   const fetchFeedPage = useCallback(
@@ -426,6 +479,7 @@ export function NewsOverview() {
         res = await fetch(apiPath, {
           method: 'GET',
           headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
           cache: 'no-store',
           signal: options?.signal,
         })
@@ -803,10 +857,8 @@ export function NewsOverview() {
             value={listSlug}
             onChange={(nextRaw) => {
               const next = normalizeNewsListSlug(nextRaw)
-              const cur = tagFilterRef.current
-              // Drop `source=` when changing channel (manifest source ids are per-list); keep tag/keyword facets.
-              const nextFacet = cur?.kind === 'src' ? null : cur
-              replaceOverviewUrl({ listSlug: next, tagFilter: nextFacet })
+              // Facets (tag / keyword / source) are list-specific; clear when switching channel.
+              replaceOverviewUrl({ listSlug: next, tagFilter: null })
             }}
             options={channelOptions}
             wrapperClassName="w-full"
@@ -1020,7 +1072,7 @@ export function NewsOverview() {
 
         <aside
           className="flex min-h-0 w-[9.25rem] min-w-0 shrink-0 grow-0 flex-col overflow-hidden border-l border-gray-200 bg-white sm:w-36 lg:w-[13.5rem] xl:w-60"
-          aria-label={`Sources, keywords, and ${RSS_TAG_LABEL}`}
+          aria-label={`Sources and ${TOPICS_SIDEBAR_LABEL}`}
         >
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-2">
             {showSourceSidebar ? (
@@ -1064,61 +1116,27 @@ export function NewsOverview() {
               </section>
             ) : null}
 
-            {showKeywordSidebar ? (
-              <section>
-                <h2 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700/90">Keywords</h2>
+            {showTopicSidebar ? (
+              <section aria-label={`${TOPICS_SIDEBAR_LABEL} (RSS categories and keywords)`}>
+                <h2 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-800/90">{TOPICS_SIDEBAR_LABEL}</h2>
                 <div className="flex flex-col gap-1">
-                  {tagSidebar.keywords.map(({ value, count }) => {
-                    const on = tagFilter?.kind === 'fk' && tagFilter.value === value
+                  {topicSidebar.main.map((row) => {
+                    const on =
+                      (row.facetKind === 'fk' && tagFilter?.kind === 'fk' && tagFilter.value === row.value) ||
+                      (row.facetKind === 'fc' && tagFilter?.kind === 'fc' && tagFilter.value === row.value)
+                    const hint = row.facetKind === 'fk' ? 'Keyword' : 'RSS category'
                     return (
                       <button
-                        key={`fk-${value}`}
+                        key={`topic-${row.facetKind}-${row.value}`}
                         type="button"
-                        onClick={() => {
-                          const slug = listSlugRef.current
-                          if (on) {
-                            replaceOverviewUrl({ listSlug: slug, tagFilter: null })
-                          } else {
-                            replaceOverviewUrl({
-                              listSlug: slug,
-                              tagFilter: { kind: 'fk', value },
-                            })
-                          }
-                        }}
+                        onClick={() => toggleTopicFacetRow(row)}
+                        title={`${hint} · ${row.value}`}
                         className={`flex w-full max-w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[11px] transition-colors ${
-                          on ? 'bg-amber-700 text-white' : 'bg-amber-50 text-amber-950 ring-1 ring-amber-200/80 hover:bg-amber-100'
+                          on ? 'bg-indigo-800 text-white' : 'bg-indigo-50/90 text-indigo-950 ring-1 ring-indigo-200/75 hover:bg-indigo-100'
                         }`}
                       >
-                        <span className="min-w-0 truncate" title={value}>
-                          {value}
-                        </span>
-                        <span className={`shrink-0 tabular-nums ${on ? 'text-amber-100' : 'text-amber-800/80'}`}>{count}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            ) : null}
-
-            {showCategorySidebar ? (
-              <section>
-                <h2 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{RSS_TAG_LABEL}</h2>
-                <div className="flex flex-col gap-1">
-                  {tagSidebar.categories.map(({ value, count }) => {
-                    const on = tagFilter?.kind === 'fc' && tagFilter.value === value
-                    return (
-                      <button
-                        key={`fc-${value}`}
-                        type="button"
-                        onClick={() => toggleFeedCategoryFacet(value)}
-                        className={`flex w-full max-w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[11px] transition-colors ${
-                          on ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800 hover:bg-slate-200/90'
-                        }`}
-                      >
-                        <span className="min-w-0 truncate font-medium" title={value}>
-                          {value}
-                        </span>
-                        <span className={`shrink-0 tabular-nums ${on ? 'text-slate-200' : 'text-slate-500'}`}>{count}</span>
+                        <span className="min-w-0 truncate font-medium">{row.value}</span>
+                        <span className={`shrink-0 tabular-nums ${on ? 'text-indigo-100' : 'text-indigo-800/85'}`}>{row.count}</span>
                       </button>
                     )
                   })}

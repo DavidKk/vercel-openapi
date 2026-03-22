@@ -32,7 +32,7 @@ export interface MostExpectedResponse {
   paging: { hasMore: boolean; limit: number; offset: number; total: number }
 }
 
-/** Merged movie (Maoyan + TMDB) */
+/** Merged movie (Maoyan primary; optional TMDB fields when TMDB merge is enabled) */
 export interface MergedMovie {
   maoyanId: number | string
   name: string

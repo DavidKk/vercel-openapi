@@ -1,4 +1,4 @@
-import type { AggregatedNewsItem } from './types'
+import type { AggregatedNewsItem } from '../types'
 
 /** Default rolling window for “recent” news (avoids empty lists right after local midnight). */
 const DEFAULT_RECENT_HOURS = 24
@@ -13,11 +13,10 @@ const RECENT_HOURS_ENV = 'NEWS_FEED_RECENT_HOURS'
 
 /**
  * Per flat list slug (`/news/[slug]`, `?list=`): hours to keep items by `publishedAt`.
- * Headlines stay short; opinion/science cover weekly or slow RSS; tech `media` tolerates cross-region lag.
+ * Headlines stay short; science covers weekly or slow RSS; tech `media` tolerates cross-region lag.
  */
 const LIST_SLUG_RECENT_HOURS: Readonly<Record<string, number>> = {
   headlines: 24,
-  opinion: 168,
   media: 72,
   developer: 48,
   product: 48,
