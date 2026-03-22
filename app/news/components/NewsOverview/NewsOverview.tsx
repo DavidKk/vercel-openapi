@@ -13,7 +13,6 @@ import { NewsOverviewSidebar } from '@/app/news/components/NewsOverview/NewsOver
 import {
   getNewsOverviewEmptyStateVisible,
   getNewsOverviewErrorBannerVisible,
-  getNewsOverviewHeadRefreshVisible,
   getNewsOverviewLoadMoreEnabled,
   getNewsOverviewMainFeedSkeleton,
 } from '@/app/news/lib/news-feed-overview-display'
@@ -123,7 +122,6 @@ export function NewsOverview() {
 
   /** Full-column skeleton: network wait, or list cleared while L0 (IndexedDB) is still being read for this session. */
   const showMainFeedSkeleton = getNewsOverviewMainFeedSkeleton(feed.loading, feed.feedSessionBootstrap, feed.items.length)
-  const showHeadRefreshSkeleton = getNewsOverviewHeadRefreshVisible(feed.loading, feed.initialFeedRequestSettled, feed.items.length)
   const showEmptyState = getNewsOverviewEmptyStateVisible(showMainFeedSkeleton, feed.items.length, feed.error)
   const showErrorBanner = getNewsOverviewErrorBannerVisible(feed.error, feed.loading, feed.feedSessionBootstrap, feed.items.length)
   const loadMoreEnabled = getNewsOverviewLoadMoreEnabled(feed.loading, feed.loadingMore, feed.hasMore, feed.initialFeedRequestSettled, feed.items.length)
@@ -144,7 +142,6 @@ export function NewsOverview() {
             items={feed.items}
             itemRowKeys={feed.itemRowKeys}
             tagFilter={tagFilter}
-            showHeadRefreshSkeleton={showHeadRefreshSkeleton}
             onToggleFeedCategoryFacet={toggleFeedCategoryFacet}
             enteringItemKeys={feed.enteringItemKeys}
             expandedSummaryKeys={feed.expandedSummaryKeys}

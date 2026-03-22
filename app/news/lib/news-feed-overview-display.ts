@@ -36,18 +36,6 @@ export function getNewsOverviewMainFeedSkeleton(loading: boolean, feedSessionBoo
 }
 
 /**
- * Whether the article list should show the small head refresh skeleton while cached rows stay visible.
- * Warmup `retrySourceIds` refetches are silent (no skeleton).
- * @param loading First-page request state
- * @param initialRequestSettled True after the current session's first network request settles
- * @param itemCount Current `items.length`
- * @returns True when the top-of-list refresh skeleton should render
- */
-export function getNewsOverviewHeadRefreshVisible(loading: boolean, initialRequestSettled: boolean, itemCount: number): boolean {
-  return !loading && !initialRequestSettled && itemCount > 0
-}
-
-/**
  * Whether the “No articles yet” empty state should show (not skeleton, not error string).
  * @param mainFeedSkeleton Result of {@link getNewsOverviewMainFeedSkeleton}
  * @param itemCount Current `items.length`
@@ -111,6 +99,16 @@ export function getNewsOverviewLoadMoreEnabled(loading: boolean, loadingMore: bo
  */
 export function shouldPersistNewsOverviewL0(facet: NewsFacetListFilter | null, envelopeCode: number | undefined): boolean {
   return facet === null && (envelopeCode === undefined || envelopeCode === 0)
+}
+
+/**
+ * Whether the client may persist the **facet-filtered** first-page snapshot under {@link buildNewsFeedOverviewFacetIdbKey}.
+ * @param facet Non-null URL facet
+ * @param envelopeCode JSON envelope `code` from `/api/news/feed` (omit or `0` = success)
+ * @returns True when facet-scoped IndexedDB should be updated
+ */
+export function shouldPersistNewsOverviewFacet(facet: NewsFacetListFilter | null, envelopeCode: number | undefined): boolean {
+  return facet !== null && (envelopeCode === undefined || envelopeCode === 0)
 }
 
 /**
