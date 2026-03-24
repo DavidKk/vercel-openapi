@@ -162,10 +162,12 @@ async function applyFreshData(snapshot: { date: string; company: TasiCompanyDail
     return
   }
   logger.info('applyFreshData: new date, DB then KV', { date: snapshot.date, companyCount: snapshot.company.length })
-  await writeCompanyDaily(snapshot.date, snapshot.company)
-  await writeSummary(snapshot.date, snapshot.summary)
-  await deleteOlderThanRetention()
-  await saveTasiSnapshotToGist(snapshot)
+  const dbWritePromise = (async () => {
+    await writeCompanyDaily(snapshot.date, snapshot.company)
+    await writeSummary(snapshot.date, snapshot.summary)
+    await deleteOlderThanRetention()
+  })()
+  await Promise.all([dbWritePromise, saveTasiSnapshotToGist(snapshot)])
 }
 
 /**
@@ -187,10 +189,12 @@ export async function runIngest(): Promise<{ written: boolean; date: string }> {
     return { written: true, date }
   }
   logger.info('ingest: new date, DB then KV', { date, companyCount: company.length })
-  await writeCompanyDaily(date, company)
-  await writeSummary(date, summary)
-  await deleteOlderThanRetention()
-  await saveTasiSnapshotToGist(snapshot)
+  const dbWritePromise = (async () => {
+    await writeCompanyDaily(date, company)
+    await writeSummary(date, summary)
+    await deleteOlderThanRetention()
+  })()
+  await Promise.all([dbWritePromise, saveTasiSnapshotToGist(snapshot)])
   logger.info('ingest: done', { date })
   return { written: true, date }
 }
