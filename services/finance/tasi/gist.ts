@@ -10,7 +10,7 @@ import { createLogger } from '@/services/logger'
 import { TASI_GIST_FILE_NAME, TASI_GIST_TTL_MS } from './constants'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 
-const logger = createLogger('finance-tasi-gist')
+const logger = createLogger('finance-tasi-kv-snapshot')
 
 /**
  * KV key for TASI daily snapshot.

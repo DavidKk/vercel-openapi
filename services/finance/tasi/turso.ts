@@ -11,8 +11,48 @@ import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 const logger = createLogger('finance-tasi-turso')
 const COMPANY_TABLE = 'tasi_company_daily'
 const SUMMARY_TABLE = 'tasi_market_summary'
+const WRITE_CHUNK_SIZE = 80
 
 let tablesEnsured = false
+
+/**
+ * Normalize input date to YYYY-MM-DD.
+ * @param value Raw date value
+ * @returns Normalized date or null when invalid
+ */
+function normalizeDate(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null
+  return trimmed
+}
+
+/**
+ * Normalize stock code value.
+ * @param value Raw code value
+ * @returns Uppercased code or null when empty
+ */
+function normalizeCode(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  return trimmed.toUpperCase()
+}
+
+/**
+ * Split array into fixed-size chunks.
+ * @param arr Source array
+ * @param size Chunk size
+ * @returns Array chunks
+ */
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  if (arr.length === 0) return []
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) {
+    out.push(arr.slice(i, i + size))
+  }
+  return out
+}
 
 async function ensureTables(): Promise<void> {
   if (tablesEnsured) return
@@ -126,16 +166,40 @@ export async function writeCompanyDaily(date: string, records: TasiCompanyDailyR
   const db = getTursoClient()
   if (!db) return
   await ensureTables()
-  await db.execute({ sql: `DELETE FROM ${COMPANY_TABLE} WHERE date = ?`, args: [date] })
-  for (const rec of records) {
-    const code = rec.code ?? ''
-    const payload = JSON.stringify(rec)
-    await db.execute({
-      sql: `INSERT INTO ${COMPANY_TABLE} (date, code, payload) VALUES (?, ?, ?)`,
-      args: [date, code, payload],
-    })
+  const normalizedDate = normalizeDate(date)
+  if (!normalizedDate) {
+    logger.warn('writeCompanyDaily skipped: invalid date', { date })
+    return
   }
-  logger.info('writeCompanyDaily', { date, count: records.length })
+
+  const seenCodes = new Set<string>()
+  let inserted = 0
+  let skipped = 0
+  const rows: Array<{ code: string; payload: string }> = []
+  for (const rec of records) {
+    const code = normalizeCode(rec.code)
+    if (!code || seenCodes.has(code)) {
+      skipped += 1
+      continue
+    }
+    seenCodes.add(code)
+    rows.push({ code, payload: JSON.stringify(rec) })
+  }
+
+  const chunks = chunkArray(rows, WRITE_CHUNK_SIZE)
+  for (const chunk of chunks) {
+    const valuesSql = chunk.map(() => '(?, ?, ?)').join(', ')
+    const args: (string | number | bigint | ArrayBuffer | null)[] = []
+    for (const row of chunk) {
+      args.push(normalizedDate, row.code, row.payload)
+    }
+    await db.execute({
+      sql: `INSERT OR REPLACE INTO ${COMPANY_TABLE} (date, code, payload) VALUES ${valuesSql}`,
+      args,
+    })
+    inserted += chunk.length
+  }
+  logger.info('writeCompanyDaily', { date: normalizedDate, count: records.length, inserted, skipped })
 }
 
 /**
@@ -148,12 +212,17 @@ export async function writeSummary(date: string, summary: TasiMarketSummary): Pr
   const db = getTursoClient()
   if (!db) return
   await ensureTables()
+  const normalizedDate = normalizeDate(date)
+  if (!normalizedDate) {
+    logger.warn('writeSummary skipped: invalid date', { date })
+    return
+  }
   const payload = JSON.stringify(summary)
   await db.execute({
     sql: `INSERT OR REPLACE INTO ${SUMMARY_TABLE} (date, payload) VALUES (?, ?)`,
-    args: [date, payload],
+    args: [normalizedDate, payload],
   })
-  logger.info('writeSummary', { date })
+  logger.info('writeSummary', { date: normalizedDate })
 }
 
 /** Retention: keep 2 years of data; delete rows with date strictly before cutoff. */
