@@ -13,6 +13,9 @@ const logger = createLogger('api-function-calling-chat')
 
 /** Max rounds of tool calls to prevent infinite loops */
 const MAX_TOOL_ROUNDS = 10
+const MIN_TOOL_CALL_TIMEOUT_MS = 3_000
+const MAX_TOOL_CALL_TIMEOUT_MS = 24_000
+const DEFAULT_TOOL_CALL_TIMEOUT_MS = 20_000
 
 /**
  * Build a JSON response that must not be stored in shared caches (LLM + tool output).
@@ -21,6 +24,40 @@ const MAX_TOOL_ROUNDS = 10
  */
 function jsonChat(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: cacheControlNoStoreHeaders() })
+}
+
+/**
+ * Resolve tool-call timeout from env with safe bounds.
+ * @returns Timeout in milliseconds
+ */
+function getToolCallTimeoutMs(): number {
+  const raw = process.env.MCP_TOOL_CALL_TIMEOUT_MS?.trim()
+  if (!raw) {
+    return DEFAULT_TOOL_CALL_TIMEOUT_MS
+  }
+  const n = Number.parseInt(raw, 10)
+  if (!Number.isFinite(n)) {
+    return DEFAULT_TOOL_CALL_TIMEOUT_MS
+  }
+  return Math.min(MAX_TOOL_CALL_TIMEOUT_MS, Math.max(MIN_TOOL_CALL_TIMEOUT_MS, n))
+}
+
+/**
+ * Execute a tool with bounded wall time to avoid serverless hard timeout.
+ * @param toolName Tool name for error message
+ * @param run Tool execution function
+ * @returns Tool result when completed in time
+ */
+async function callToolWithTimeout<T>(toolName: string, run: () => Promise<T>): Promise<T> {
+  const timeoutMs = getToolCallTimeoutMs()
+  return Promise.race([
+    run(),
+    new Promise<T>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`tool "${toolName}" timed out after ${timeoutMs}ms`))
+      }, timeoutMs)
+    }),
+  ])
 }
 
 /**
@@ -100,7 +137,7 @@ async function executeTool(toolsMap: Map<string, Tool>, name: string, argsJson: 
     return JSON.stringify({ error: String(validation) })
   }
   try {
-    const result = await tool.call(params)
+    const result = await callToolWithTimeout(name, () => tool.call(params))
     if (typeof result === 'string') {
       return result
     }
