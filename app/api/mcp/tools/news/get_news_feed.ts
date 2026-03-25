@@ -8,7 +8,11 @@ import { attachFinalizedTopicKeywordsToNewsPool, pruneNewsFeedPoolPayloadForWind
 import {
   applyRetrySourcesToNewsFeedPool,
   buildNewsFeedPoolCacheKey,
+  createEmptyDeadlinePoolPayload,
+  getNewsFeedHandlerTailReserveMs,
+  getNewsFeedHttpHandlerDeadlineEpochMs,
   getOrBuildNewsFeedMergedPool,
+  type NewsFeedHandlerDeadlineStatus,
   resolveNewsFeedPoolRecentWindowHours,
   resolveNewsFeedWindowMs,
   tryReadNewsFeedPoolFromCacheOnly,
@@ -65,6 +69,7 @@ export const get_news_feed = tool(
       ),
   }),
   async (params) => {
+    const handlerStartedAt = Date.now()
     const { category } = params
     const listTrimmed = params.list?.trim() ?? ''
     const session = await getAuthSession()
@@ -126,34 +131,31 @@ export const get_news_feed = tool(
 
     const retrySourceIds = params.retrySourceIds === undefined ? [] : [...new Set(params.retrySourceIds.filter((id) => sources.some((s) => s.id === id)))]
 
+    const handlerDeadlineEpochMs = getNewsFeedHttpHandlerDeadlineEpochMs(handlerStartedAt)
+    const tailReserveMs = getNewsFeedHandlerTailReserveMs()
+    const poolPhaseStartedAt = Date.now()
+    const maxPoolWaitMs = Math.max(0, handlerDeadlineEpochMs - tailReserveMs - poolPhaseStartedAt)
+
     let poolPayload: Awaited<ReturnType<typeof getOrBuildNewsFeedMergedPool>>['payload']
-    if (retrySourceIds.length > 0 && offset === 0) {
-      const fb = await tryReadNewsFeedPoolFromCacheOnly({ poolCacheKey, listSlug: listSubNorm })
-      if (fb !== null) {
-        poolPayload = await applyRetrySourcesToNewsFeedPool({
-          poolCacheKey,
-          cachedPayload: fb.payload,
-          allSources: sources,
-          retrySourceIds,
-          baseUrl,
-          itemCategory: resolvedCategory,
-          listSlug: listSubNorm,
-        })
-      } else {
-        poolPayload = (
-          await getOrBuildNewsFeedMergedPool({
+    let handlerDeadlineStatus: NewsFeedHandlerDeadlineStatus
+
+    const buildPoolPayload = async () => {
+      if (retrySourceIds.length > 0 && offset === 0) {
+        const fb = await tryReadNewsFeedPoolFromCacheOnly({ poolCacheKey, listSlug: listSubNorm })
+        if (fb !== null) {
+          return applyRetrySourcesToNewsFeedPool({
             poolCacheKey,
-            sources,
+            cachedPayload: fb.payload,
+            allSources: sources,
+            retrySourceIds,
             baseUrl,
-            windowAtMs,
             itemCategory: resolvedCategory,
             listSlug: listSubNorm,
-            allowInlinePoolRefresh: true,
+            handlerDeadlineEpochMs,
           })
-        ).payload
+        }
       }
-    } else {
-      poolPayload = (
+      return (
         await getOrBuildNewsFeedMergedPool({
           poolCacheKey,
           sources,
@@ -162,8 +164,40 @@ export const get_news_feed = tool(
           itemCategory: resolvedCategory,
           listSlug: listSubNorm,
           allowInlinePoolRefresh: offset === 0,
+          handlerDeadlineEpochMs,
         })
       ).payload
+    }
+
+    if (maxPoolWaitMs <= 0) {
+      const fb = await tryReadNewsFeedPoolFromCacheOnly({ poolCacheKey, listSlug: listSubNorm })
+      if (fb !== null) {
+        poolPayload = fb.payload
+        handlerDeadlineStatus = 'cache_only'
+      } else {
+        poolPayload = createEmptyDeadlinePoolPayload(baseUrl, windowAtMs, sources, listSubNorm)
+        handlerDeadlineStatus = 'empty_timeout'
+      }
+    } else {
+      const built = await Promise.race([
+        buildPoolPayload(),
+        new Promise<null>((resolve) => {
+          setTimeout(() => resolve(null), maxPoolWaitMs)
+        }),
+      ])
+      if (built === null) {
+        const fb = await tryReadNewsFeedPoolFromCacheOnly({ poolCacheKey, listSlug: listSubNorm })
+        if (fb !== null) {
+          poolPayload = fb.payload
+          handlerDeadlineStatus = 'cache_only'
+        } else {
+          poolPayload = createEmptyDeadlinePoolPayload(baseUrl, windowAtMs, sources, listSubNorm)
+          handlerDeadlineStatus = 'empty_timeout'
+        }
+      } else {
+        poolPayload = built
+        handlerDeadlineStatus = 'ok'
+      }
     }
 
     const prunedPayload = pruneNewsFeedPoolPayloadForWindow(poolPayload, windowAtMs)
@@ -189,13 +223,14 @@ export const get_news_feed = tool(
       facets: typeof facets
       sourceInventory?: typeof sourceInventory
       errors?: { sourceId: string; message: string }[]
+      handlerDeadlineStatus: NewsFeedHandlerDeadlineStatus
       feedWarmup?: {
         pending: true
         sources: { sourceId: string; message: string }[]
         suggestedRetryAfterSeconds: number
         suggestedManualRetryAfterSeconds: number
       }
-    } = { items, fetchedAt, baseUrl: responseBaseUrl, mergeStats, facets }
+    } = { items, fetchedAt, baseUrl: responseBaseUrl, mergeStats, facets, handlerDeadlineStatus }
     if (sourceInventory !== undefined && sourceInventory.length > 0) {
       out.sourceInventory = sourceInventory
     }

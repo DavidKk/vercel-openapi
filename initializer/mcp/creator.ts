@@ -6,6 +6,10 @@ import { api } from '@/initializer/controller'
 import { applyNoStoreCache, JSONRPC, jsonRpcError, jsonRpcSuccess, mcpErrorinvalidArguments, mcpErrorMethodNotAllowed, mcpErrorToolNotFound, mcpResponse } from './response'
 import type { Tool } from './tool'
 
+const MIN_TOOL_CALL_TIMEOUT_MS = 3_000
+const MAX_TOOL_CALL_TIMEOUT_MS = 24_000
+const DEFAULT_TOOL_CALL_TIMEOUT_MS = 20_000
+
 /** MCP Tool interface */
 export interface MCPManifestTool {
   /** Tool description */
@@ -111,6 +115,40 @@ function buildMCPToolsList(tools: Map<string, Tool>): { name: string; descriptio
 }
 
 /**
+ * Resolve MCP tool-call timeout from env with safe bounds.
+ * @returns Timeout in milliseconds
+ */
+function getMcpToolCallTimeoutMs(): number {
+  const raw = process.env.MCP_TOOL_CALL_TIMEOUT_MS?.trim()
+  if (!raw) {
+    return DEFAULT_TOOL_CALL_TIMEOUT_MS
+  }
+  const n = Number.parseInt(raw, 10)
+  if (!Number.isFinite(n)) {
+    return DEFAULT_TOOL_CALL_TIMEOUT_MS
+  }
+  return Math.min(MAX_TOOL_CALL_TIMEOUT_MS, Math.max(MIN_TOOL_CALL_TIMEOUT_MS, n))
+}
+
+/**
+ * Execute a tool with bounded wall time so HTTP handlers return before platform hard timeout.
+ * @param toolName Tool name for error context
+ * @param run Tool execution function
+ * @returns Tool result when finished within timeout
+ */
+async function callToolWithTimeout<T>(toolName: string, run: () => Promise<T>): Promise<T> {
+  const timeoutMs = getMcpToolCallTimeoutMs()
+  return Promise.race([
+    run(),
+    new Promise<T>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`tool "${toolName}" timed out after ${timeoutMs}ms`))
+      }, timeoutMs)
+    }),
+  ])
+}
+
+/**
  * Handle a single JSON-RPC 2.0 request (initialize, tools/list, tools/call)
  */
 async function handleJsonRpcRequest(
@@ -159,7 +197,7 @@ async function handleJsonRpcRequest(
     }
 
     try {
-      const result = await tool.call(args)
+      const result = await callToolWithTimeout(name, () => tool.call(args))
       const content = [{ type: 'text' as const, text: JSON.stringify(result) }]
       return jsonRpcSuccess(id, { content, isError: false })
     } catch (err) {
@@ -207,7 +245,7 @@ function createToolExecutionHandler(name: string, version: string, description: 
         return mcpErrorinvalidArguments(validation)
       }
 
-      const result = await tool.call(params)
+      const result = await callToolWithTimeout(toolName, () => tool.call(params))
       return mcpResponse(result)
     },
     ['POST']
