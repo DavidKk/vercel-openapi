@@ -23,7 +23,7 @@ interface FuelPriceMcpState {
 const MCP_PATH = '/api/mcp/fuel-price'
 
 /**
- * Client-side playground for fuel-related MCP tools.
+ * Client-side playground for China Fuel Price MCP tools.
  * Tool dropdown + JSON params, then sends POST to module MCP.
  */
 export function FuelPriceMcpPlayground() {

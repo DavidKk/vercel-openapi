@@ -61,7 +61,7 @@ function ScrollToActiveOnLeave({ children, ...rest }: { children: React.ReactNod
  */
 const NAV_ITEMS = [
   { href: '/holiday', title: 'Holiday', icon: <TbCalendarSearch className="h-5 w-5" /> },
-  { href: '/fuel-price', title: 'Fuel Price', icon: <TbGasStation className="h-5 w-5" /> },
+  { href: '/fuel-price', title: 'China Fuel Price', icon: <TbGasStation className="h-5 w-5" /> },
   { href: '/exchange-rate', title: 'Exchange Rate', icon: <TbCurrencyDollar className="h-5 w-5" /> },
   { href: '/geo', title: 'China GEO', icon: <TbMapPin className="h-5 w-5" /> },
   { href: '/weather', title: 'China Weather', icon: <TbCloudRain className="h-5 w-5" /> },

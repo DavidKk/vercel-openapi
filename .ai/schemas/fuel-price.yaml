@@ -1,7 +1,7 @@
-# Fuel price module schema
+# China Fuel Price module schema
 
 id: fuel-price
-name: Fuel Price
+name: China Fuel Price
 routePrefix: /fuel-price
 
 sidebarItems:
@@ -23,7 +23,7 @@ sidebarItems:
     ariaLabel: Skill
 
 apiPage:
-  title: Fuel price REST API
+  title: China Fuel Price REST API
   subtitle: All endpoints below. Responses are cached on the edge when possible.
   endpoints:
     - method: GET
@@ -54,7 +54,7 @@ apiPage:
   playgroundImportPath: '@/app/fuel-price/api/components'
 
 mcpPage:
-  title: Fuel price MCP tools
+  title: China Fuel Price MCP tools
   subtitle: Tools exposed through the MCP server for querying fuel prices and calculating recharge promotions.
   tools:
     - name: get_fuel_price

@@ -1,4 +1,5 @@
 import { getJsonKv, setJsonKv } from '@/services/kv/client'
+import { createLogger } from '@/services/logger'
 
 import { fetchAndParseFuelPriceData, fetchNextAdjustmentDate } from './sources'
 import type { FuelPrice, FuelPriceList, ProvinceFuelPrice } from './types'
@@ -18,6 +19,8 @@ const MEMORY_CACHE: MemoryCache = {
 const CACHE_DURATION = 60 * 60 * 1000 // 1 hour cache
 const CURRENT_FUEL_PRICE_KEY = 'fuel-price:current'
 const PREVIOUS_FUEL_PRICE_KEY = 'fuel-price:previous'
+
+const cacheLog = createLogger('fuel-price-cache')
 
 /**
  * Clear the in-memory cache
@@ -39,7 +42,12 @@ export async function getFuelPrice(): Promise<FuelPrice> {
     (async () => {
       try {
         return await fetchNextAdjustmentDate()
-      } catch {
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e))
+        cacheLog.warn('next adjustment date fetch failed (non-fatal)', {
+          name: err.name,
+          message: err.message,
+        })
         return null
       }
     })(),
@@ -185,8 +193,12 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
 
     return list
   } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error))
+    cacheLog.fail('fresh fuel price fetch failed', { name: err.name, message: err.message })
+
     // If fetching new data fails but we have cached data, use cached data.
     if (currentData) {
+      cacheLog.warn('serving KV fallback after fetch failure')
       const list: FuelPriceList = {
         previous: previousData ? previousData.data : [],
         current: currentData.data,
@@ -202,6 +214,7 @@ export async function getCachedFuelPrice(): Promise<FuelPriceList> {
       return list
     }
 
+    cacheLog.fail('no KV fallback; request will error')
     // If no cached data and fetching new data fails, throw error
     throw error
   }
