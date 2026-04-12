@@ -1,19 +1,36 @@
+import { createLogger } from '@/services/logger'
+
 import type { FuelPriceData } from './types'
 
 const FUEL_PRICE_URL = Buffer.from('aHR0cHM6Ly93d3cuYXV0b2hvbWUuY29tLmNuL29pbA==', 'base64').toString('utf-8')
 const FUEL_PRICE_SCHEDULE_URL = Buffer.from('aHR0cHM6Ly93d3cueGlhb3hpb25neW91aGFvLmNvbS9mcHJpY2Uv', 'base64').toString('utf-8')
+
+const sourceLog = createLogger('fuel-price-source')
 
 /**
  * Fetch raw HTML data from the primary fuel price data source
  * @returns Promise<string> - HTML content
  */
 export async function fetchAutohomeFuelPriceHTML() {
-  const response = await fetch(FUEL_PRICE_URL)
-  if (!response.ok) {
-    throw new Error(`HTTP error! Status: ${response.status}`)
-  }
+  sourceLog.info('primary fetch start', { source: 'autohome-oil' })
+  try {
+    const response = await fetch(FUEL_PRICE_URL)
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`)
+    }
 
-  return await response.text()
+    const text = await response.text()
+    sourceLog.ok('primary fetch ok', { source: 'autohome-oil', bytes: text.length })
+    return text
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e))
+    sourceLog.fail('primary fetch failed', {
+      source: 'autohome-oil',
+      name: err.name,
+      message: err.message,
+    })
+    throw e
+  }
 }
 
 /**
@@ -22,28 +39,40 @@ export async function fetchAutohomeFuelPriceHTML() {
  * @returns Promise<string> - HTML content
  */
 export async function fetchFuelPriceScheduleHTML() {
-  const response = await fetch(FUEL_PRICE_SCHEDULE_URL, {
-    headers: {
-      accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'accept-language': 'en,zh;q=0.9,zh-CN;q=0.8',
-      'cache-control': 'max-age=0',
-      'sec-ch-ua': '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"macOS"',
-      'sec-fetch-dest': 'document',
-      'sec-fetch-mode': 'navigate',
-      'sec-fetch-site': 'cross-site',
-      'sec-fetch-user': '?1',
-      'upgrade-insecure-requests': '1',
-      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
-    },
-  })
+  try {
+    const response = await fetch(FUEL_PRICE_SCHEDULE_URL, {
+      headers: {
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'accept-language': 'en,zh;q=0.9,zh-CN;q=0.8',
+        'cache-control': 'max-age=0',
+        'sec-ch-ua': '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'cross-site',
+        'sec-fetch-user': '?1',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
+      },
+    })
 
-  if (!response.ok) {
-    throw new Error(`HTTP error when fetching fuel price schedule! Status: ${response.status}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error when fetching fuel price schedule! Status: ${response.status}`)
+    }
+
+    const text = await response.text()
+    sourceLog.ok('schedule fetch ok', { source: 'xiaoxiongyouhao-schedule', bytes: text.length })
+    return text
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e))
+    sourceLog.warn('schedule fetch failed', {
+      source: 'xiaoxiongyouhao-schedule',
+      name: err.name,
+      message: err.message,
+    })
+    throw e
   }
-
-  return await response.text()
 }
 
 /**
@@ -125,5 +154,14 @@ export function parseAutohomeFuelPriceData(html: string) {
  */
 export async function fetchAndParseFuelPriceData() {
   const html = await fetchAutohomeFuelPriceHTML()
-  return parseAutohomeFuelPriceData(html)
+  const rows = parseAutohomeFuelPriceData(html)
+  if (rows.length === 0) {
+    sourceLog.warn('primary parse returned no rows', {
+      source: 'autohome-oil',
+      htmlBytes: html.length,
+    })
+  } else {
+    sourceLog.ok('primary parse ok', { source: 'autohome-oil', provinces: rows.length })
+  }
+  return rows
 }

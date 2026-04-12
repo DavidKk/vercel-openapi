@@ -170,7 +170,7 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
       <div className={`${CONTENT_HEADER_CLASS} text-sm text-gray-600`}>
-        <span className="text-base font-semibold text-gray-700">China fuel prices</span>
+        <span className="text-base font-semibold text-gray-700">China Fuel Price</span>
         <div className="relative ml-auto" ref={pickerRef}>
           <button
             type="button"

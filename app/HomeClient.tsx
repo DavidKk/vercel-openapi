@@ -20,7 +20,7 @@ const TABS: { id: HomeTab; label: string; icon: ReactNode }[] = [
 /** Module options for ?includes= (same slugs as /api/mcp and function-calling). */
 const TOOL_CATEGORY_LABELS: Record<string, string> = {
   holiday: 'Holiday',
-  'fuel-price': 'Fuel Price',
+  'fuel-price': 'China Fuel Price',
   'exchange-rate': 'Exchange Rate',
   weather: 'China Weather',
   movies: 'Movies',

@@ -38,7 +38,7 @@ modules:
     notes: Per-module spec file not added yet; see schema and app/api/finance/.
 
   - id: fuel-price
-    title: Fuel Price
+    title: China Fuel Price
     spec: modules/fuel-price.md
     schema: schemas/fuel-price.yaml
 

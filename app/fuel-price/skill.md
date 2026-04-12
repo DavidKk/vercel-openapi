@@ -1,9 +1,9 @@
 ---
 name: fuel-price
-description: When a user asks for China fuel prices by province or a recharge promo → return current/previous prices or promo result.
+description: When a user asks for China Fuel Price by province or a recharge promo → return current/previous prices or promo result.
 ---
 
-# Fuel Price API – China provinces & promo (agent-ready)
+# China Fuel Price API – Provinces & promo (agent-ready)
 
 ## When to use
 

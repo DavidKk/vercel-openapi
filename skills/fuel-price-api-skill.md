@@ -1,4 +1,4 @@
-# Fuel Price API – China provinces & promo (agent-ready)
+# China Fuel Price API – Provinces & promo (agent-ready)
 
 ## When to use
 

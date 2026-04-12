@@ -17,9 +17,9 @@ const FUEL_PRICE_SIDEBAR_ITEMS = [
 ]
 
 /**
- * Fuel price section layout: left icon sidebar + main content. Header is the global Nav.
+ * China Fuel Price section layout: left icon sidebar + main content. Header is the global Nav.
  * @param props Layout props containing page children
- * @returns Fuel price layout with sidebar and content area
+ * @returns China Fuel Price layout with sidebar and content area
  */
 export default async function FuelPriceLayout(props: Readonly<FuelPriceLayoutProps>) {
   const { children } = props

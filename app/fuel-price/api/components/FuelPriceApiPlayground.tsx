@@ -26,7 +26,7 @@ interface FuelPriceApiState {
 }
 
 /**
- * Client-side playground for fuel-price REST APIs.
+ * Client-side playground for China Fuel Price REST APIs.
  * Supports all three endpoints via dropdown and relevant inputs.
  */
 export function FuelPriceApiPlayground() {
