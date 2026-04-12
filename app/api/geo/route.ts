@@ -7,12 +7,9 @@ export const runtime = 'edge'
 
 const logger = createLogger('api-geo')
 
-/** Response header indicating which backend cache layer served the result (L1, L2, …). Omitted when not from cache. */
-const HEADER_CACHE_HIT = 'X-Cache-Hit'
-
 async function handleGeocode(latitude: number, longitude: number) {
   logger.info('request', { latitude, longitude })
-  const { location: result, cacheLayer } = await reverseGeocodeWithMeta(latitude, longitude)
+  const { location: result } = await reverseGeocodeWithMeta(latitude, longitude)
   if (!result) {
     return jsonSuccess({ error: 'This area is not supported for this service.' }, { status: 404, headers: cacheControlNoStoreHeaders() })
   }
@@ -23,10 +20,7 @@ async function handleGeocode(latitude: number, longitude: number) {
     )
   }
 
-  const headers = new Headers({ 'Cache-Control': CACHE_CONTROL_LONG_LIVED })
-  if (cacheLayer) headers.set(HEADER_CACHE_HIT, cacheLayer)
-
-  return jsonSuccess(result, { headers })
+  return jsonSuccess(result, { headers: new Headers({ 'Cache-Control': CACHE_CONTROL_LONG_LIVED }) })
 }
 
 /**

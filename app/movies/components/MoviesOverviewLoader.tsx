@@ -15,7 +15,7 @@ interface MoviesCachePayload {
   cachedAt: number
 }
 
-const MOVIES_TTL_MS = 30 * 60 * 1000 // 30 minutes (server cache is GIST)
+const MOVIES_TTL_MS = 30 * 60 * 1000 // 30 minutes (align with server KV cache)
 const CACHE_KEY = 'latest'
 
 /**

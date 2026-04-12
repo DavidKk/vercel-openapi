@@ -13,8 +13,8 @@ Per-module spec for the Prices feature area. Global convention: [api-semantics.m
 
 ## Data semantics
 
-- Product list (and related data) are stored in **gist** files; reads reflect the **latest** published data.
-- **CRUD** mutates gist-backed data and **requires** authenticated session (enforced in actions).
+- Product list (and related data) are stored in **KV** (Upstash Redis); reads reflect the **latest** published data.
+- **CRUD** mutates KV-backed data and **requires** authenticated session (enforced in actions).
 - Overview (`/prices`) is publicly readable; manage UI (`/prices/manage`) requires session.
 
 ---
@@ -37,14 +37,14 @@ Per-module spec for the Prices feature area. Global convention: [api-semantics.m
 
 ## Public API vs `api-semantics` read-only rule
 
-- **Anonymous** callers: only the **GET** (and **POST /calc**) paths above behave as **read-only** public data reads; responses reflect **latest** gist data.
+- **Anonymous** callers: only the **GET** (and **POST /calc**) paths above behave as **read-only** public data reads; responses reflect **latest** KV data.
 - **POST/PUT/DELETE** on `/api/prices/products` are **not** unauthenticated public writes; they require session. See [api-semantics.md](../api-semantics.md) clarification on authenticated writes.
 
 ---
 
 ## Caching
 
-- **HTTP (CDN/browser):** Anonymous gist-backed **GET** reads (`/api/prices`, `/api/prices/products` list, `/api/prices/search`, `/api/prices/products/search`) use `CACHE_CONTROL_GIST_CATALOG` (~2 min `max-age`/`s-maxage`, `stale-while-revalidate=300`). See `initializer/response/cache-control.ts`.
+- **HTTP (CDN/browser):** Anonymous KV-backed **GET** reads (`/api/prices`, `/api/prices/products` list, `/api/prices/search`, `/api/prices/products/search`) use `CACHE_CONTROL_KV_CATALOG` (~2 min `max-age`/`s-maxage`, `stale-while-revalidate=300`). See `initializer/response/cache-control.ts`.
 - **No shared cache:** `GET ?id=…`, all **POST/PUT/DELETE** on products, and **POST /api/prices/calc** use `private, no-store` (auth-sensitive or body-dependent).
 - **Clearing HTTP cache:** wait for TTL, change URL (e.g. query bust), or Vercel/CDN purge; see file comment on `cache-control.ts`.
 - Optional: document L1/L2 if introduced for `getAllProducts()`.

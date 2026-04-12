@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 const logger = createLogger('api-movies')
 
 /**
- * GET /api/movies – returns latest movies from cache (GIST). No auth. Read-only; does not trigger TMDB/Maoyan.
+ * GET /api/movies – returns latest movies from cache (KV). No auth. Read-only; does not trigger TMDB/Maoyan.
  */
 export const GET = api(async () => {
   logger.info('request')

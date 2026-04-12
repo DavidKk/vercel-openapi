@@ -36,7 +36,3 @@
 1. 在 Vercel 中设置上述环境变量
 2. 部署后，通过 `/api/auth/login` 获取访问令牌
 3. 使用令牌访问 `/api/holiday` 节假日数据接口
-
-## News 模块与缓存规范
-
-News 聚合 API（`GET /api/news/feed`）与 `/news` 概览的 **L0（浏览器 IndexedDB）→ L1（服务端内存）→ L2（KV）** 分层、**Stale-on-failure**（失败保留上一份可用数据）、刷新节奏、以及 **标签 / Topics 关键字（`feedKeyword`）** 等筛选项在缓存键上的分工，见英文规范 **[`.ai/specs/modules/news.md`](./.ai/specs/modules/news.md)**（**Caching (server)**、**Target semantics**、§7–§8）。实现以该文档为验收依据；当前代码与「Target」不一致处会在文档中标注为 _implementation pending_。

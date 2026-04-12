@@ -57,11 +57,6 @@ modules:
     spec: modules/movies.md
     schema: schemas/movies.yaml
 
-  - id: news
-    title: News
-    spec: modules/news.md
-    schema: schemas/news.yaml
-
   - id: prices
     title: Prices
     spec: modules/prices.md
@@ -73,6 +68,6 @@ modules:
     schema: schemas/proxy-rule.yaml
 
   - id: weather
-    title: Weather
+    title: China Weather
     spec: modules/weather.md
     schema: schemas/weather.yaml

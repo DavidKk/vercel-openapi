@@ -18,7 +18,7 @@
 --   Point-in-polygon query reference: https://gitee.com/xiangyuecn/AreaCity-Query-Geometry
 --
 -- After importing rows
---   Run the "Backfill geom" block at the end so lat/lng queries use the spatial index.
+--   Run sql/backfill-china-geo-geom.sql so geom is populated and spatial queries use the index.
 --
 -- ---------------------------------------------------------------------------
 
@@ -40,7 +40,7 @@ comment on column public.china_geo.deep is 'Level depth (0=province, 1=city, 2=d
 comment on column public.china_geo.name is 'Region name';
 comment on column public.china_geo.ext_path is 'Hierarchy path';
 comment on column public.china_geo.geo is 'Center point: lng lat';
-comment on column public.china_geo.polygon is 'Boundary polygon: lng lat,lng lat,...';
+comment on column public.china_geo.polygon is 'Boundary polygon: lng lat,lng lat,...; multiple rings may be separated by ;';
 
 create index idx_china_geo_pid  on public.china_geo(pid);
 create index idx_china_geo_deep on public.china_geo(deep);
@@ -52,6 +52,7 @@ create extension if not exists postgis with schema extensions;
 alter table public.china_geo
   add column if not exists geom extensions.geometry(polygon, 4326);
 
+-- Spatial index on geometry (PostGIS / PostgreSQL; index access method name is fixed by the database).
 create index if not exists idx_china_geo_geom
   on public.china_geo using gist (geom);
 
@@ -187,9 +188,8 @@ as $$
 $$;
 
 -- 5. Post-import: backfill geom (required for spatial index on lat/lng queries)
--- update public.china_geo
--- set geom = public.polygon_text_to_geom(polygon)
--- where geom is null and polygon is not null and trim(polygon) <> '';
+-- Prefer sql/backfill-china-geo-geom.sql: plain polygon_text_to_geom(polygon) fails
+-- when polygon contains ';' (multi-ring text); that script uses split_part for the first ring.
 
 -- 6. Optional: normalize empty or "EMPTY" strings to NULL
 -- update public.china_geo set

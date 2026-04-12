@@ -7,5 +7,5 @@ import { checkAccess } from '@/services/auth/access'
  */
 export default async function WeatherManagePage() {
   await checkAccess({ isApiRouter: false })
-  return <ModuleManagePlaceholder moduleName="Weather" />
+  return <ModuleManagePlaceholder moduleName="China Weather" />
 }

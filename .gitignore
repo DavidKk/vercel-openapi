@@ -63,3 +63,6 @@ nbproject
 *.sublime-workspace
 .idea
 .env
+
+# Local DB exports (pg_dump; may be large)
+exports/

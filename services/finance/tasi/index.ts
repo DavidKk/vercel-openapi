@@ -6,7 +6,7 @@ import { createLogger } from '@/services/logger'
 
 import { TASI_MAX_RANGE_DAYS } from './constants'
 import { fetchCompanyDailyFromBridge, fetchSummaryFromBridge } from './fetch'
-import { getTasiSnapshotFromGist, isGistSnapshotExpired, saveTasiSnapshotToGist } from './gist'
+import { getTasiDailySnapshotFromKv, isTasiDailySnapshotExpired, saveTasiDailySnapshotToKv } from './snapshot'
 import { deleteOlderThanRetention, readCompanyDailyByDate, readCompanyKline, readSummaryByDate, readSummaryKline, writeCompanyDaily, writeSummary } from './turso'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 
@@ -80,10 +80,10 @@ export async function getCompanyDaily(options: { date?: string; code?: string; f
 
 /** Latest trading day: use KV snapshot if not expired (by TTL), else fetch from remote. No date match — data is previous trading day. */
 async function getCompanyDailyToday(): Promise<TasiCompanyDailyRecord[]> {
-  const fromGist = await getTasiSnapshotFromGist()
-  if (fromGist && !isGistSnapshotExpired(fromGist) && Array.isArray(fromGist.company) && fromGist.company.length > 0) {
-    logger.info('company daily: cache hit KV', { snapshotDate: fromGist.date, count: fromGist.company.length })
-    return fromGist.company
+  const cached = await getTasiDailySnapshotFromKv()
+  if (cached && !isTasiDailySnapshotExpired(cached) && Array.isArray(cached.company) && cached.company.length > 0) {
+    logger.info('company daily: cache hit KV', { snapshotDate: cached.date, count: cached.company.length })
+    return cached.company
   }
   logger.info('company daily: cache miss, fetching from remote')
   const snapshot = await getTodaySnapshotFromRemoteAndPersist()
@@ -121,10 +121,10 @@ export async function getSummaryDaily(options: { date?: string; from?: string; t
 
 /** Latest trading day: use KV snapshot if not expired (by TTL), else fetch from remote. No date match — data is previous trading day. */
 async function getSummaryDailyToday(): Promise<TasiMarketSummary | null> {
-  const fromGist = await getTasiSnapshotFromGist()
-  if (fromGist && !isGistSnapshotExpired(fromGist) && fromGist.summary != null) {
-    logger.info('summary daily: cache hit KV', { snapshotDate: fromGist.date })
-    return fromGist.summary
+  const cached = await getTasiDailySnapshotFromKv()
+  if (cached && !isTasiDailySnapshotExpired(cached) && cached.summary != null) {
+    logger.info('summary daily: cache hit KV', { snapshotDate: cached.date })
+    return cached.summary
   }
   logger.info('summary daily: cache miss, fetching from remote')
   const snapshot = await getTodaySnapshotFromRemoteAndPersist()
@@ -155,10 +155,10 @@ async function getTodaySnapshotFromRemoteAndPersist(): Promise<{ date: string; c
  * Apply write rules: if prev KV has same date → update KV only; else write DB then KV (new day).
  */
 async function applyFreshData(snapshot: { date: string; company: TasiCompanyDailyRecord[]; summary: TasiMarketSummary }): Promise<void> {
-  const prev = await getTasiSnapshotFromGist()
+  const prev = await getTasiDailySnapshotFromKv()
   if (prev && prev.date === snapshot.date) {
     logger.info('applyFreshData: same date, KV only', { date: snapshot.date })
-    await saveTasiSnapshotToGist(snapshot)
+    await saveTasiDailySnapshotToKv(snapshot)
     return
   }
   logger.info('applyFreshData: new date, DB then KV', { date: snapshot.date, companyCount: snapshot.company.length })
@@ -167,7 +167,7 @@ async function applyFreshData(snapshot: { date: string; company: TasiCompanyDail
     await writeSummary(snapshot.date, snapshot.summary)
     await deleteOlderThanRetention()
   })()
-  await Promise.all([dbWritePromise, saveTasiSnapshotToGist(snapshot)])
+  await Promise.all([dbWritePromise, saveTasiDailySnapshotToKv(snapshot)])
 }
 
 /**
@@ -181,11 +181,11 @@ export async function runIngest(): Promise<{ written: boolean; date: string }> {
   const date = summary.date ?? getTodayUtc()
   const snapshot = { date, company, summary }
 
-  const prev = await getTasiSnapshotFromGist()
+  const prev = await getTasiDailySnapshotFromKv()
   const sameDate = prev != null && prev.date === date
   if (sameDate) {
     logger.info('ingest: same date, KV only', { date })
-    await saveTasiSnapshotToGist(snapshot)
+    await saveTasiDailySnapshotToKv(snapshot)
     return { written: true, date }
   }
   logger.info('ingest: new date, DB then KV', { date, companyCount: company.length })
@@ -194,7 +194,7 @@ export async function runIngest(): Promise<{ written: boolean; date: string }> {
     await writeSummary(date, summary)
     await deleteOlderThanRetention()
   })()
-  await Promise.all([dbWritePromise, saveTasiSnapshotToGist(snapshot)])
+  await Promise.all([dbWritePromise, saveTasiDailySnapshotToKv(snapshot)])
   logger.info('ingest: done', { date })
   return { written: true, date }
 }

@@ -1,6 +1,6 @@
 import { createProduct, deleteProduct, getAllProducts, getProductById, type ProductType, updateProduct } from '@/app/actions/prices/product'
 import { api } from '@/initializer/controller'
-import { CACHE_CONTROL_GIST_CATALOG, cacheControlNoStoreHeaders, invalidParameters, jsonForbidden, jsonSuccess } from '@/initializer/response'
+import { CACHE_CONTROL_KV_CATALOG, cacheControlNoStoreHeaders, invalidParameters, jsonForbidden, jsonSuccess } from '@/initializer/response'
 
 export const runtime = 'edge'
 
@@ -69,7 +69,7 @@ export const GET = api(async (_req, context) => {
     headers: new Headers({
       Charset: 'utf-8',
       'Content-Type': 'application/json',
-      'Cache-Control': CACHE_CONTROL_GIST_CATALOG,
+      'Cache-Control': CACHE_CONTROL_KV_CATALOG,
     }),
   })
 })

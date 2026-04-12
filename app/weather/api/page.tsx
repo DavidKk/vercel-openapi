@@ -4,7 +4,7 @@ import { DocEndpointRow } from '@/components/DocEndpointRow'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 
 /**
- * Weather REST API page.
+ * China Weather REST API page.
  * Left side shows documentation for REST endpoints, right side is an interactive playground.
  */
 export default function WeatherApiPage() {
@@ -12,7 +12,7 @@ export default function WeatherApiPage() {
     <div className="flex h-full flex-nowrap overflow-x-auto overscroll-x-contain md:overflow-visible">
       {/* Left: documentation */}
       <section className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col border-r border-gray-200 bg-white md:w-1/2 md:min-w-[320px] md:flex-1">
-        <DocPanelHeader title="Weather REST API" subtitle="Get current weather and short-term forecast for a specific point." />
+        <DocPanelHeader title="China Weather REST API" subtitle="Get current weather and short-term forecast for a specific point." />
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
@@ -34,8 +34,8 @@ export default function WeatherApiPage() {
           <pre className="max-h-64 overflow-auto rounded bg-white p-2 text-[10px] leading-relaxed text-gray-800">
             {`{
   "location": {
-    "latitude": 23.13,
-    "longitude": 113.27,
+    "latitude": 23.031389,
+    "longitude": 113.137222,
     "country": "中国",
     "province": "广东省",
     "city": "佛山市",

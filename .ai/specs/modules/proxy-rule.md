@@ -24,7 +24,7 @@ These routes are **not** covered by the “public data API” definition in `api
 ## Environment
 
 - `PROXY_RULE_CLASH_FILE` — optional (legacy) clash YAML filename hint (default `clash.unbnd.yaml`).
-- `ZERO_OMEGA_GIST_URL` — optional ZeroOmega raw JSON file URL (token/filename not required).
+- `ZERO_OMEGA_RULES_JSON_URL` — optional ZeroOmega raw JSON file URL (HTTPS; token/filename not required).
 - `PROXY_RULE_FETCH_GFWLIST_IN_DEV` — set `1` to fetch gfwlist when `NODE_ENV=development`.
 
 ## MCP / Function Calling

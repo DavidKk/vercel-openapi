@@ -10,11 +10,9 @@ const logger = createLogger('proxy-rule-zero-omega')
  */
 export async function loadZeroOmegaConfig(): Promise<ZeroOmega | null> {
   /**
-   * Env contract:
-   * - `ZERO_OMEGA_GIST_URL` is the raw JSON file URL directly
-   *   (e.g. https://gist.githubusercontent.com/.../raw/ZeroOmega.json).
+   * Env contract: `ZERO_OMEGA_RULES_JSON_URL` is the raw JSON file URL (HTTPS).
    */
-  const rawUrl = process.env.ZERO_OMEGA_GIST_URL?.trim()
+  const rawUrl = process.env.ZERO_OMEGA_RULES_JSON_URL?.trim()
   if (!rawUrl) {
     return null
   }

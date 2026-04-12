@@ -16,7 +16,7 @@ import { CACHE_CONTROL_NO_STORE, isStandardResponse, standardResponseError, stri
  * @param source Headers from request context, if any
  * @returns Headers for `NextResponse`
  */
-function withDebugCacheControl(source: Headers | undefined): Headers {
+function mergeContextHeadersWithDisableCacheOverride(source: Headers | undefined): Headers {
   const headers = new Headers(source ?? undefined)
   if (isAppCacheDisabled()) {
     headers.set('Cache-Control', CACHE_CONTROL_NO_STORE)
@@ -94,7 +94,7 @@ export function plainText<P>(handle: (req: NextRequest, context: ContextWithPara
           searchParams: req.nextUrl.searchParams,
         }
         const result = await handle(req, enhancedContext)
-        const headers = withDebugCacheControl(getHeaders())
+        const headers = mergeContextHeadersWithDisableCacheOverride(getHeaders())
         if (result instanceof NextResponse) {
           return result
         }
@@ -102,7 +102,7 @@ export function plainText<P>(handle: (req: NextRequest, context: ContextWithPara
         return new NextResponse(result, { status: 200, headers })
       } catch (error) {
         const message = stringifyUnknownError(error)
-        return new NextResponse(message, { status: 500, headers: withDebugCacheControl(getHeaders()) })
+        return new NextResponse(message, { status: 500, headers: mergeContextHeadersWithDisableCacheOverride(getHeaders()) })
       }
     })
   }
@@ -119,14 +119,14 @@ export function buffer<P>(handle: (req: NextRequest, context: ContextWithParams<
           searchParams: req.nextUrl.searchParams,
         }
         const result = await handle(req, enhancedContext)
-        const headers = withDebugCacheControl(getHeaders())
+        const headers = mergeContextHeadersWithDisableCacheOverride(getHeaders())
         if (result instanceof NextResponse) {
           return result
         }
         return new NextResponse(result, { status: 200, headers })
       } catch (error) {
         const message = stringifyUnknownError(error)
-        return new NextResponse(message, { status: 500, headers: withDebugCacheControl(getHeaders()) })
+        return new NextResponse(message, { status: 500, headers: mergeContextHeadersWithDisableCacheOverride(getHeaders()) })
       }
     })
   }

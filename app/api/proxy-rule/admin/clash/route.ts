@@ -12,7 +12,7 @@ export const runtime = 'edge'
 const logger = createLogger('api-proxy-rule-admin-clash')
 
 /**
- * Authenticated: return current clash rules and action list from gist.
+ * Authenticated: return current clash rules and action list from KV.
  */
 export const GET = api(
   withAuthHandler(async () => {

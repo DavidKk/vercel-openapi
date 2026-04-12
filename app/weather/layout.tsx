@@ -17,9 +17,9 @@ const SIDEBAR_ITEMS = [
 ]
 
 /**
- * Weather section layout: left icon sidebar + main content. Header is the global Nav.
+ * China Weather section layout: left icon sidebar + main content. Header is the global Nav.
  * @param props Layout props containing page children
- * @returns Weather layout with sidebar and content area
+ * @returns China Weather layout with sidebar and content area
  */
 export default async function WeatherLayout(props: Readonly<WeatherLayoutProps>) {
   const { children } = props

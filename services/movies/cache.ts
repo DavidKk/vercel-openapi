@@ -43,7 +43,7 @@ export function shouldUpdate(currentTimestamp: number): boolean {
  * Read movies cache snapshot from KV.
  * @returns Cache data loaded from KV, or null when missing/invalid
  */
-export async function getMoviesFromGist(): Promise<MoviesCacheData | null> {
+export async function getMoviesFromKv(): Promise<MoviesCacheData | null> {
   try {
     const data = await getJsonKv<MoviesCacheData>(MOVIES_CACHE_KV_KEY)
     if (!data?.data) {
@@ -62,7 +62,7 @@ export async function getMoviesFromGist(): Promise<MoviesCacheData | null> {
  * @param data Cache payload to save
  * @returns Promise resolved when the write completes
  */
-export async function saveMoviesToGist(data: MoviesCacheData): Promise<void> {
+export async function saveMoviesToKv(data: MoviesCacheData): Promise<void> {
   const content = JSON.stringify(data, null, 2)
   const size = new Blob([content]).size
   if (size > 1024 * 1024) {

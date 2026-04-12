@@ -6,7 +6,7 @@ import { checkAccess } from '@/services/auth/access'
 import { ProxyRuleManageEditor } from './components/ProxyRuleManageEditor'
 
 /**
- * Authenticated manage page for Clash rules stored in gist.
+ * Authenticated manage page for Clash rules stored in KV.
  */
 export default async function ProxyRuleManagePage() {
   await checkAccess({ isApiRouter: false })

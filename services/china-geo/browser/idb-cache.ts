@@ -4,6 +4,7 @@
  * Do not import this (or any file under browser/) from API routes or server code (no window).
  */
 
+import { parsePolygonRing } from '@/services/china-geo/parse-polygon-ring'
 import { IDB_STORES, openSharedDb } from '@/services/idb-cache'
 
 const STORE_NAME = IDB_STORES.GEO_REGIONS
@@ -22,7 +23,7 @@ export interface GeoLocationStored {
   province_id?: number
   city_id?: number
   district_id?: number
-  /** Real boundary polygon; format "lng lat,lng lat,...". Used for point-in-polygon lookup. */
+  /** Real boundary polygon; first `;`-separated ring used for point-in-polygon lookup. */
   polygon?: string
 }
 
@@ -39,20 +40,6 @@ interface GeoRegionRow {
 
 function openDb(): Promise<IDBDatabase> {
   return openSharedDb(STORE_NAME)
-}
-
-/**
- * Parse polygon string "lng lat,lng lat,..." to array of [lng, lat].
- * @param s Polygon text from DB
- * @returns Array of [lng, lat] or empty array if invalid
- */
-function parsePolygon(s: string): [number, number][] {
-  if (!s || typeof s !== 'string') return []
-  return s
-    .split(',')
-    .map((p) => p.trim().split(/\s+/).map(Number))
-    .filter((p) => p.length >= 2)
-    .map((p) => [p[0], p[1]] as [number, number])
 }
 
 /**
@@ -80,7 +67,7 @@ function pointInPolygon(lng: number, lat: number, ring: [number, number][]): boo
  * @returns Bounds or null if invalid
  */
 function polygonToBounds(polygon: string): { minLng: number; minLat: number; maxLng: number; maxLat: number } | null {
-  const ring = parsePolygon(polygon)
+  const ring = parsePolygonRing(polygon)
   if (ring.length < 3) return null
   const lngs = ring.map((p) => p[0])
   const lats = ring.map((p) => p[1])
@@ -137,7 +124,7 @@ export async function getGeoFromIdb(lat: number, lng: number): Promise<GeoLocati
       }
       const inBounds = lng <= row.maxLng && lat >= row.minLat && lat <= row.maxLat
       if (inBounds && row.data.polygon) {
-        const ring = parsePolygon(row.data.polygon)
+        const ring = parsePolygonRing(row.data.polygon)
         if (ring.length >= 3 && pointInPolygon(lng, lat, ring)) {
           db.close()
           resolve(row.data)

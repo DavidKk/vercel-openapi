@@ -23,17 +23,17 @@ sidebarItems:
 
 apiPage:
   title: Proxy rule API
-  subtitle: Public merged Clash config and authenticated gist admin.
+  subtitle: Public merged Clash config and authenticated admin (KV).
   endpoints:
     - method: GET
       path: /api/proxy-rule/clash/config?type=Proxy
       description: Returns merged RULE-SET line prefixes for the given action.
     - method: GET
       path: /api/proxy-rule/admin/clash
-      description: Authenticated — list rules from gist.
+      description: Authenticated — list rules from KV.
     - method: POST
       path: /api/proxy-rule/admin/clash
-      description: Authenticated — replace gist rules.
+      description: Authenticated — replace rules in KV.
   playgroundComponentName: ProxyRuleApiPlayground
   playgroundImportPath: '@/app/proxy-rule/api/components'
 

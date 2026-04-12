@@ -3,12 +3,12 @@ import type { GetMergedMoviesListOptions } from '@/services/maoyan'
 import { getMergedMoviesListWithoutCache } from '@/services/maoyan'
 import type { MergedMovie } from '@/services/maoyan/types'
 
-import { createInitialCacheData, getMoviesFromGist, getResultFromCache, saveMoviesToGist, setResultToCache, shouldUpdate, updateCacheData } from './cache'
+import { createInitialCacheData, getMoviesFromKv, getResultFromCache, saveMoviesToKv, setResultToCache, shouldUpdate, updateCacheData } from './cache'
 import type { MoviesCacheData } from './types'
 
 const logger = createLogger('movies')
 
-export { createInitialCacheData, getMoviesFromGist, getResultFromCache, setResultToCache, shouldUpdate, updateCacheData } from './cache'
+export { createInitialCacheData, getMoviesFromKv, getResultFromCache, setResultToCache, shouldUpdate, updateCacheData } from './cache'
 export type { MoviesCacheData } from './types'
 
 /**
@@ -19,7 +19,7 @@ export async function getMoviesListFromCache(): Promise<MergedMovie[]> {
   const cached = getResultFromCache()
   if (cached) return cached
   try {
-    const data = await getMoviesFromGist()
+    const data = await getMoviesFromKv()
     if (data?.data?.movies) {
       setResultToCache(data.data.movies)
       return data.data.movies
@@ -51,7 +51,7 @@ export async function getMoviesListWithTimestamp(): Promise<{
 
   let cacheData: MoviesCacheData | null = null
   try {
-    cacheData = await getMoviesFromGist()
+    cacheData = await getMoviesFromKv()
   } catch {
     // KV not configured or read failed
   }
@@ -73,7 +73,7 @@ export async function getMoviesListWithTimestamp(): Promise<{
 }
 
 export interface GetMoviesListWithAutoUpdateOptions extends GetMergedMoviesListOptions {
-  /** When true, skip cache freshness check and always fetch upstream (Maoyan; TMDB only if merge options enabled) and write to KV */
+  /** When true, skip cache freshness check and always fetch upstream (Maoyan; TMDB popular/upcoming when API key present and MOVIES_TMDB_LISTS not disabled) and write to KV */
   forceRefresh?: boolean
 }
 
@@ -91,7 +91,7 @@ export async function getMoviesListWithAutoUpdate(options: GetMoviesListWithAuto
   }
   let cacheData: MoviesCacheData | null = null
   try {
-    cacheData = await getMoviesFromGist()
+    cacheData = await getMoviesFromKv()
   } catch {
     // will create new
   }
@@ -131,7 +131,7 @@ export async function getMoviesListWithAutoUpdate(options: GetMoviesListWithAuto
   if (!cacheData) cacheData = createInitialCacheData(newMovies)
   else cacheData = updateCacheData(cacheData.data, newMovies, cacheData.notifiedMovieIds)
   try {
-    await saveMoviesToGist(cacheData)
+    await saveMoviesToKv(cacheData)
   } catch {
     // non-blocking
   }

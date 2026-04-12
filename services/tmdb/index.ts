@@ -1,5 +1,5 @@
 import { fetchJsonWithCache } from '@/services/fetch'
-import { getTmdbApiKey, hasTmdbApiKey } from '@/services/tmdb/env'
+import { getTmdbApiKey } from '@/services/tmdb/env'
 
 import { TMDB, TMDB_CACHE } from './constants'
 import { logger } from './logger'
@@ -209,4 +209,4 @@ export async function searchMulti(title: string, options: SearchOptions = {}): P
   }
 }
 
-export { hasTmdbApiKey }
+export { hasTmdbApiKey, shouldIncludeTmdbMovieLists } from './env'

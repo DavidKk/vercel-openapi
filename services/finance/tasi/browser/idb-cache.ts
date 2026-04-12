@@ -1,12 +1,12 @@
 /**
  * Browser-only IndexedDB cache for TASI (company daily + market summary).
- * Expiry follows GIST: use updatedAt + TTL; if expired, treat as cache miss and fetch from API.
+ * Expiry follows server KV snapshot: use updatedAt + TTL; if expired, treat as cache miss and fetch from API.
  * Do not import from API routes or server code (no window).
  */
 
 import { IDB_STORES, openSharedDb } from '@/services/idb-cache'
 
-import { TASI_GIST_TTL_MS } from '../constants'
+import { TASI_SNAPSHOT_TTL_MS } from '../constants'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from '../types'
 
 const COMPANY_STORE = IDB_STORES.TASI_COMPANY_DAILY
@@ -20,14 +20,14 @@ interface SummaryRow {
 }
 
 /**
- * Whether the IDB snapshot is expired (same rule as GIST: older than TASI_GIST_TTL_MS).
+ * Whether the IDB snapshot is expired (same rule as server: older than TASI_SNAPSHOT_TTL_MS).
  * Missing or invalid updatedAt counts as expired.
  */
 export function isIdbSnapshotExpired(updatedAt: string | undefined): boolean {
   if (!updatedAt) return true
   const t = Date.parse(updatedAt)
   if (Number.isNaN(t)) return true
-  return Date.now() - t > TASI_GIST_TTL_MS
+  return Date.now() - t > TASI_SNAPSHOT_TTL_MS
 }
 
 function openCompanyStore(): Promise<IDBDatabase> {
@@ -134,7 +134,7 @@ export async function writeCompanyDailyToIdb(date: string, records: TasiCompanyD
 }
 
 /**
- * Write market summary for one date. Sets updatedAt (ISO) so expiry follows GIST TTL.
+ * Write market summary for one date. Sets updatedAt (ISO) so expiry follows snapshot TTL.
  *
  * @param date YYYY-MM-DD
  * @param summary Market summary
@@ -186,7 +186,7 @@ export async function getLatestSnapshotDateFromIdb(): Promise<string | null> {
 }
 
 /**
- * Get latest snapshot from IDB only if not expired (same TTL as GIST).
+ * Get latest snapshot from IDB only if not expired (same TTL as server snapshot).
  * Use this for cache-first read: if expired or missing, return null and caller should fetch from API.
  *
  * @returns { company, summary } or null when no data or cache expired

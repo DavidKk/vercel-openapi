@@ -19,7 +19,7 @@ export interface GeoLocation {
   province_id?: number
   city_id?: number
   district_id?: number
-  /** Real admin boundary polygon from DB; format "lng lat,lng lat,...". Only range field; use for containment and drawing. */
+  /** Real admin boundary polygon from DB; "lng lat,lng lat,..." per ring; multiple rings may use `;`. Client uses the first ring only. */
   polygon?: string
 }
 
@@ -32,6 +32,6 @@ export interface GeoContainingPointRow {
   district_id: number | null
   district_name: string | null
   ext_path: string | null
-  /** Real boundary polygon from DB; format "lng lat,lng lat,...". */
+  /** Real boundary polygon from DB; rings may be separated by `;` (first ring used for drawing / PIP). */
   polygon?: string | null
 }

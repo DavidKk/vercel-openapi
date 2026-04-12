@@ -12,6 +12,11 @@ declare namespace NodeJS {
     JWT_EXPIRES_IN: string
     /** TMDB API Key (for movies module merge/cron) */
     TMDB_API_KEY?: string
+    /**
+     * When unset, TMDB popular/upcoming lists are merged whenever `TMDB_API_KEY` is set.
+     * Set to `0`, `false`, `no`, or `off` to fetch Maoyan only (keep key for other TMDB calls if any).
+     */
+    MOVIES_TMDB_LISTS?: string
     /** TMDB language (e.g. zh-CN) */
     TMDB_LANGUAGE?: string
     /** TMDB region */
@@ -24,12 +29,12 @@ declare namespace NodeJS {
     FREECURRENCYAPI_API_KEY?: string
     /** QWeather API key (weather module) */
     QWEATHER_API_KEY?: string
+    /** Optional ZeroOmega rules JSON URL (HTTPS) for proxy-rule merge */
+    ZERO_OMEGA_RULES_JSON_URL?: string
     /**
      * Opt-in only: unset = normal caching. When explicitly `1` / `true` / `yes`, skip app-layer caches
-     * (e.g. news merged pool L1/L2/KV) and force `Cache-Control: private, no-store` on standard JSON helpers.
+     * and force `Cache-Control: private, no-store` on standard JSON helpers.
      */
     DISABLE_CACHE?: string
-    /** Optional JSON object (string values only) merged into News RSSHub upstream fetch headers */
-    RSSHUB_REQUEST_HEADERS_JSON?: string
   }
 }
