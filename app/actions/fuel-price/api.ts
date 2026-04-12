@@ -1,7 +1,7 @@
 import { getJsonKv, setJsonKv } from '@/services/kv/client'
 import { createLogger } from '@/services/logger'
 
-import { fetchAndParseFuelPriceData, fetchNextAdjustmentDate } from './sources'
+import { fetchFuelPriceFromPrimarySource } from './sources'
 import type { FuelPrice, FuelPriceList, ProvinceFuelPrice } from './types'
 import { isFuelPrice } from './types'
 
@@ -36,25 +36,10 @@ export function clearFuelPriceCache() {
  * @returns Promise<FuelPrice>
  */
 export async function getFuelPrice(): Promise<FuelPrice> {
-  const [fuelPrices, nextAdjustmentDate] = await Promise.all([
-    fetchAndParseFuelPriceData(),
-    // Best-effort fetch for next adjustment date; failures should not break main fuel price data
-    (async () => {
-      try {
-        return await fetchNextAdjustmentDate()
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e))
-        cacheLog.warn('next adjustment date fetch failed (non-fatal)', {
-          name: err.name,
-          message: err.message,
-        })
-        return null
-      }
-    })(),
-  ])
+  const { data, nextAdjustmentDate } = await fetchFuelPriceFromPrimarySource()
 
   return {
-    data: fuelPrices,
+    data,
     lastUpdated: new Date().toISOString(),
     nextAdjustmentDate,
   }
