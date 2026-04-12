@@ -30,9 +30,6 @@
     "test:e2e:auto": "playwright test",
     "ok": "pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e",
     "dev:e2e": "next dev --hostname 127.0.0.1 --port 3000",
-    "export:china-geo": "node ./scripts/export-china-geo-pg-ipv4.mjs",
-    "export:china-geo:direct": "bash scripts/export-china-geo-pg.sh",
-    "export:china-geo:sql": "bash scripts/export-china-geo-sql.sh",
     "prepare": "husky"
   },
   "dependencies": {
