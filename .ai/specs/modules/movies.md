@@ -6,7 +6,7 @@ Per-module spec for the Movies public API. Global convention: [api-semantics.md]
 
 ## Purpose
 
-- Provide **latest** movies list from cache (e.g. GIST-backed). Read-only; public API does not trigger TMDB/Maoyan or other live fetch.
+- Provide **latest** movies list from cache (KV-backed). Read-only; public API does not trigger TMDB/Maoyan or other live fetch.
 - Intended as an example module for the stack (Overview, API, MCP, Function Calling, Skill).
 
 ---
@@ -39,7 +39,7 @@ Per-module spec for the Movies public API. Global convention: [api-semantics.md]
 
 ## Troubleshooting: no Maoyan data
 
-- **Data flow:** List is merged from Maoyan (topRated + mostExpected) + TMDB, then cached in GIST. The public API only reads cache; it never calls Maoyan/TMDB.
+- **Data flow:** List is merged from Maoyan (topRated + mostExpected) + TMDB, then cached in KV. The public API only reads cache; it never calls Maoyan/TMDB.
 - **If the UI shows “TMDB only” (no Maoyan):** The cache was likely filled when Maoyan fetch failed (e.g. timeout or network from Vercel to `apis.netstart.cn`). Merge uses `Promise.allSettled`, so TMDB-only is still saved.
 - **Fix:** Trigger the **cron** (Node runtime) to refresh cache: call `GET /api/cron/sync/movies-sync` with `CRON_SECRET`. Check Vercel logs for `Maoyan fetch result: topRated=N, mostExpected=M`. If both are 0, Maoyan is unreachable from the deployment environment; try running the cron from a Node context (e.g. GitHub Actions or same cron route).
 - **Note:** If cache is empty, the first request to `/api/movies` runs a one-shot merge in the same runtime (Edge). Edge fetch to `apis.netstart.cn` may fail; subsequent cache is then TMDB-only until cron (Node) runs.

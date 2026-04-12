@@ -28,9 +28,9 @@ export const CACHE_CONTROL_LONG_LIVED = `public, max-age=${CACHE_MAX_AGE_ONE_YEA
 export const CACHE_CONTROL_NO_STORE = 'private, no-store'
 
 /**
- * Gist-backed public catalogs (e.g. prices): minute-level freshness per api-semantics / prices spec.
+ * KV-backed public catalogs (e.g. prices): minute-level freshness per api-semantics / prices spec.
  */
-export const CACHE_CONTROL_GIST_CATALOG = 'public, max-age=120, s-maxage=120, stale-while-revalidate=300'
+export const CACHE_CONTROL_KV_CATALOG = 'public, max-age=120, s-maxage=120, stale-while-revalidate=300'
 
 /**
  * `/api/skills` manifest: same spirit as `/api/skills/[name]` (stable until deploy).

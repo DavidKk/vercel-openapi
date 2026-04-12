@@ -1,4 +1,4 @@
-# Movies module schema – latest movies list with GIST cache
+# Movies module schema – latest movies list with KV cache
 
 id: movies
 name: Movies
@@ -28,7 +28,7 @@ apiPage:
   endpoints:
     - method: GET
       path: /movies
-      description: Returns latest movies list from cache (GIST). No auth required.
+      description: Returns latest movies list from cache (KV). No auth required.
       exampleResponse: |
         {
           "code": 0,

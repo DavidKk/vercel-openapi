@@ -3,12 +3,12 @@ name: weather
 description: When a user asks for weather or short forecast at a latitude/longitude → return current conditions or forecast.
 ---
 
-# Weather API – Point “now” & short forecast (agent-ready)
+# China Weather API – Point “now” & short forecast (agent-ready)
 
 ## When to use
 
 - User wants **current weather** or a **short forecast** at a **latitude/longitude** (China-focused provider behavior; **404** if uncovered).
-- Coordinate formats like Geo skill: `23.13,113.27`, `lat:23.13 lng:113.27`, etc.
+- Coordinate formats like Geo skill: `23.031389,113.137222` (Nanhai center example), `lat:… lng:…`, etc.
 - **Do not** call with **only** a city name and **no** coordinates unless another tool resolves coords first.
 - **Do not overuse:** unrelated intent → do not call.
 
@@ -38,7 +38,7 @@ description: When a user asks for weather or short forecast at a latitude/longit
 `POST /api/weather` — body `{ "latitude": number, "longitude": number }`
 
 **Forecast:**
-`POST /api/weather/forecast` — body e.g. `{ "latitude": 23.13, "longitude": 113.27, "granularity": "hourly", "hours": 6 }`
+`POST /api/weather/forecast` — body e.g. `{ "latitude": 23.031389, "longitude": 113.137222, "granularity": "hourly", "hours": 6 }` (佛山市南海区中心附近，维基百科 23°01′53″N 113°08′14″E)
 
 ## Response
 
@@ -61,7 +61,7 @@ description: When a user asks for weather or short forecast at a latitude/longit
 
 ## Examples
 
-- User: “Weather at 23.13, 113.27 now” → POST `/api/weather` with that body → summarize `now`.
+- User: “Weather at 23.031389, 113.137222 now” → POST `/api/weather` with that body → summarize `now`.
 - User: “Next 6 hours same point” → POST `/api/weather/forecast` with `hours: 6`.
 - User: “北京天气？” (no coordinates) → **Do not call** until coords known or user accepts using another geocode step.
 

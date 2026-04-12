@@ -1,6 +1,6 @@
 /**
- * Stable region key for geo/weather caches. Shared by server (L1/L2/Turso) and client (IDB).
- * All geography-based caches must be keyed by region, not by a single point (lat/lng).
+ * Stable region key for geo/weather lookups. Shared by server (weather keys) and client (IDB).
+ * Geography-based keys must use region, not a single point (lat/lng).
  */
 
 /** Minimal location shape needed to build a region key (ids or name + rounded coords). */
@@ -17,7 +17,7 @@ export interface LocationForRegionKey {
 
 /**
  * Build a stable region key from a location. Prefer ids to avoid name collision across provinces.
- * Used by server (geo cache, weather cache) and client (weather IDB/singleton).
+ * Used by server (weather) and client (weather IDB/singleton).
  *
  * @param loc Location with province/city/district and optional ids
  * @returns Region key string (e.g. "province_id|city_id|district_id" or "province|city|district|lat|lng")

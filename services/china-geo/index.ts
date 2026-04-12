@@ -1,15 +1,8 @@
-import { unstable_cache } from 'next/cache'
-
 import { formatJsonSummaryForLog } from '@/utils/format-json-summary'
 
-import { getCached, getGridKey, getRegionKey, setCached } from './cache'
 import { getSupabase } from './client'
 import { logger } from './logger'
-import { getCachedTurso, setCachedTurso } from './turso-cache'
 import type { GeoContainingPointRow, GeoLocation } from './types'
-
-/** Revalidate interval for Next.js Data Cache (L2); 24h so geo data is stable across requests. */
-const NEXT_CACHE_REVALIDATE_S = 86400
 
 export type { GeoLocation } from './types'
 
@@ -42,7 +35,8 @@ function rowsToLocations(rows: GeoContainingPointRow[], latitude: number, longit
 }
 
 /**
- * Fetch reverse-geocode from Supabase RPC (no cache).
+ * Fetch reverse-geocode from Supabase RPC only (no server-side application cache).
+ *
  * @param latitude Latitude in decimal degrees
  * @param longitude Longitude in decimal degrees
  * @returns All GeoLocation results from RPC, or empty array on error/empty
@@ -84,63 +78,36 @@ async function reverseGeocodeRpc(latitude: number, longitude: number): Promise<G
 }
 
 /**
- * Fetch from Next.js Data Cache (L2) or RPC, then fill in-memory LRU (L1).
- * Uses unstable_cache when available (Node only). On Edge (e.g. /api/geo route) unstable_cache
- * is not supported, so we fall back to RPC; L2 is effectively skipped. See .ai/specs/cache-review.md.
+ * If the first row has no polygon, retry RPC once (same as previous behavior without Next cache).
  */
-async function fetchWithNextCacheOrRpc(latitude: number, longitude: number): Promise<GeoLocation[]> {
-  const gridKey = getGridKey(latitude, longitude)
-  try {
-    const cachedFn = unstable_cache((lat: number, lng: number) => reverseGeocodeRpc(lat, lng), ['china-geo', gridKey], { revalidate: NEXT_CACHE_REVALIDATE_S })
-    return await cachedFn(latitude, longitude)
-  } catch {
-    return reverseGeocodeRpc(latitude, longitude)
-  }
-}
-
-/** Cache layer identifier for response header (L1 = memory, L2 = Turso, etc.). */
-export type GeoCacheLayer = 'L1' | 'L2' | 'L3' | 'L4' | 'L5'
-
-/** Result of reverseGeocodeWithMeta: location plus which cache layer served it (if any). */
-export interface ReverseGeocodeResult {
-  location: GeoLocation | null
-  /** Set only when response was served from a backend cache layer; omit header when null. */
-  cacheLayer: GeoCacheLayer | null
-}
-
-/**
- * Reverse geocode with cache-layer info for response headers.
- * Use this in API routes to set X-Cache-Hit when a backend cache layer served the result.
- *
- * @param latitude Latitude in decimal degrees
- * @param longitude Longitude in decimal degrees
- * @returns Result with location and cacheLayer (L1/L2/… or null if not from cache)
- */
-export async function reverseGeocodeWithMeta(latitude: number, longitude: number): Promise<ReverseGeocodeResult> {
-  let cached = getCached(latitude, longitude)
-  if (cached !== undefined && cached[0]?.polygon) {
-    return { location: cached[0] ?? null, cacheLayer: 'L1' }
-  }
-  const turso = await getCachedTurso(latitude, longitude)
-  if (turso?.locations?.length && turso.locations[0]?.polygon) {
-    return { location: turso.locations[0] ?? null, cacheLayer: 'L2' }
-  }
-
-  let locations = await fetchWithNextCacheOrRpc(latitude, longitude)
+async function reverseGeocodeRpcWithPolygonRetry(latitude: number, longitude: number): Promise<GeoLocation[]> {
+  let locations = await reverseGeocodeRpc(latitude, longitude)
   if (locations[0] && !locations[0].polygon) {
     locations = await reverseGeocodeRpc(latitude, longitude)
   }
-  setCached(latitude, longitude, locations)
-  if (locations.length > 0 && locations[0].polygon) {
-    await setCachedTurso(getRegionKey(locations[0]), { locations, polygon: locations[0].polygon })
-  }
-  return { location: locations[0] ?? null, cacheLayer: null }
+  return locations
+}
+
+/** Result of reverseGeocodeWithMeta (location only; no server cache layer). */
+export interface ReverseGeocodeResult {
+  location: GeoLocation | null
 }
 
 /**
- * Reverse geocode a point to province/city/district using Supabase china_geo.
- * Cache: L1 in-memory (best effort on Edge), then L2 Turso (when configured), then RPC.
- * China only; returns null for coordinates outside mainland China.
+ * Reverse geocode with a stable return shape for API routes.
+ *
+ * @param latitude Latitude in decimal degrees
+ * @param longitude Longitude in decimal degrees
+ * @returns Location from Supabase RPC, or null if unsupported / not configured
+ */
+export async function reverseGeocodeWithMeta(latitude: number, longitude: number): Promise<ReverseGeocodeResult> {
+  const locations = await reverseGeocodeRpcWithPolygonRetry(latitude, longitude)
+  return { location: locations[0] ?? null }
+}
+
+/**
+ * Reverse geocode a point to province/city/district using Supabase china_geo (RPC only).
+ * China only; returns null for coordinates outside mainland China or when Supabase is not configured.
  *
  * @param latitude Latitude in decimal degrees
  * @param longitude Longitude in decimal degrees
@@ -153,29 +120,11 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
 
 /**
  * Reverse geocode a point and return all matching locations from RPC.
- * Cache: L1 in-memory, then L2 Turso (when configured), then RPC.
  *
  * @param latitude Latitude in decimal degrees
  * @param longitude Longitude in decimal degrees
  * @returns All GeoLocation results (empty if not in China or error)
  */
 export async function reverseGeocodeAll(latitude: number, longitude: number): Promise<GeoLocation[]> {
-  let cached = getCached(latitude, longitude)
-  if (cached === undefined) {
-    const turso = await getCachedTurso(latitude, longitude)
-    if (turso?.locations?.length && turso.locations[0]?.polygon) cached = turso.locations
-  }
-  if (cached !== undefined && cached[0]?.polygon) {
-    return cached
-  }
-
-  let locations = await fetchWithNextCacheOrRpc(latitude, longitude)
-  if (locations[0] && !locations[0].polygon) {
-    locations = await reverseGeocodeRpc(latitude, longitude)
-  }
-  setCached(latitude, longitude, locations)
-  if (locations.length > 0 && locations[0].polygon) {
-    await setCachedTurso(getRegionKey(locations[0]), { locations, polygon: locations[0].polygon })
-  }
-  return locations
+  return reverseGeocodeRpcWithPolygonRetry(latitude, longitude)
 }

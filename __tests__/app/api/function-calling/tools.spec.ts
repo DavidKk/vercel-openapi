@@ -31,7 +31,5 @@ describe('Function Calling API /api/function-calling/tools', () => {
     const names = data.tools.map((t: { function: { name: string } }) => t.function.name)
     expect(names).toContain('get_today_holiday')
     expect(names).toContain('convert_currency')
-    expect(names).toContain('list_news_sources')
-    expect(names).toContain('get_news_feed')
   })
 })

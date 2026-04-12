@@ -8,7 +8,7 @@
 import type { WeatherForecastResponse } from '@/app/actions/weather/types'
 import { createIdbCache, IDB_STORES, SHARED_DB_NAME } from '@/services/idb-cache'
 
-/** Forecast TTL 30 minutes (align with server L1/L2). */
+/** Forecast TTL 30 minutes (align with server L1). */
 const FORECAST_TTL_MS = 30 * 60 * 1000
 
 const forecastCache = createIdbCache<WeatherForecastResponse>(SHARED_DB_NAME, IDB_STORES.FORECAST, FORECAST_TTL_MS)

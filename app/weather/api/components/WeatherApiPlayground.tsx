@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { TbCode } from 'react-icons/tb'
 
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
+import { CHINA_WEATHER_DEMO_LOCATION } from '@/app/weather/lib/china-weather-demo-location'
 import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
@@ -27,16 +28,16 @@ interface WeatherApiState {
 }
 
 /**
- * Client-side playground for the Weather REST API.
+ * Client-side playground for the China Weather REST API.
  * Allows testing POST /api/weather and POST /api/weather/forecast with simple point-based inputs.
- * @returns Weather API playground component
+ * @returns China Weather API playground component
  */
 export function WeatherApiPlayground() {
   const [state, setState] = useState<WeatherApiState>({
     loading: false,
     endpoint: 'now',
-    latitude: '23.13',
-    longitude: '113.27',
+    latitude: CHINA_WEATHER_DEMO_LOCATION.latitude.toFixed(5),
+    longitude: CHINA_WEATHER_DEMO_LOCATION.longitude.toFixed(5),
     granularity: 'hourly',
     hours: '6',
     days: '3',
@@ -190,7 +191,7 @@ export function WeatherApiPlayground() {
                   className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-900"
                   value={latitude}
                   onChange={(e) => setState((prev) => ({ ...prev, latitude: e.target.value }))}
-                  placeholder="23.13"
+                  placeholder={CHINA_WEATHER_DEMO_LOCATION.latitude.toFixed(5)}
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -200,7 +201,7 @@ export function WeatherApiPlayground() {
                   className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-900"
                   value={longitude}
                   onChange={(e) => setState((prev) => ({ ...prev, longitude: e.target.value }))}
-                  placeholder="113.27"
+                  placeholder={CHINA_WEATHER_DEMO_LOCATION.longitude.toFixed(5)}
                 />
               </label>
             </div>

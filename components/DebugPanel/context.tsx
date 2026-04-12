@@ -2,8 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
+import { CHINA_SERVICE_UNSUPPORTED_AREA_MESSAGE } from '@/services/china-geo/unsupported-area-message'
+
 /** Default error message shown when "Force error" is enabled in debug panel. */
-export const DEFAULT_DEBUG_ERROR_MESSAGE = 'This area is not supported for this service.'
+export const DEFAULT_DEBUG_ERROR_MESSAGE = CHINA_SERVICE_UNSUPPORTED_AREA_MESSAGE
 
 /** Allowed switch ids for the debug panel; only these can be registered. */
 export const DEBUG_SWITCH_IDS = ['forceLoading', 'forceError'] as const

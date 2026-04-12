@@ -5,6 +5,7 @@ import { TbMapPin } from 'react-icons/tb'
 
 import { useDebugPanel } from '@/components/DebugPanel'
 import { useGeocode } from '@/hooks/useGeocode'
+import { isChinaServiceUnsupportedAreaMessage } from '@/services/china-geo/unsupported-area-message'
 
 import { RegionBoundary } from './RegionBoundary'
 
@@ -105,13 +106,13 @@ export default function GeoClient() {
           >
             {barError ? (
               <>
-                <span>This area is not supported for this service.</span>
+                <span className={isChinaServiceUnsupportedAreaMessage(barError) ? 'text-amber-800' : 'text-gray-700'}>{barError}</span>
                 <button type="button" onClick={requestLocation} disabled={showLoading} className="text-gray-700 underline hover:no-underline disabled:opacity-50">
                   Retry
                 </button>
               </>
             ) : !forceError && error ? (
-              error.includes('not supported for this service') ? (
+              isChinaServiceUnsupportedAreaMessage(error) ? (
                 <span className="text-amber-800">{error}</span>
               ) : (
                 <span className="text-amber-800">

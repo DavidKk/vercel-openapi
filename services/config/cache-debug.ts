@@ -3,7 +3,7 @@
  */
 
 /**
- * When true, callers should skip readable/writable caches (e.g. news merged-pool L1/L2/KV) and
+ * When true, callers should skip readable/writable caches (e.g. KV-backed pools) and
  * standard JSON responses should use `Cache-Control: private, no-store` so browsers/CDN do not cache.
  *
  * **Default: caching stays on.** This is opt-in only: unset, empty, or any value other than `1` / `true` / `yes`

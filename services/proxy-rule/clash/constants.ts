@@ -1,17 +1,17 @@
-/** Default clash actions discovered when parsing gist rules. */
+/** Default clash actions discovered when parsing stored rules. */
 export const CLASH_DEFAULT_ACTION = ['Proxy', 'DIRECT', 'REJECT'] as const
 
-/** Default Clash gist filename when PROXY_RULE_CLASH_FILE is unset */
+/** Default Clash YAML filename when PROXY_RULE_CLASH_FILE is unset */
 export const DEFAULT_PROXY_RULE_CLASH_FILE_NAME = 'clash.unbnd.yaml'
 
 /**
- * Legacy Clash gist filename used by vercel-proxy-rule before migration.
+ * Legacy Clash filename used by vercel-proxy-rule before migration.
  */
 export const LEGACY_PROXY_RULE_CLASH_FILE_NAME = 'clash.vercel-proxy-rule.yaml'
 
 /**
- * Preferred gist filename for new writes (env override or default).
- * @returns File name to use when creating a new clash snippet in the gist
+ * Preferred YAML filename for new writes (env override or default).
+ * @returns File name to use when creating a new clash snippet
  */
 export function getProxyRuleClashFileName(): string {
   const name = process.env.PROXY_RULE_CLASH_FILE?.trim()
@@ -19,11 +19,11 @@ export function getProxyRuleClashFileName(): string {
 }
 
 /**
- * Ordered gist filenames to try when reading Clash YAML (first existing file wins).
+ * Ordered YAML filenames to try when reading Clash config (first existing file wins).
  * Order: PROXY_RULE_CLASH_FILE (if set), default name, then legacy migration name.
  * @returns Unique candidate file names in priority order
  */
-export function getOrderedClashGistFileCandidates(): string[] {
+export function getOrderedClashFileCandidates(): string[] {
   const seen = new Set<string>()
   const out: string[] = []
   const env = process.env.PROXY_RULE_CLASH_FILE?.trim()

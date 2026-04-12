@@ -1,6 +1,6 @@
 import { fetchJsonWithCache } from '@/services/fetch'
 import type { TMDBMovie } from '@/services/tmdb'
-import { fetchPopularMovies, fetchUpcomingMovies, getGenreNames, hasTmdbApiKey } from '@/services/tmdb'
+import { fetchPopularMovies, fetchUpcomingMovies, getGenreNames, hasTmdbApiKey, shouldIncludeTmdbMovieLists } from '@/services/tmdb'
 import { TMDB } from '@/services/tmdb/constants'
 
 import { MAOYAN } from './constants'
@@ -143,19 +143,30 @@ async function mergeTMDBMovies(movieMap: Map<string, MergedMovie>, tmdbMovies: T
 }
 
 export interface GetMergedMoviesListOptions {
+  /**
+   * Merge TMDB popular page into the list.
+   * Default: on when `TMDB_API_KEY` is set and `MOVIES_TMDB_LISTS` is not disabled (`0`/`false`/`no`/`off` turns off).
+   */
   includeTMDBPopular?: boolean
+  /**
+   * Merge TMDB upcoming page into the list.
+   * Default: same as `includeTMDBPopular` (see env above).
+   */
   includeTMDBUpcoming?: boolean
 }
 
 /**
- * Get merged movie list without request-level cache (for GIST cache refresh).
+ * Get merged movie list without request-level cache (for KV cache refresh).
  * Data: Maoyan (topRated + mostExpected) + Maoyan detail for overview (dra).
- * TMDB popular/upcoming merge is opt-in via options (default off); Maoyan rows are not backfilled from TMDB.
- * @param options includeTMDBPopular, includeTMDBUpcoming (default false; requires TMDB_API_KEY when true)
+ * TMDB popular/upcoming: default on when `shouldIncludeTmdbMovieLists()` is true (see `TMDB_API_KEY`, `MOVIES_TMDB_LISTS`).
+ * Override per call via options. Maoyan rows are not backfilled from TMDB.
+ * @param options Optional flags to force include/exclude TMDB list merges
  * @returns Merged list of movies
  */
 export async function getMergedMoviesListWithoutCache(options: GetMergedMoviesListOptions = {}): Promise<MergedMovie[]> {
-  const { includeTMDBPopular = false, includeTMDBUpcoming = false } = options
+  const tmdbListsDefault = shouldIncludeTmdbMovieLists()
+  const includeTMDBPopular = options.includeTMDBPopular ?? tmdbListsDefault
+  const includeTMDBUpcoming = options.includeTMDBUpcoming ?? tmdbListsDefault
   logger.info('Fetching movie list from Maoyan (no request cache)')
   const [topRatedRes, mostExpectedRes] = await Promise.allSettled([fetchTopRatedMoviesWithoutCache(), fetchMostExpectedWithoutCache(20, 0)])
   const topRated = topRatedRes.status === 'fulfilled' ? topRatedRes.value : []

@@ -2,24 +2,7 @@
 
 import { useState } from 'react'
 
-/**
- * Parses polygon string from API: "lng lat,lng lat,..." into array of [lng, lat].
- * @param polygon Raw polygon from china_geo (lng lat pairs comma-separated)
- * @returns Array of [lng, lat] or empty array if invalid
- */
-function parsePolygon(polygon: string): [number, number][] {
-  if (!polygon?.trim()) return []
-  return polygon
-    .trim()
-    .split(',')
-    .map((s) => {
-      const parts = s.trim().split(/\s+/)
-      const lng = parseFloat(parts[0])
-      const lat = parseFloat(parts[1])
-      return [lng, lat] as [number, number]
-    })
-    .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat))
-}
+import { parsePolygonRing } from '@/services/china-geo/parse-polygon-ring'
 
 /**
  * Polygon area centroid (center of mass of the 2D polygon). Always inside for convex polygons;
@@ -158,7 +141,7 @@ export function RegionBoundary({
   height = 200,
   'aria-label': ariaLabel = 'Region boundary',
 }: RegionBoundaryProps) {
-  const points = parsePolygon(polygon)
+  const points = parsePolygonRing(polygon)
   const { path, viewBox, pointToSvg } = projectToSvg(points, width, height, 0.12)
   const [qx, qy] = queryPoint ? pointToSvg(queryPoint.lng, queryPoint.lat) : [null, null]
   const [pinHovered, setPinHovered] = useState(false)

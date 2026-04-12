@@ -1,7 +1,7 @@
 /**
  * Module path segments that appear in the nav. Must stay in sync with NAV_ITEMS in index.tsx.
  */
-const MODULE_SLUGS = new Set(['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'news', 'dns', 'finance', 'prices', 'proxy-rule'])
+const MODULE_SLUGS = new Set(['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'dns', 'finance', 'prices', 'proxy-rule'])
 
 /**
  * Modules that should show a "manager" page in the global UI.

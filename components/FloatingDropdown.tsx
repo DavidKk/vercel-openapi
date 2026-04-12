@@ -25,7 +25,7 @@ export interface FloatingDropdownProps {
   zIndexClassName?: string
   /**
    * Classes on the trigger wrapper (the box used for layout + `getBoundingClientRect`).
-   * Use `flex w-full` when the trigger should span a wide parent (e.g. news channel picker); default `inline-flex` keeps intrinsic width (e.g. holiday toolbar button).
+   * Use `flex w-full` when the trigger should span a wide parent (e.g. a full-width channel picker); default `inline-flex` keeps intrinsic width (e.g. holiday toolbar button).
    */
   triggerWrapperClassName?: string
 }

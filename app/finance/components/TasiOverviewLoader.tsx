@@ -73,7 +73,7 @@ function TasiOverviewSkeleton() {
 }
 
 /**
- * Client-side loader for TASI overview: IDB cache used only when not expired (same TTL as GIST); else fetch from API.
+ * Client-side loader for TASI overview: IDB cache used only when not expired (same TTL as server KV snapshot); else fetch from API.
  */
 export function TasiOverviewLoader() {
   const [company, setCompany] = useState<TasiCompanyDailyRecord[] | null>(null)
@@ -87,7 +87,7 @@ export function TasiOverviewLoader() {
   useEffect(() => {
     let cancelled = false
 
-    /** Use IDB only if snapshot exists and is not expired (GIST-style TTL). When valid, skip API. */
+    /** Use IDB only if snapshot exists and is not expired (same TTL as server). When valid, skip API. */
     async function run() {
       const snapshot = await getLatestValidSnapshotFromIdb()
       if (cancelled) return

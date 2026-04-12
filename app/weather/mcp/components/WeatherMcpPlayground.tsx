@@ -3,6 +3,7 @@
 import { useState } from 'react'
 
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
+import { CHINA_WEATHER_DEMO_LOCATION } from '@/app/weather/lib/china-weather-demo-location'
 import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
@@ -23,14 +24,14 @@ interface WeatherMcpState {
 const MCP_PATH = '/api/mcp/weather'
 
 /**
- * MCP playground for weather-related tools: get_point_weather, get_point_forecast.
- * @returns Weather MCP playground component
+ * MCP playground for China Weather tools: get_point_weather, get_point_forecast.
+ * @returns China Weather MCP playground component
  */
 export function WeatherMcpPlayground() {
   const [state, setState] = useState<WeatherMcpState>({
     loading: false,
     tool: 'get_point_weather',
-    paramsText: JSON.stringify({ latitude: 23.13, longitude: 113.27 }, null, 2),
+    paramsText: JSON.stringify({ latitude: CHINA_WEATHER_DEMO_LOCATION.latitude, longitude: CHINA_WEATHER_DEMO_LOCATION.longitude }, null, 2),
   })
 
   function handleToolChange(value: string) {
@@ -38,12 +39,12 @@ export function WeatherMcpPlayground() {
     let nextParams: string
 
     if (tool === 'get_point_weather') {
-      nextParams = JSON.stringify({ latitude: 23.13, longitude: 113.27 }, null, 2)
+      nextParams = JSON.stringify({ latitude: CHINA_WEATHER_DEMO_LOCATION.latitude, longitude: CHINA_WEATHER_DEMO_LOCATION.longitude }, null, 2)
     } else {
       nextParams = JSON.stringify(
         {
-          latitude: 23.13,
-          longitude: 113.27,
+          latitude: CHINA_WEATHER_DEMO_LOCATION.latitude,
+          longitude: CHINA_WEATHER_DEMO_LOCATION.longitude,
           granularity: 'hourly',
           hours: 6,
         },

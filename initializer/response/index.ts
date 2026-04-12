@@ -174,7 +174,7 @@ export function jsonForbidden(message = 'forbidden', options: ErrorResponseInit 
 
 export {
   applyCacheControlDebugOverride,
-  CACHE_CONTROL_GIST_CATALOG,
+  CACHE_CONTROL_KV_CATALOG,
   CACHE_CONTROL_LONG_LIVED,
   CACHE_CONTROL_NO_STORE,
   CACHE_CONTROL_PROXY_REDIRECT,

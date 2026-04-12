@@ -18,7 +18,7 @@ export default function MoviesApiPage() {
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/movies" enableCopy />
-            <p className={DOC_ENDPOINT_DESC_CLASS}>Returns latest movies list from cache (GIST). No auth required.</p>
+            <p className={DOC_ENDPOINT_DESC_CLASS}>Returns latest movies list from cache (KV). No auth required.</p>
           </div>
           <h2 className={DOC_SECTION_TITLE_CLASS}>Response example</h2>
           <pre className="max-h-64 overflow-auto rounded bg-white p-2 text-[10px] leading-relaxed text-gray-800">

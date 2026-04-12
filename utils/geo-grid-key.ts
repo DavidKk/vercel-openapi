@@ -1,6 +1,6 @@
 /**
- * Grid key from coordinates. Shared by client (IndexedDB cache key) and server (china-geo LRU).
- * Same precision so client and server use the same key for the same cell.
+ * Grid key from coordinates. Used by client-side geo/weather IndexedDB keys.
+ * Same precision so points in the same cell share one cache entry.
  */
 
 /** Default precision: 3 decimal places ≈ ~111 m per cell. */

@@ -13,12 +13,11 @@
 - `/api/exchange-rate`
 - `/api/geo`
 - `/api/movies`
-- `/api/news/sources`, `/api/news/feed`
 - `/api/weather`
 - `/api/dns`
 - `/api/finance/...` (e.g. TASI company/summary daily) <!-- policy-exempt:finance-tasi-history --> — approved exception; registry: `.ai/specs/policy-exceptions.md`
 - `/api/proxy-rule/clash/config` (merged Clash RULE-SET line prefixes; query `type`)
-- `/api/prices`, `/api/prices/products`, `/api/prices/search`, `/api/prices/products/search`, `POST /api/prices/calc` — **read** paths: latest gist-backed catalog; **writes** on `/api/prices/products` (POST/PUT/DELETE) require **session** (see `.ai/specs/modules/prices.md`)
+- `/api/prices`, `/api/prices/products`, `/api/prices/search`, `/api/prices/products/search`, `POST /api/prices/calc` — **read** paths: latest KV-backed catalog; **writes** on `/api/prices/products` (POST/PUT/DELETE) require **session** (see `.ai/specs/modules/prices.md`)
 - (and any future module under `/api/<module>/...`)
 
 Excluded: auth (`/api/auth`), cron (`/api/cron`), MCP (`/api/mcp`), install-skill, authenticated admin routes (e.g. `/api/proxy-rule/admin/...`), and other internal or admin endpoints. Session-guarded **write** routes are excluded from the **anonymous read-only** rule but remain part of the developer-facing API surface; see per-module specs (e.g. prices).
@@ -71,7 +70,7 @@ Server-side callers (e.g. other API routes, MCP tools, Server Components that ne
 
 ## Per-module specs (split requirements)
 
-Each **module** (holiday, fuel-price, exchange-rate, geo, movies, news, weather, dns, finance, prices, proxy-rule, …) should normally have its own **module spec** that defines:
+Each **module** (holiday, fuel-price, exchange-rate, geo, movies, weather, dns, finance, prices, proxy-rule, …) should normally have its own **module spec** that defines:
 
 - Purpose and scope of that module’s public API
 - Endpoints: method, path, query/body params, response shape

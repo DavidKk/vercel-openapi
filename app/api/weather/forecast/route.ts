@@ -9,7 +9,7 @@ export const runtime = 'edge'
 
 /**
  * POST handler for point-based weather forecast.
- * Cache layers (short TTL): 1 browser (if GET), 2 HTTP (Cache-Control), 3 L1 memory, 4 L2 Turso, 5 third-party API.
+ * Cache layers (short TTL): 1 browser (if GET), 2 HTTP (Cache-Control), 3 L1 memory (per instance), 4 third-party API.
  * Request body: { latitude, longitude, granularity?, hours?, days? }
  * Returns short-term forecast for the specified point.
  */

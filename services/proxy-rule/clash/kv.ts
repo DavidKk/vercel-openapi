@@ -15,7 +15,7 @@ export interface FetchClashRulesResult {
    * We keep it loosely typed because the KV snapshot may contain additional keys.
    */
   config: Record<string, unknown>
-  /** File name used for reads/writes in older gist-based implementations */
+  /** File name used for reads/writes in older remote-file implementations */
   fileName: string
 }
 

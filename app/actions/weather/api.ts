@@ -1,13 +1,14 @@
 /**
  * Weather API: scope is deployment-specific (e.g. a region or country). Unsupported locations return an error.
  * Used by API routes only (no server action); enables route-level caching.
+ * Server-side cache: in-memory LRU only (per instance); no persistent L2 — short-lived responses are not written to Turso.
  */
 
 import { type GeoLocation, reverseGeocode } from '@/services/china-geo'
-import { getRegionKey } from '@/services/china-geo/cache'
+import { getRegionKey } from '@/services/china-geo/region-key'
+import { CHINA_SERVICE_UNSUPPORTED_AREA_MESSAGE } from '@/services/china-geo/unsupported-area-message'
 import { createLogger } from '@/services/logger'
 import { createLruCache } from '@/services/lru-cache'
-import { getCachedTurso, setCachedTurso } from '@/services/weather/turso-cache'
 import { decodeBase64Url } from '@/utils/url-base64'
 
 import type { ForecastHour, WeatherForecastResponse, WeatherLocation, WeatherNowResponse } from './types'
@@ -90,7 +91,7 @@ function buildWeatherCacheKey(type: 'now' | 'forecast', geoLocation: GeoLocation
 export async function getPointWeatherNow(latitude: number, longitude: number): Promise<WeatherNowResponse> {
   const geoLocation = await reverseGeocode(latitude, longitude)
   if (!geoLocation) {
-    throw new Error('This area is not supported for this service.')
+    throw new Error(CHINA_SERVICE_UNSUPPORTED_AREA_MESSAGE)
   }
 
   const cacheKey = buildWeatherCacheKey('now', geoLocation)
@@ -98,12 +99,6 @@ export async function getPointWeatherNow(latitude: number, longitude: number): P
   const cachedL1 = WEATHER_CACHE.get(cacheKey)
   if (cachedL1 && nowTs - cachedL1.timestamp < NOW_CACHE_TTL) {
     return cachedL1.data as WeatherNowResponse
-  }
-
-  const cachedL2 = await getCachedTurso(cacheKey, NOW_CACHE_TTL)
-  if (cachedL2) {
-    WEATHER_CACHE.set(cacheKey, cachedL2)
-    return cachedL2.data as WeatherNowResponse
   }
 
   const apiKey = process.env.QWEATHER_API_KEY
@@ -154,7 +149,6 @@ export async function getPointWeatherNow(latitude: number, longitude: number): P
   }
 
   const entry = { timestamp: nowTs, data: payload }
-  await setCachedTurso(cacheKey, entry)
   WEATHER_CACHE.set(cacheKey, entry)
 
   logger.info('weather now resolved', {
@@ -185,7 +179,7 @@ export async function getPointWeatherForecast(
 ): Promise<WeatherForecastResponse> {
   const geoLocation = await reverseGeocode(latitude, longitude)
   if (!geoLocation) {
-    throw new Error('This area is not supported for this service.')
+    throw new Error(CHINA_SERVICE_UNSUPPORTED_AREA_MESSAGE)
   }
 
   const extraKey = `${granularity}:${hours ?? ''}:${days ?? ''}`
@@ -194,12 +188,6 @@ export async function getPointWeatherForecast(
   const cachedL1 = WEATHER_CACHE.get(cacheKey)
   if (cachedL1 && nowTs - cachedL1.timestamp < FORECAST_CACHE_TTL) {
     return cachedL1.data as WeatherForecastResponse
-  }
-
-  const cachedL2 = await getCachedTurso(cacheKey, FORECAST_CACHE_TTL)
-  if (cachedL2) {
-    WEATHER_CACHE.set(cacheKey, cachedL2)
-    return cachedL2.data as WeatherForecastResponse
   }
 
   const apiKey = process.env.QWEATHER_API_KEY
@@ -270,7 +258,6 @@ export async function getPointWeatherForecast(
   }
 
   const entry = { timestamp: nowTs, data: payload }
-  await setCachedTurso(cacheKey, entry)
   WEATHER_CACHE.set(cacheKey, entry)
 
   logger.info('weather forecast resolved', {

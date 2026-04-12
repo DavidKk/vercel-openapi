@@ -134,7 +134,7 @@ const ProxyRuleVirtuosoRow = memo(function ProxyRuleVirtuosoRow(props: ProxyRule
 })
 
 /**
- * Authenticated Clash rule editor: edit rows and save to gist via server action.
+ * Authenticated Clash rule editor: edit rows and save to KV via server action.
  * Virtual list + drag reorder follow the same approach as vercel-proxy-rule `RuleManager` (Virtuoso + dnd-kit, full-list sortable ids).
  * @param props Initial rows and action options from the server
  * @returns Manage UI with filter, virtualized list, and save action
@@ -252,8 +252,11 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
   async function handleSave() {
     setSaving(true)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const payload: UiClashRuleRow[] = rows.map(({ id: _id, ...rest }) => rest)
+      const payload: UiClashRuleRow[] = rows.map((row) => {
+        const { id, ...rest } = row
+        void id
+        return rest
+      })
       await updateProxyRuleClashRules(payload)
       notification.success('Saved successfully')
     } catch (error) {

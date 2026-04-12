@@ -14,7 +14,7 @@
    const logger = createLogger('module-name')
    ```
 
-   Use a short, stable name (e.g. `api-dns`, `api-finance-tasi-company-daily`, `cron-movies-sync`, `finance-tasi-fetch`, `gist`).
+   Use a short, stable name (e.g. `api-dns`, `api-finance-tasi-company-daily`, `cron-movies-sync`, `finance-tasi-fetch`, `finance-tasi-kv-snapshot`).
 
 2. **Use the logger instead of `console`**  
    Do not use `console.log` / `console.warn` / `console.error` in server code. Use `logger.info`, `logger.ok`, `logger.warn`, `logger.fail` so output is consistent and traceable.
@@ -38,12 +38,11 @@
 
 - Route: `logger.info('request', { date, code })` at start; `logger.fail('DNS lookup failed', { domain, message })` in catch.
 - Cron: `logger.info('sync start')` then `logger.info('sync done', { count })`.
-- Service: `logger.info('GIST snapshot read', { date, companyCount })`; `logger.fail('fetchGist failed', { gistId, status })`.
+- Service: `logger.info('TASI snapshot read', { date, companyCount })`; `logger.fail('remote fetch failed', { url, status })`.
 
 ---
 
 ## Reference
 
 - Logger implementation: `services/logger/index.ts` — `createLogger(moduleName)` returns `{ info, ok, warn, fail }`.
-- News module structured logs: `services/news/structured-news-log.ts` — `logNewsStructured()` for `message` + JSON (`flow`, `event`, fields).
-- Existing usage: `services/finance/tasi/*.ts`, `app/api/weather/route.ts`, `app/api/cron/sync/finance-sync/route.ts`, `services/gist/index.ts`, `services/fetch/index.ts`.
+- Existing usage: `services/finance/tasi/*.ts`, `app/api/weather/route.ts`, `app/api/cron/sync/finance-sync/route.ts`, `services/fetch/index.ts`.

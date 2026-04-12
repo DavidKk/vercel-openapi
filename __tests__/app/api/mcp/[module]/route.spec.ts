@@ -58,20 +58,6 @@ describe('MCP API /api/mcp/[module]', () => {
     })
   })
 
-  describe('GET /api/mcp/news', () => {
-    it('should return manifest with news tools only', async () => {
-      const req = new NextRequest('http://localhost/api/mcp/news', { method: 'GET' })
-      const res = await GET(req, contextFor('news'))
-
-      expect(res.status).toBe(200)
-      const data = await res.json()
-      expect(data.type).toBe('result')
-      expect(data.result.tools.list_news_sources).toBeDefined()
-      expect(data.result.tools.get_news_feed).toBeDefined()
-      expect(data.result.tools.get_today_holiday).toBeUndefined()
-    })
-  })
-
   describe('GET /api/mcp/unknown-module', () => {
     it('should return 404 for unknown module', async () => {
       const req = new NextRequest('http://localhost/api/mcp/unknown-module', { method: 'GET' })

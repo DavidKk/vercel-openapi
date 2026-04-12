@@ -11,7 +11,7 @@ import { buildClashYamlSnippetText } from './build-clash-yaml-snippet-text'
 export interface ProxyRuleClashYamlSnippetProps {
   /** Clash external-controller API secret placeholder */
   secret: string
-  /** Rule-set names / actions from gist or defaults */
+  /** Rule-set names / actions from stored config or defaults */
   actions: string[]
   /** When false, omit the YAML top-level `dns:` block. Defaults to true. */
   includeDns?: boolean
