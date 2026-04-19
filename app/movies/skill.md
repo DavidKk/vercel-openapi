@@ -34,8 +34,14 @@ description: When a user asks for the latest cached movie list → return merged
 
 ## Response
 
-- **200** — `data.movies`: array of merged movie objects (fields such as `name`, `score`, `sources`, posters, URLs — see live response).
-- **Empty or partial providers:** API may fall back to one source; `sources` / fields may vary.
+**Envelope:** HTTP **200** with `{ code: 0, message: "ok", data: { movies, cachedAt } }`.
+
+- **`data.movies`** — **array** of merged movie objects (may be **empty** if cache has no rows yet). Do not invent titles not present in this array.
+- **`data.cachedAt`** — number (typically **Unix ms**) when the list was last updated in cache — useful to mention if the user asks how fresh the list is.
+
+**Typical fields on each item** (subset may be missing; use only what exists): `name`, `score`, `sources`, poster/image URLs, links — **prefer quoting** fields from the payload over guessing.
+
+**Provider mix:** Maoyan + TMDB merge may mean **partial** `sources`; missing optional fields are normal, not an error.
 
 ## Say to the user (one line)
 
@@ -61,4 +67,8 @@ Single **GET**; follow **Steps**; do not call external TMDB/Maoyan if this list 
 
 ## Error handling (HTTP)
 
-- Non-200: report briefly; **5xx** → retry later.
+| Status  | Agent behavior                                                                                |
+| ------- | --------------------------------------------------------------------------------------------- |
+| **200** | Success — `data.movies` may be **[]**; explain “no cached list” instead of fabricating films. |
+| **500** | Server error — report briefly; **one** retry later is OK; **do not** spam retries.            |
+| **4xx** | Rare — **do not** blind retry; pass through `message` from JSON if present.                   |

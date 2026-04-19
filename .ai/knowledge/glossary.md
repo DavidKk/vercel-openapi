@@ -30,7 +30,34 @@ The script that produces the **module shell** from a **module schema**: `app/<id
 
 ## MCP (Model Context Protocol) tools
 
-Tools exposed via the project's MCP server (`/api/mcp`), callable by AI or other clients. Each module may expose tools under `app/api/mcp/tools/<category>/`. Tool behavior should align with public API semantics when they return the same kind of data (latest only, read-only).
+**HTTP MCP surface**
+
+- **Aggregate:** `GET` / `POST` **`/api/mcp`**. Optional query **`?includes=holiday,fuel-price`** filters tools (and matching SKILL resources) to those module slugs; omit or select all modules ⇒ same as full tool map.
+- **Per module:** `GET` / `POST` **`/api/mcp/<module>`** (e.g. `/api/mcp/holiday`). JSON-RPC and REST bodies match the shared MCP handler pattern under `app/api/mcp/`.
+
+**Resources (SKILL markdown)**
+
+- Aggregate and filtered routes expose **MCP Resources** (`resources/list`, `resources/read`, and `resources` on the GET manifest) built from `app/api/mcp/moduleSkillResources.ts`. **Prices** MCP resources use the **public** skill text only (`PRICES_API_SKILL_PUBLIC`).
+
+**Auth / manifest (prices)**
+
+- **`create_product` / `update_product` / `delete_product`** are omitted from MCP manifests when the session is not authenticated: **`filterProtectedPricesTools`** in `app/api/mcp/pricesToolFilter.ts` is applied on **`/api/mcp`**, **`?includes=`**, and **`/api/mcp/prices`** (see `app/api/mcp/route.ts`, `app/api/mcp/server.ts`, `app/api/mcp/[module]/route.ts`).
+
+**Naming**
+
+- **`app/api/mcp/skillNaming.ts`:** `moduleSkillMarkdownFilename`, `moduleSkillResourceUri`, `mcpServiceNameForModule` (e.g. `unbnd-holiday-skill.md`, `skill://unbnd-holiday/…`, JSON-RPC / manifest `name` **`unbnd-<module>`** on per-module MCP).
+
+**One-click install (browser → IDE)**
+
+- **`components/McpOneClickInstallBar`:** Shown on the **home** MCP tab (`app/HomeClient.tsx`) and at the top of each module **`app/<module>/mcp/page.tsx`** doc column. Uses **`endpointPath`** (e.g. `/api/mcp`, `/api/mcp/prices`).
+- **Official deeplinks only (no fake protocols):** **Cursor** (`buildCursorMcpInstallDeepLink` in `app/api/mcp/installSnippets.ts`) and **VS Code / VS Code Insiders** (`buildVsCodeMcpInstallDeepLink`, `vscode:` / `vscode-insiders:` + `mcp/install?` + URL-encoded JSON per Microsoft docs). **Server key** for the link: **`resolveMcpInstallServerKey`** ⇒ **`unbnd`** for aggregate `/api/mcp` (including `?includes=`), **`unbnd-<module>`** for `/api/mcp/<module>`.
+- **Same-origin base for URLs in the browser:** **`inferClientPublicBaseUrl`** in `app/api/mcp/inferClientPublicBaseUrl.ts` (also used by **`ApiSkillPanel`** for `BASE_URL` / absolute `/api/...` in copied skill text).
+
+**Version**
+
+- MCP manifest **`version`** follows **`package.json`** (`app/api/mcp/server.ts` reads it).
+
+Tool implementations live under **`app/api/mcp/tools/<category>/`** and are registered in **`app/api/mcp/tools/index.ts`**. Tool behavior should align with public API semantics when they return the same kind of data (latest only, read-only).
 
 ---
 
@@ -61,5 +88,5 @@ The YAML file `.ai/schemas/<id>.yaml` that defines a module for the **generator*
 ## Function Calling / Skill (disambiguation)
 
 - **Function Calling:** In this project, the **fourth sidebar tab** of each module: API and UI for invoking MCP-style tools (e.g. holiday check, fuel price) in a chat or automation flow. Route: `/<module>/function-calling`.
-- **Skill (module tab):** The **fifth sidebar tab** of each module: page at `/<module>/skill` that shows install instructions and downloadable API skill content (e.g. for Cursor). Use **ApiSkillPanel** and a `<module>-api-skill.md` download.
+- **Skill (module tab):** The **fifth sidebar tab** of each module: page at `/<module>/skill` that shows install instructions and downloadable API skill content (e.g. for Cursor). Use **ApiSkillPanel** with **`moduleSkillMarkdownFilename('<module>')`** (e.g. `unbnd-geo-skill.md`) from `@/app/api/mcp/skillNaming`.
 - **Skill (AI skill / SKILL.md):** A documented capability under `.ai/skills/<name>/SKILL.md` that tells humans and AI how to perform a class of tasks (e.g. add a new module). Not the same as the module's "Skill" tab.

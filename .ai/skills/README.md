@@ -9,7 +9,7 @@ Cursor (and similar tools) load **SKILL.md** files here. Each folder is one skil
 
 **Normative spec** for what every API skill document must contain: [`.ai/specs/skill-writing.md`](../specs/skill-writing.md).
 
-**Reference implementation** (filled example): `skills/geo-api-skill.md` and `app/geo/skill-content.ts` in the repo root.
+**Reference implementation** (filled example): bundled path `unbnd-geo-skill.md` (see `skills/index.ts`) and `app/geo/skill-content.ts`.
 
 **Bundled / UI skills** (agent-ready body lives in `app/<module>/skill-content.ts`; ZIP bundles use `skills/index.ts`):  
 `exchange-rate`, `fuel-price`, `geo`, `holiday`, `movies`, `dns`, `weather`, `finance` (TASI).  

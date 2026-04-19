@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import { NextRequest } from 'next/server'
 
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { GET as GETZip } from '@/app/api/skills/[name]/route'
 
 describe('Skills bundle ZIP API /api/skills/[name]', () => {
@@ -16,7 +17,7 @@ describe('Skills bundle ZIP API /api/skills/[name]', () => {
     const ab = await res.arrayBuffer()
     const zip = await JSZip.loadAsync(ab)
 
-    const skillPath = 'geo-api-skill.md'
+    const skillPath = moduleSkillMarkdownFilename('geo')
     const indexPath = 'index.json'
 
     const skillEntry = zip.file(skillPath)
@@ -61,7 +62,7 @@ describe('Skills bundle ZIP API /api/skills/[name]', () => {
     const idx = JSON.parse(indexText) as { files: { path: string }[] }
 
     expect(idx.files.length).toBe(1)
-    expect(idx.files[0].path).toContain('geo-api-skill.md')
+    expect(idx.files[0].path).toBe(moduleSkillMarkdownFilename('geo'))
   })
 
   it('should include metadata for prices and proxy-rule inside bundle all', async () => {
@@ -80,11 +81,11 @@ describe('Skills bundle ZIP API /api/skills/[name]', () => {
       files: { path: string; name?: string; description?: string }[]
     }
 
-    const pricesFile = idx.files.find((f) => f.path === 'prices-api-skill.md')
+    const pricesFile = idx.files.find((f) => f.path === moduleSkillMarkdownFilename('prices'))
     expect(pricesFile).toBeDefined()
     expect(pricesFile?.name).toBe('prices')
 
-    const proxyFile = idx.files.find((f) => f.path === 'proxy-rule-api-skill.md')
+    const proxyFile = idx.files.find((f) => f.path === moduleSkillMarkdownFilename('proxy-rule'))
     expect(proxyFile).toBeDefined()
     expect(proxyFile?.name).toBe('proxy-rule')
   })

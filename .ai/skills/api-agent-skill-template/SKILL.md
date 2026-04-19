@@ -5,7 +5,7 @@ description: Produces or updates agent-ready HTTP API skill markdown for this re
 
 # API agent skill template (meta-skill)
 
-This skill tells an AI **how** to write the human/agent-facing **API skill document** (Markdown) so it matches repo standards. The **authoritative rules** live in **`.ai/specs/skill-writing.md`**. A filled example: **`skills/geo-api-skill.md`** (and **`app/geo/skill-content.ts`** for the bundled string).
+This skill tells an AI **how** to write the human/agent-facing **API skill document** (Markdown) so it matches repo standards. The **authoritative rules** live in **`.ai/specs/skill-writing.md`**. A filled example: **`app/geo/skill.md`** / **`app/geo/skill-content.ts`** (ZIP entry name follows `moduleSkillMarkdownFilename('geo')` in `skills/index.ts`).
 
 ---
 
@@ -32,7 +32,7 @@ This skill tells an AI **how** to write the human/agent-facing **API skill docum
 
 ## Document body template
 
-**Instructions:** Copy everything inside the fence below into `skills/<id>-api-skill.md` (or into `skill-content.ts`). Replace all `{{PLACEHOLDERS}}`.
+**Instructions:** Copy everything inside the fence below into `app/<id>/skill.md` (or `skill-content.ts`; ZIP uses `moduleSkillMarkdownFilename('<id>')`). Replace all `{{PLACEHOLDERS}}`.
 
 ```markdown
 # {{TITLE}} – {{ONE_LINE_SCOPE}}
@@ -124,12 +124,12 @@ Copy this list when handing off; every item must be satisfied.
 - [ ] **Idempotency** aligned with step 0.
 - [ ] **Examples** — ≥2 happy path + ≥1 **do-not-call** negative (if confusion is plausible).
 - [ ] **Error handling** per HTTP status (retry or not).
-- [ ] **`app/<id>/skill-content.ts`** updated if the module exports bundled skill text (keep in sync with `skills/<id>-api-skill.md`).
+- [ ] **`app/<id>/skill-content.ts`** updated if the module exports bundled skill text (keep in sync with **`skills/index.ts`** paths).
 
 ---
 
 ## Reference
 
 - Spec: `.ai/specs/skill-writing.md`
-- Example: `skills/geo-api-skill.md`, `app/geo/skill-content.ts`
+- Example: `app/geo/skill.md`, `app/geo/skill-content.ts`, `skills/index.ts` entry for `geo`
 - Hydration-safe skill UI: `components/ApiSkillPanel.tsx`

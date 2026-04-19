@@ -1,3 +1,4 @@
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { ApiSkillPanel } from '@/components/ApiSkillPanel'
 
 import { HOLIDAY_API_SKILL } from '../skill-content'
@@ -8,7 +9,7 @@ import { HOLIDAY_API_SKILL } from '../skill-content'
 export default function HolidaySkillPage() {
   return (
     <div className="flex h-full flex-col">
-      <ApiSkillPanel content={HOLIDAY_API_SKILL} downloadFilename="holiday-api-skill.md" fill />
+      <ApiSkillPanel content={HOLIDAY_API_SKILL} downloadFilename={moduleSkillMarkdownFilename('holiday')} fill />
     </div>
   )
 }

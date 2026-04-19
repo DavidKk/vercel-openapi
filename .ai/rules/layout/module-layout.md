@@ -58,7 +58,7 @@ All feature modules must implement real pages for **Function Calling** and **Ski
   - Use the shared `ApiSkillPanel` (`@/components/ApiSkillPanel`).
   - Export a default page component named `<ModuleName>SkillPage`.
   - Import a `<MODULE>_API_SKILL` constant from a local `skill-content` source and pass it as `content`.
-  - Set `downloadFilename` to `<module>-api-skill.md`; pass `fill` to use full-height layout.
+  - Set `downloadFilename` to `moduleSkillMarkdownFilename('<module>')` from `@/app/api/mcp/skillNaming` (e.g. `unbnd-holiday-skill.md`); pass `fill` to use full-height layout.
 
 New modules should copy these patterns from existing implementations (e.g. holiday, fuel-price, exchange-rate) and adapt only the text and skill content.
 
@@ -85,7 +85,7 @@ New modules should copy these patterns from existing implementations (e.g. holid
 Two-column layout: left = documentation, right = Playground. **On mobile, the two columns are horizontally scrollable** (left/right swipe); on `md` and up they sit side-by-side.
 
 - Outer: `flex h-full flex-nowrap overflow-x-auto overscroll-x-contain md:overflow-visible` so mobile can scroll horizontally.
-- **Left (doc):** `section` with `className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col border-r border-gray-200 bg-white md:w-1/2 md:min-w-[320px] md:flex-1"`. Use `DocPanelHeader` with `title` and `subtitle`. Content area: `className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800"`. Use constants from `app/Nav/constants.ts`: `DOC_SECTION_TITLE_CLASS`, `DOC_ENDPOINT_BOX_CLASS`, `DOC_ENDPOINT_DESC_CLASS`. REST API page: document `/api/<module>...` endpoints. MCP page: show `POST /api/mcp` and list this module's MCP tools.
+- **Left (doc):** `section` with `className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col border-r border-gray-200 bg-white md:w-1/2 md:min-w-[320px] md:flex-1"`. Use `DocPanelHeader` with `title` and `subtitle`. Content area: `className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800"`. Use constants from `app/Nav/constants.ts`: `DOC_SECTION_TITLE_CLASS`, `DOC_ENDPOINT_BOX_CLASS`, `DOC_ENDPOINT_DESC_CLASS`. REST API page: document `/api/<module>...` endpoints. MCP page: document **`GET` / `POST` `/api/mcp/<module>`** (or **`/api/mcp`** when the playground targets the aggregate server, e.g. geo), list tools, and place **`McpOneClickInstallBar`** from `@/components/McpOneClickInstallBar` as the **first child** inside the scrollable doc area with **`endpointPath="/api/mcp/<module>"`** (or `/api/mcp` for aggregate) and `className="mb-3"`.
 - **Right (Playground):** `section` with `className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col bg-gray-50 md:w-1/2 md:min-w-[320px] md:flex-1"`. Render the module's Playground component (e.g. `HolidayApiPlayground`, `HolidayMcpPlayground`).
 - **Shared component:** For Function Calling, use `DocPlaygroundLayout` from `@/components/DocPlaygroundLayout` with `doc` and `playground` props to get the same mobile scroll behavior.
 

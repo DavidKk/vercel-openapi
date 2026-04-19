@@ -1,3 +1,4 @@
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { ApiSkillPanel } from '@/components/ApiSkillPanel'
 
 import { FUEL_PRICE_API_SKILL } from '../skill-content'
@@ -8,7 +9,7 @@ import { FUEL_PRICE_API_SKILL } from '../skill-content'
 export default function FuelPriceSkillPage() {
   return (
     <div className="flex h-full flex-col">
-      <ApiSkillPanel content={FUEL_PRICE_API_SKILL} downloadFilename="fuel-price-api-skill.md" fill />
+      <ApiSkillPanel content={FUEL_PRICE_API_SKILL} downloadFilename={moduleSkillMarkdownFilename('fuel-price')} fill />
     </div>
   )
 }

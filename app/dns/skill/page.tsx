@@ -1,3 +1,4 @@
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { ApiSkillPanel } from '@/components/ApiSkillPanel'
 
 import { DNS_API_SKILL } from '../skill-content'
@@ -8,7 +9,7 @@ import { DNS_API_SKILL } from '../skill-content'
 export default function DnsSkillPage() {
   return (
     <div className="flex h-full flex-col">
-      <ApiSkillPanel content={DNS_API_SKILL} downloadFilename="dns-api-skill.md" fill />
+      <ApiSkillPanel content={DNS_API_SKILL} downloadFilename={moduleSkillMarkdownFilename('dns')} fill />
     </div>
   )
 }

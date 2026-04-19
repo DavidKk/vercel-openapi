@@ -4,7 +4,10 @@ import { applyNoStoreCache } from '@/initializer/mcp/response'
 import { getAuthSession } from '@/services/auth/session'
 import { createLogger } from '@/services/logger'
 
+import { getSkillResourceProviderForModule } from '../moduleSkillResources'
+import { filterProtectedPricesTools } from '../pricesToolFilter'
 import { createMCPServerWithTools } from '../server'
+import { mcpServiceNameForModule } from '../skillNaming'
 import { getMCPToolsByCategory } from '../tools'
 
 export const runtime = 'edge'
@@ -12,17 +15,6 @@ export const runtime = 'edge'
 const logger = createLogger('api-mcp-module')
 
 type RouteContext = { params: Promise<{ module: string }> }
-
-const PROTECTED_PRICES_TOOL_NAMES = ['create_product', 'update_product', 'delete_product'] as const
-
-function filterProtectedPricesTools(tools: Map<string, any>, authenticated: boolean) {
-  if (authenticated) return tools
-  const next = new Map(tools)
-  for (const name of PROTECTED_PRICES_TOOL_NAMES) {
-    next.delete(name)
-  }
-  return next
-}
 
 /**
  * GET /api/mcp/[module] - MCP manifest for a single module (e.g. /api/mcp/holiday).
@@ -39,7 +31,9 @@ export const GET = async (req: NextRequest, context: RouteContext) => {
   }
 
   const filteredTools = moduleSlug === 'prices' ? filterProtectedPricesTools(tools, session.authenticated) : tools
-  const { manifest } = createMCPServerWithTools(filteredTools)
+  const resourceProvider = getSkillResourceProviderForModule(moduleSlug)
+  const serverOptions = { serviceName: mcpServiceNameForModule(moduleSlug) }
+  const { manifest } = createMCPServerWithTools(filteredTools, resourceProvider, serverOptions)
   return manifest(req, { params: context.params })
 }
 
@@ -58,6 +52,8 @@ export const POST = async (req: NextRequest, context: RouteContext) => {
   }
 
   const filteredTools = moduleSlug === 'prices' ? filterProtectedPricesTools(tools, session.authenticated) : tools
-  const { execute: executeHandler } = createMCPServerWithTools(filteredTools)
+  const resourceProvider = getSkillResourceProviderForModule(moduleSlug)
+  const serverOptions = { serviceName: mcpServiceNameForModule(moduleSlug) }
+  const { execute: executeHandler } = createMCPServerWithTools(filteredTools, resourceProvider, serverOptions)
   return executeHandler(req, { params: context.params })
 }

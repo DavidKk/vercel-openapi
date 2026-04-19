@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { TbApi, TbCheck, TbCode, TbCopy, TbDownload, TbPlayerPlay, TbRobot, TbSelector, TbTerminal, TbX } from 'react-icons/tb'
 
+import { McpOneClickInstallBar } from '@/components/McpOneClickInstallBar'
 import { useNotification } from '@/components/Notification'
 import { TOOL_CATEGORIES } from '@/services/function-calling/categories'
 
@@ -275,7 +276,7 @@ export function HomeClient() {
                     onClick={() => runGetUrl(mcpUrl)}
                     className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
                     aria-label="Run: open MCP manifest in new tab"
-                    title="运行：新标签页查看"
+                    title="Run: open in new tab"
                   >
                     <TbPlayerPlay className="h-4 w-4" />
                   </button>
@@ -289,6 +290,7 @@ export function HomeClient() {
                   </button>
                 </div>
               </div>
+              <McpOneClickInstallBar endpointPath={`/api/mcp${includesParam}`} className="mt-3" />
             </>
           )}
 
@@ -319,7 +321,7 @@ export function HomeClient() {
                         onClick={() => runGetUrl(functionCallingToolsUrl)}
                         className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
                         aria-label="Run: open tools JSON in new tab"
-                        title="运行：新标签页查看"
+                        title="Run: open in new tab"
                       >
                         <TbPlayerPlay className="h-4 w-4" />
                       </button>
@@ -349,7 +351,7 @@ export function HomeClient() {
                         onClick={() => runGetUrl(base ? `${base}/geo/function-calling` : '/geo/function-calling')}
                         className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
                         aria-label="Run: open Function Calling playground"
-                        title="运行：打开 Playground"
+                        title="Run: open playground"
                       >
                         <TbPlayerPlay className="h-4 w-4" />
                       </button>
@@ -373,11 +375,11 @@ export function HomeClient() {
               <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-800">Skill install command</p>
               <p className="mt-0.5 text-[11px] text-gray-600">
                 One-line Bash command to download all API skills into your current directory. The command already uses this site&apos;s origin.
-                {selectedIncludes.length > 0 && <span className="mt-1 block text-gray-500">已选模块时，下方为仅含所选模块的 ZIP 下载地址。</span>}
+                {selectedIncludes.length > 0 && <span className="mt-1 block text-gray-500">With modules selected, the ZIP URL below includes only those modules.</span>}
               </p>
               {selectedIncludes.length > 0 && (
                 <div className="mt-3">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">ZIP 下载（含所选模块）</label>
+                  <label className="mb-1 block text-[11px] font-medium text-gray-700">ZIP download (selected modules)</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -391,7 +393,7 @@ export function HomeClient() {
                         onClick={() => runSkillDownload(skillZipUrl)}
                         className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
                         aria-label="Run: download skill ZIP"
-                        title="运行：下载 ZIP"
+                        title="Run: download ZIP"
                       >
                         <TbDownload className="h-4 w-4" />
                       </button>
@@ -425,7 +427,7 @@ export function HomeClient() {
                     }}
                     className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
                     aria-label="Run: download skill ZIP"
-                    title="运行：下载 ZIP"
+                    title="Run: download ZIP"
                   >
                     <TbDownload className="h-4 w-4" />
                   </button>

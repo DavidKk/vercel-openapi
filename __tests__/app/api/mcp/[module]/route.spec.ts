@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 
 import { GET, POST } from '@/app/api/mcp/[module]/route'
+import { mcpServiceNameForModule, moduleSkillMarkdownFilename, moduleSkillResourceUri } from '@/app/api/mcp/skillNaming'
 
 jest.mock('@/app/actions/holiday', () => ({
   getTodaySpecial: jest.fn().mockResolvedValue('星期一'),
@@ -21,7 +22,10 @@ describe('MCP API /api/mcp/[module]', () => {
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.type).toBe('result')
-      expect(data.result.name).toBe('unbnd')
+      expect(data.result.name).toBe(mcpServiceNameForModule('holiday'))
+      expect(Array.isArray(data.result.resources)).toBe(true)
+      expect(data.result.resources?.[0]?.name).toBe(moduleSkillMarkdownFilename('holiday'))
+      expect(data.result.resources?.[0]?.uri).toBe(moduleSkillResourceUri('holiday'))
       expect(data.result.tools.get_today_holiday).toBeDefined()
       expect(data.result.tools.list_holiday).toBeDefined()
       expect(data.result.tools.get_exchange_rate).toBeUndefined()
@@ -55,6 +59,56 @@ describe('MCP API /api/mcp/[module]', () => {
       const data = await res.json()
       expect(data.type).toBe('error')
       expect(data.error.code).toBe('TOOL_NOT_FOUND')
+    })
+  })
+
+  describe('GET /api/mcp/prices', () => {
+    it('should include MCP resources for public SKILL in manifest', async () => {
+      const req = new NextRequest('http://localhost/api/mcp/prices', { method: 'GET' })
+      const res = await GET(req, contextFor('prices'))
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.type).toBe('result')
+      expect(Array.isArray(data.result.resources)).toBe(true)
+      expect(data.result.resources.length).toBeGreaterThanOrEqual(1)
+      expect(data.result.resources[0].uri).toBe(moduleSkillResourceUri('prices'))
+      expect(data.result.resources[0].name).toBe(moduleSkillMarkdownFilename('prices'))
+      expect(data.result.resources[0].mimeType).toBe('text/markdown')
+      expect(data.result.name).toBe(mcpServiceNameForModule('prices'))
+    })
+  })
+
+  describe('POST /api/mcp/prices JSON-RPC resources', () => {
+    it('should list resources', async () => {
+      const req = new NextRequest('http://localhost/api/mcp/prices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'resources/list', params: {} }),
+      })
+      const res = await POST(req, contextFor('prices'))
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.jsonrpc).toBe('2.0')
+      expect(data.result.resources).toBeDefined()
+      expect(data.result.resources[0].name).toBe(moduleSkillMarkdownFilename('prices'))
+    })
+
+    it('should read resource markdown', async () => {
+      const uri = moduleSkillResourceUri('prices')
+      const req = new NextRequest('http://localhost/api/mcp/prices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'resources/read', params: { uri } }),
+      })
+      const res = await POST(req, contextFor('prices'))
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.result.contents).toBeDefined()
+      expect(data.result.contents[0].mimeType).toBe('text/markdown')
+      expect(data.result.contents[0].text).toContain('Prices API')
     })
   })
 

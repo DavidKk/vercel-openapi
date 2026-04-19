@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 
 import { GET, POST } from '@/app/api/mcp/route'
 
+import packageJson from '../../../../package.json'
+
 jest.mock('@/app/actions/holiday', () => ({
   getTodaySpecial: jest.fn().mockResolvedValue('星期一'),
   isHolidayToady: jest.fn().mockResolvedValue(false),
@@ -25,12 +27,16 @@ describe('MCP API /api/mcp', () => {
       expect(data.type).toBe('result')
       expect(data.result).toBeDefined()
       expect(data.result.name).toBe('unbnd')
-      expect(data.result.version).toBeDefined()
+      expect(data.result.version).toBe(packageJson.version)
       expect(data.result.description).toBeDefined()
       expect(typeof data.result.tools).toBe('object')
       expect(data.result.tools.get_exchange_rate).toBeDefined()
       expect(data.result.tools.convert_currency).toBeDefined()
       expect(data.result.tools.get_today_holiday).toBeDefined()
+      expect(data.result.tools.create_product).toBeUndefined()
+      expect(Array.isArray(data.result.resources)).toBe(true)
+      expect(data.result.resources.length).toBe(9)
+      expect(data.result.resources.some((r: { name: string }) => r.name === 'unbnd-holiday-skill.md')).toBe(true)
     })
   })
 
@@ -150,6 +156,49 @@ describe('MCP API /api/mcp', () => {
       expect(parsed.name).toBe('星期一')
     })
 
+    it('should return resources list for method resources/list', async () => {
+      const req = new NextRequest(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 10,
+          method: 'resources/list',
+          params: {},
+        }),
+      })
+      const res = await POST(req, context)
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.jsonrpc).toBe('2.0')
+      expect(data.id).toBe(10)
+      expect(Array.isArray(data.result.resources)).toBe(true)
+      expect(data.result.resources.length).toBe(9)
+    })
+
+    it('should return markdown for resources/read with holiday SKILL uri', async () => {
+      const req = new NextRequest(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 11,
+          method: 'resources/read',
+          params: { uri: 'skill://unbnd-holiday/unbnd-holiday-skill.md' },
+        }),
+      })
+      const res = await POST(req, context)
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.jsonrpc).toBe('2.0')
+      expect(data.id).toBe(11)
+      expect(data.result.contents).toBeDefined()
+      expect(data.result.contents[0].mimeType).toBe('text/markdown')
+      expect(data.result.contents[0].text).toContain('name: holiday')
+    })
+
     it('should return JSON-RPC error for unknown method', async () => {
       const req = new NextRequest(baseUrl, {
         method: 'POST',
@@ -184,6 +233,8 @@ describe('MCP API /api/mcp', () => {
       expect(data.result.tools.get_today_holiday).toBeDefined()
       expect(data.result.tools.get_fuel_price).toBeDefined()
       expect(data.result.tools.get_exchange_rate).toBeUndefined()
+      expect(data.result.resources?.length).toBe(2)
+      expect(data.result.resources?.map((r: { name: string }) => r.name).sort()).toEqual(['unbnd-fuel-price-skill.md', 'unbnd-holiday-skill.md'].sort())
     })
 
     it('should return 400 when includes has no valid modules', async () => {
@@ -194,6 +245,24 @@ describe('MCP API /api/mcp', () => {
       const data = await res.json()
       expect(data.type).toBe('error')
       expect(data.error.message).toContain('No tools')
+    })
+
+    it('should return prices-only tools and SKILL when includes=prices, hiding protected tools when anonymous', async () => {
+      const req = new NextRequest(`${baseUrl}?includes=prices`, { method: 'GET' })
+      const res = await GET(req, context)
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.type).toBe('result')
+      expect(data.result.tools.list_price_lists).toBeDefined()
+      expect(data.result.tools.search_prices).toBeDefined()
+      expect(data.result.tools.calc_prices).toBeDefined()
+      expect(data.result.tools.create_product).toBeUndefined()
+      expect(data.result.tools.update_product).toBeUndefined()
+      expect(data.result.tools.delete_product).toBeUndefined()
+      expect(data.result.tools.get_today_holiday).toBeUndefined()
+      expect(data.result.resources?.length).toBe(1)
+      expect(data.result.resources?.[0]?.name).toBe('unbnd-prices-skill.md')
     })
   })
 

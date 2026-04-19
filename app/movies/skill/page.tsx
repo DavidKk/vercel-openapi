@@ -1,3 +1,4 @@
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { ApiSkillPanel } from '@/components/ApiSkillPanel'
 
 import { MOVIES_API_SKILL } from '../skill-content'
@@ -8,7 +9,7 @@ import { MOVIES_API_SKILL } from '../skill-content'
 export default function MoviesSkillPage() {
   return (
     <div className="flex h-full flex-col">
-      <ApiSkillPanel content={MOVIES_API_SKILL} downloadFilename="movies-api-skill.md" fill />
+      <ApiSkillPanel content={MOVIES_API_SKILL} downloadFilename={moduleSkillMarkdownFilename('movies')} fill />
     </div>
   )
 }

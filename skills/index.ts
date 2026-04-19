@@ -1,5 +1,6 @@
 import { parse as parseYaml } from 'yaml'
 
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { DNS_API_SKILL } from '@/app/dns/skill-content'
 import { EXCHANGE_RATE_API_SKILL } from '@/app/exchange-rate/skill-content'
 import { TASI_API_SKILL } from '@/app/finance/skill-content'
@@ -12,7 +13,7 @@ import { PROXY_RULE_API_SKILL } from '@/app/proxy-rule/skill-content'
 import { WEATHER_API_SKILL } from '@/app/weather/skill-content'
 
 export interface SkillFile {
-  /** Target path inside the generated ZIP archive (e.g. "exchange-rate-api-skill.md"). */
+  /** Target path inside the generated ZIP archive (e.g. "unbnd-exchange-rate-skill.md"). */
   path: string
   /** File content as UTF-8 text (typically markdown). */
   content: string
@@ -122,7 +123,7 @@ export const skillBundles: SkillBundle[] = [
     description: extractSkillDescription(EXCHANGE_RATE_API_SKILL),
     files: [
       {
-        path: 'exchange-rate-api-skill.md',
+        path: moduleSkillMarkdownFilename('exchange-rate'),
         content: stripYamlFrontMatter(EXCHANGE_RATE_API_SKILL),
       },
     ],
@@ -133,7 +134,7 @@ export const skillBundles: SkillBundle[] = [
     description: extractSkillDescription(GEO_API_SKILL),
     files: [
       {
-        path: 'geo-api-skill.md',
+        path: moduleSkillMarkdownFilename('geo'),
         content: stripYamlFrontMatter(GEO_API_SKILL),
       },
     ],
@@ -144,7 +145,7 @@ export const skillBundles: SkillBundle[] = [
     description: extractSkillDescription(FUEL_PRICE_API_SKILL),
     files: [
       {
-        path: 'fuel-price-api-skill.md',
+        path: moduleSkillMarkdownFilename('fuel-price'),
         content: stripYamlFrontMatter(FUEL_PRICE_API_SKILL),
       },
     ],
@@ -155,7 +156,7 @@ export const skillBundles: SkillBundle[] = [
     description: extractSkillDescription(HOLIDAY_API_SKILL),
     files: [
       {
-        path: 'holiday-api-skill.md',
+        path: moduleSkillMarkdownFilename('holiday'),
         content: stripYamlFrontMatter(HOLIDAY_API_SKILL),
       },
     ],
@@ -166,7 +167,7 @@ export const skillBundles: SkillBundle[] = [
     description: extractSkillDescription(MOVIES_API_SKILL),
     files: [
       {
-        path: 'movies-api-skill.md',
+        path: moduleSkillMarkdownFilename('movies'),
         content: stripYamlFrontMatter(MOVIES_API_SKILL),
       },
     ],
@@ -177,7 +178,7 @@ export const skillBundles: SkillBundle[] = [
     description: extractSkillDescription(DNS_API_SKILL),
     files: [
       {
-        path: 'dns-api-skill.md',
+        path: moduleSkillMarkdownFilename('dns'),
         content: stripYamlFrontMatter(DNS_API_SKILL),
       },
     ],
@@ -188,7 +189,7 @@ export const skillBundles: SkillBundle[] = [
     description: extractSkillDescription(WEATHER_API_SKILL),
     files: [
       {
-        path: 'weather-api-skill.md',
+        path: moduleSkillMarkdownFilename('weather'),
         content: stripYamlFrontMatter(WEATHER_API_SKILL),
       },
     ],
@@ -199,7 +200,7 @@ export const skillBundles: SkillBundle[] = [
     description: extractSkillDescription(TASI_API_SKILL),
     files: [
       {
-        path: 'finance-api-skill.md',
+        path: moduleSkillMarkdownFilename('finance'),
         content: stripYamlFrontMatter(TASI_API_SKILL),
       },
     ],
@@ -209,16 +210,16 @@ export const skillBundles: SkillBundle[] = [
     name: 'all',
     description: 'All bundled skills for this product',
     files: [
-      { path: 'exchange-rate-api-skill.md', content: stripYamlFrontMatter(EXCHANGE_RATE_API_SKILL) },
-      { path: 'geo-api-skill.md', content: stripYamlFrontMatter(GEO_API_SKILL) },
-      { path: 'fuel-price-api-skill.md', content: stripYamlFrontMatter(FUEL_PRICE_API_SKILL) },
-      { path: 'holiday-api-skill.md', content: stripYamlFrontMatter(HOLIDAY_API_SKILL) },
-      { path: 'movies-api-skill.md', content: stripYamlFrontMatter(MOVIES_API_SKILL) },
-      { path: 'dns-api-skill.md', content: stripYamlFrontMatter(DNS_API_SKILL) },
-      { path: 'weather-api-skill.md', content: stripYamlFrontMatter(WEATHER_API_SKILL) },
-      { path: 'finance-api-skill.md', content: stripYamlFrontMatter(TASI_API_SKILL) },
-      { path: 'prices-api-skill.md', content: stripYamlFrontMatter(PRICES_API_SKILL_PUBLIC) },
-      { path: 'proxy-rule-api-skill.md', content: stripYamlFrontMatter(PROXY_RULE_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('exchange-rate'), content: stripYamlFrontMatter(EXCHANGE_RATE_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('geo'), content: stripYamlFrontMatter(GEO_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('fuel-price'), content: stripYamlFrontMatter(FUEL_PRICE_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('holiday'), content: stripYamlFrontMatter(HOLIDAY_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('movies'), content: stripYamlFrontMatter(MOVIES_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('dns'), content: stripYamlFrontMatter(DNS_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('weather'), content: stripYamlFrontMatter(WEATHER_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('finance'), content: stripYamlFrontMatter(TASI_API_SKILL) },
+      { path: moduleSkillMarkdownFilename('prices'), content: stripYamlFrontMatter(PRICES_API_SKILL_PUBLIC) },
+      { path: moduleSkillMarkdownFilename('proxy-rule'), content: stripYamlFrontMatter(PROXY_RULE_API_SKILL) },
     ],
   },
   {
@@ -227,7 +228,7 @@ export const skillBundles: SkillBundle[] = [
     metadata: normalizeFlatMetadata(PRICES_API_SKILL_PUBLIC, 'prices'),
     files: [
       {
-        path: 'prices-api-skill.md',
+        path: moduleSkillMarkdownFilename('prices'),
         content: stripYamlFrontMatter(PRICES_API_SKILL_PUBLIC),
       },
     ],
@@ -238,7 +239,7 @@ export const skillBundles: SkillBundle[] = [
     metadata: normalizeFlatMetadata(PROXY_RULE_API_SKILL, 'proxy-rule'),
     files: [
       {
-        path: 'proxy-rule-api-skill.md',
+        path: moduleSkillMarkdownFilename('proxy-rule'),
         content: stripYamlFrontMatter(PROXY_RULE_API_SKILL),
       },
     ],

@@ -34,16 +34,17 @@
 
 ## By topic (keyword → file)
 
-| Topic                                                     | File                                                              |
-| --------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Module ids, spec paths, schema paths (canonical)**      | **`specs/modules-registry.yaml`**                                 |
-| Public API = anonymous read-only + latest                 | `specs/api-semantics.md`                                          |
-| Session writes (e.g. prices CRUD)                         | `specs/modules/prices.md`, `specs/api-semantics.md`               |
-| History / DB exceptions / TASI                            | `specs/policy-exceptions.md`, `specs/api-semantics.md`            |
-| Browser cache / `Cache-Control` / GET for cacheable reads | `specs/api-semantics.md` (section “Cacheable / large-query APIs”) |
-| MCP tools registration pattern                            | `skills/module-generator/SKILL.md`, `app/api/mcp/tools/` (code)   |
-| Cron auth                                                 | `rules/global.md` → `services/auth/cron.ts` (code)                |
-| Quality gate                                              | root `README.md` / `.ai/README.md` → **`pnpm ok`**                |
+| Topic                                                     | File                                                                                                                                                         |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Module ids, spec paths, schema paths (canonical)**      | **`specs/modules-registry.yaml`**                                                                                                                            |
+| Public API = anonymous read-only + latest                 | `specs/api-semantics.md`                                                                                                                                     |
+| Session writes (e.g. prices CRUD)                         | `specs/modules/prices.md`, `specs/api-semantics.md`                                                                                                          |
+| History / DB exceptions / TASI                            | `specs/policy-exceptions.md`, `specs/api-semantics.md`                                                                                                       |
+| Browser cache / `Cache-Control` / GET for cacheable reads | `specs/api-semantics.md` (section “Cacheable / large-query APIs”)                                                                                            |
+| MCP tools registration pattern                            | `skills/module-generator/SKILL.md`, `app/api/mcp/tools/` (code)                                                                                              |
+| **MCP HTTP server, resources, one-click IDE install**     | **`knowledge/glossary.md`** (MCP section), `app/api/mcp/` (routes, `installSnippets.ts`, `moduleSkillResources.ts`, `skillNaming.ts`, `pricesToolFilter.ts`) |
+| Cron auth                                                 | `rules/global.md` → `services/auth/cron.ts` (code)                                                                                                           |
+| Quality gate                                              | root `README.md` / `.ai/README.md` → **`pnpm ok`**                                                                                                           |
 
 ---
 

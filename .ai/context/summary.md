@@ -4,7 +4,7 @@
 
 **AI process:** New features and new public API work require a **mandatory requirements audit** (`.ai/workflow/requirements-audit.md`) — checklist, **work-type** classification, explicit developer approval — **before** module schema, generator runs, or route implementation. Then follow `.ai/workflow/module-development.md`.
 
-**Work types (summary):** (A) public read-only data APIs, (B) geo/scoped data, (C) reference/example modules, (D) finance/vertical reads, (E) prices (public read + auth write split), (F) proxy-rule public vs admin, (G) platform (auth, cron, MCP, skills), (H) docs-only, (I) out of scope (e.g. heavy file processing → local/separate service). Full table in `requirements-audit.md`.
+**Work types (summary):** (A) public read-only data APIs, (B) geo/scoped data, (C) reference/example modules, (D) finance/vertical reads, (E) prices (public read + auth write split), (F) proxy-rule public vs admin, (G) platform (auth, cron, **MCP** aggregate + per-module routes, SKILL resources, **Cursor/VS Code one-click install** from `app/api/mcp/installSnippets.ts`, skills ZIP/install), (H) docs-only, (I) out of scope (e.g. heavy file processing → local/separate service). Full table in `requirements-audit.md`.
 
 **Data policy:** Defaults = latest snapshots + minute-level caching + light DB. Past that → audit + reason once, then register **`.ai/specs/policy-exceptions.md`** and **`<!-- policy-exempt:<tag> -->`** in spec. Full list: that file + `grep policy-exempt`.
 

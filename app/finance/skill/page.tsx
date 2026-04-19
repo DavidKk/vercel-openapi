@@ -1,3 +1,4 @@
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { ApiSkillPanel } from '@/components/ApiSkillPanel'
 
 import { TASI_API_SKILL } from '../skill-content'
@@ -8,7 +9,7 @@ import { TASI_API_SKILL } from '../skill-content'
 export default function FinanceTasiSkillPage() {
   return (
     <div className="flex h-full flex-col">
-      <ApiSkillPanel content={TASI_API_SKILL} downloadFilename="finance-api-skill.md" fill />
+      <ApiSkillPanel content={TASI_API_SKILL} downloadFilename={moduleSkillMarkdownFilename('finance')} fill />
     </div>
   )
 }

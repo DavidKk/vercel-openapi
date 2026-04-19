@@ -1,4 +1,4 @@
-export { createMCPHttpServer } from './creator'
+export { createMCPHttpServer, type MCPManifestResource, type McpResourceProvider } from './creator'
 export { MCP_ERRORS } from './errors'
 export { mcpError, mcpResponse } from './response'
 export { tool } from './tool'

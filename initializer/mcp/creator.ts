@@ -20,6 +20,20 @@ export interface MCPManifestTool {
   outputSchema?: any
 }
 
+/** MCP resource descriptor (HTTP GET manifest / JSON-RPC resources/list). */
+export interface MCPManifestResource {
+  uri: string
+  name: string
+  description?: string
+  mimeType?: string
+}
+
+/** Optional MCP Resources provider (SKILL docs, etc.). */
+export interface McpResourceProvider {
+  listResources: () => MCPManifestResource[]
+  readResource: (uri: string) => Promise<{ mimeType: string; text: string } | null>
+}
+
 /** MCP Manifest interface */
 export interface MCPManifest {
   /** Service name */
@@ -30,6 +44,8 @@ export interface MCPManifest {
   description?: string
   /** Available tools */
   tools: Record<string, MCPManifestTool>
+  /** Optional readable resources (shown separately from tools in some MCP clients). */
+  resources?: MCPManifestResource[]
 }
 
 /**
@@ -40,7 +56,7 @@ export interface MCPManifest {
  * @param tools Available tools
  * @returns MCP manifest object
  */
-export function generateMCPManifest(name: string, version: string, description: string, toolsMap: Map<string, Tool>): MCPManifest {
+export function generateMCPManifest(name: string, version: string, description: string, toolsMap: Map<string, Tool>, resourceProvider?: McpResourceProvider | null): MCPManifest {
   const tools = Object.fromEntries(
     (function* () {
       for (const [, tool] of toolsMap) {
@@ -54,7 +70,11 @@ export function generateMCPManifest(name: string, version: string, description: 
     })()
   )
 
-  return { name, version, description, tools }
+  const base: MCPManifest = { name, version, description, tools }
+  if (resourceProvider) {
+    base.resources = resourceProvider.listResources()
+  }
+  return base
 }
 
 /**
@@ -96,9 +116,9 @@ function withMCPHandler<P = any>(handler: (req: NextRequest, context: ContextWit
  * @param tools Available tools
  * @returns Wrapped manifest handler function
  */
-function createManifestHandler(name: string, version: string, description: string, tools: Map<string, Tool>) {
+function createManifestHandler(name: string, version: string, description: string, tools: Map<string, Tool>, resourceProvider?: McpResourceProvider | null) {
   return withMCPHandler(async () => {
-    const manifest = generateMCPManifest(name, version, description, tools)
+    const manifest = generateMCPManifest(name, version, description, tools, resourceProvider)
     return applyNoStoreCache(NextResponse.json({ type: 'result', result: manifest }))
   }, ['GET'])
 }
@@ -149,24 +169,32 @@ async function callToolWithTimeout<T>(toolName: string, run: () => Promise<T>): 
 }
 
 /**
- * Handle a single JSON-RPC 2.0 request (initialize, tools/list, tools/call)
+ * Handle a single JSON-RPC 2.0 request (initialize, tools/list, tools/call, resources/list, resources/read)
  */
 async function handleJsonRpcRequest(
   body: { id?: string | number | null; method?: string; params?: any },
   tools: Map<string, Tool>,
-  service: { name: string; version: string; description?: string }
+  service: { name: string; version: string; description?: string },
+  resourceProvider?: McpResourceProvider | null
 ): Promise<NextResponse> {
   const id = body.id ?? null
 
   if (body.method === 'initialize') {
     const protocolVersion = (body.params && body.params.protocolVersion) || '2025-06-18'
+    const capabilities: Record<string, unknown> = {
+      tools: {
+        listChanged: false,
+      },
+    }
+    if (resourceProvider) {
+      capabilities.resources = {
+        subscribe: false,
+        listChanged: false,
+      }
+    }
     return jsonRpcSuccess(id, {
       protocolVersion,
-      capabilities: {
-        tools: {
-          listChanged: false,
-        },
-      },
+      capabilities,
       serverInfo: {
         name: service.name,
         version: service.version,
@@ -178,6 +206,30 @@ async function handleJsonRpcRequest(
   if (body.method === 'tools/list') {
     const toolsList = buildMCPToolsList(tools)
     return jsonRpcSuccess(id, { tools: toolsList })
+  }
+
+  if (body.method === 'resources/list') {
+    if (!resourceProvider) {
+      return jsonRpcError(id, JSONRPC.METHOD_NOT_FOUND, 'resources/list not supported for this MCP endpoint')
+    }
+    return jsonRpcSuccess(id, { resources: resourceProvider.listResources() })
+  }
+
+  if (body.method === 'resources/read') {
+    if (!resourceProvider) {
+      return jsonRpcError(id, JSONRPC.METHOD_NOT_FOUND, 'resources/read not supported for this MCP endpoint')
+    }
+    const uri = body.params?.uri
+    if (!uri || typeof uri !== 'string') {
+      return jsonRpcError(id, JSONRPC.INVALID_PARAMS, 'Missing or invalid "params.uri" for resources/read')
+    }
+    const payload = await resourceProvider.readResource(uri.trim())
+    if (!payload) {
+      return jsonRpcError(id, JSONRPC.INVALID_PARAMS, `Unknown resource URI: ${uri}`)
+    }
+    return jsonRpcSuccess(id, {
+      contents: [{ uri: uri.trim(), mimeType: payload.mimeType, text: payload.text }],
+    })
   }
 
   if (body.method === 'tools/call') {
@@ -217,7 +269,7 @@ async function handleJsonRpcRequest(
  * - JSON-RPC 2.0: { jsonrpc: "2.0", id, method: "tools/list" | "tools/call", params? } -> JSON-RPC response
  * - Legacy REST: { tool: string, params?: object } -> { type: "result", result }
  */
-function createToolExecutionHandler(name: string, version: string, description: string, tools: Map<string, Tool>) {
+function createToolExecutionHandler(name: string, version: string, description: string, tools: Map<string, Tool>, resourceProvider?: McpResourceProvider | null) {
   return withMCPHandler(
     async (req: NextRequest) => {
       const body = await req.json().catch(() => null)
@@ -227,7 +279,7 @@ function createToolExecutionHandler(name: string, version: string, description: 
 
       const isJsonRpc = body.jsonrpc === '2.0' && typeof body.method === 'string'
       if (isJsonRpc) {
-        return handleJsonRpcRequest(body, tools, { name, version, description })
+        return handleJsonRpcRequest(body, tools, { name, version, description }, resourceProvider)
       }
 
       const { tool: toolName, params = {} } = body
@@ -258,11 +310,18 @@ function createToolExecutionHandler(name: string, version: string, description: 
  * @param version Service version
  * @param description Service description
  * @param tools Available tools
+ * @param resourceProvider Optional MCP Resources (e.g. SKILL markdown) for resources/list and resources/read
  * @returns Object containing manifest and execute handler functions
  */
-export function createMCPHttpServer(name: string, version: string, description: string, tools: Record<string, Tool> | Map<string, Tool>) {
+export function createMCPHttpServer(
+  name: string,
+  version: string,
+  description: string,
+  tools: Record<string, Tool> | Map<string, Tool>,
+  resourceProvider?: McpResourceProvider | null
+) {
   const toolsMap = tools instanceof Map ? tools : new Map(Object.entries(tools))
-  const manifest = createManifestHandler(name, version, description, toolsMap)
-  const execute = createToolExecutionHandler(name, version, description, toolsMap)
+  const manifest = createManifestHandler(name, version, description, toolsMap, resourceProvider)
+  const execute = createToolExecutionHandler(name, version, description, toolsMap, resourceProvider)
   return { manifest, execute }
 }

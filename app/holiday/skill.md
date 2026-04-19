@@ -34,9 +34,12 @@ description: When a user asks whether today is a public holiday in mainland Chin
 
 ## Response
 
-Standard envelope `{ code, message, data }`.
+**Envelope:** HTTP **200** with `{ code: 0, message: "ok", data: { … } }` (standard success shape).
 
-- **200** — `data` includes e.g. `isHoliday` (boolean), `name` (string, may be empty when not a named holiday).
+- **`data.isHoliday`** (boolean) — whether today is treated as a public holiday for this service.
+- **`data.name`** (string) — holiday or special-day **name**; may be **empty** when there is no named entry (still a valid **200**).
+
+Trust **HTTP status** first, then read **`data`** for fields above.
 
 ## Say to the user (one line)
 
@@ -62,4 +65,8 @@ Single GET; no body; follow **Steps**.
 
 ## Error handling (HTTP)
 
-- Non-200: report failure briefly; **retry later** only if **5xx**; **do not** retry spam on **4xx**.
+| Status  | Agent behavior                                                                                |
+| ------- | --------------------------------------------------------------------------------------------- |
+| **200** | Success — use `data.isHoliday` / `data.name` even if `name` is empty.                         |
+| **500** | Server-side error — report briefly; **one** retry later is acceptable; **do not** loop.       |
+| **4xx** | Unusual for this GET — if seen, **do not** blind retry; relay `message` from JSON if present. |

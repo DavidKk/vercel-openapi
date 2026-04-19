@@ -3,12 +3,16 @@ name: prices
 description: When a user is authenticated and wants admin product write access → allow create/update/delete products.
 ---
 
-# Prices API – Products, search, calc (public; agent-ready)
+# Prices API – Public + admin (agent-ready)
+
+## Base URL
+
+Paths use **`BASE_URL` + `/api/prices/...`** (host + optional app prefix, then the path). See the public skill for the same **Base URL** rules: third parties set `BASE_URL` to your deployment origin (no trailing slash); this site’s Skill panel replaces `BASE_URL` on copy/download.
 
 ## When to use
 
 - User wants **product list**, **keyword search**, or **unit-price comparison** (“which cola is cheaper per liter”) using this service’s catalog.
-- **Do not** call for unrelated shopping math without using **POST /api/prices/calc** inputs the API accepts.
+- **Do not** call for unrelated shopping math without using **POST BASE_URL/api/prices/calc** inputs the API accepts.
 - **Do not overuse:** unrelated intent → do not call.
 
 ## Multi-turn / Missing parameters
@@ -18,9 +22,9 @@ description: When a user is authenticated and wants admin product write access �
 
 ## Parameters
 
-- **GET** `/api/prices/products` — no params.
-- **GET** `/api/prices/products/search?q=` — `q` required.
-- **POST** `/api/prices/calc` — JSON body per **Request** examples in code/spec.
+- **GET** `BASE_URL/api/prices/products` — no params.
+- **GET** `BASE_URL/api/prices/products/search?q=` — `q` required.
+- **POST** `BASE_URL/api/prices/calc` — JSON body per **Request** examples in code/spec.
 
 ## Steps
 
@@ -33,11 +37,11 @@ description: When a user is authenticated and wants admin product write access �
 
 ## Request
 
-`GET /api/prices/products`
+`GET BASE_URL/api/prices/products`
 
-`GET /api/prices/products/search?q=cola`
+`GET BASE_URL/api/prices/products/search?q=cola`
 
-`POST /api/prices/calc` — `Content-Type: application/json`, e.g.:
+`POST BASE_URL/api/prices/calc` — `Content-Type: application/json`, e.g.:
 `{ "productId": "12", "totalPrice": 12.5, "totalQuantity": 1.5, "quantityUnit": "L" }`
 or `{ "productName": "cola", "totalPrice": 10, "totalQuantity": "= 1000 ml" }`
 
@@ -61,7 +65,7 @@ Standard envelope `{ code, message, data }` on success.
 
 ## Examples
 
-- User: “Search products cola” → `GET /api/prices/products/search?q=cola`.
+- User: “Search products cola” → `GET BASE_URL/api/prices/products/search?q=cola`.
 - User: “Compare price for cola at 12.5 for 1.5L” → **POST** calc with parsed body (verify `data`).
 - User: “DNS lookup” → **Do not call this API**.
 
@@ -93,13 +97,13 @@ Public routes only in this document; **admin** requires Bearer key (see extended
 ### Request (examples)
 
 Create:
-`POST /api/prices/products` with JSON body `{ "name", "brand", "unit", "unitBestPrice", "unitConversions", "remark?" }`
+`POST BASE_URL/api/prices/products` with JSON body `{ "name", "brand", "unit", "unitBestPrice", "unitConversions", "remark?" }`
 
 Update:
-`PUT /api/prices/products?id={id}` with partial JSON fields.
+`PUT BASE_URL/api/prices/products?id={id}` with partial JSON fields.
 
 Delete:
-`DELETE /api/prices/products?id={id}`
+`DELETE BASE_URL/api/prices/products?id={id}`
 
 ### Error handling
 

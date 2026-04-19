@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { ApiSkillPanel } from '@/components/ApiSkillPanel'
 
 /**
@@ -65,7 +66,7 @@ export default function PricesSkillPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <ApiSkillPanel content={content ?? ''} downloadFilename="prices-api-skill.md" fill />
+      <ApiSkillPanel content={content ?? ''} downloadFilename={moduleSkillMarkdownFilename('prices')} fill />
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { inferClientPublicBaseUrl } from '@/app/api/mcp/inferClientPublicBaseUrl'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 
 const PLACEHOLDER_BASE = 'BASE_URL'
@@ -16,10 +17,46 @@ function stripYamlFrontMatter(markdown: string): string {
   return markdown.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, '')
 }
 
+function inferBaseUrlFromWindow(): string {
+  return inferClientPublicBaseUrl()
+}
+
+/** Strip trailing markdown / prose punctuation accidentally captured after `/api/...`. */
+function trimApiPathSuffix(path: string): string {
+  return path.replace(/[)\],.;]+$/g, '')
+}
+
+/**
+ * Turn root-relative API paths into absolute URLs for display, copy, and download.
+ * Runs after `BASE_URL` substitution so markdown can use either style.
+ *
+ * Path match is permissive (`/api/` then non-space, non-backtick) so docs can use `{param}` placeholders.
+ */
+function applyApiPathOrigin(markdown: string, baseUrl: string): string {
+  let out = markdown
+  out = out.replace(/\b(GET|POST|PUT|DELETE|PATCH)\s+(\/api\/[^\s`]+)/gi, (_, verb: string, path: string) => {
+    const p = trimApiPathSuffix(path)
+    return `${verb} ${baseUrl}${p}`
+  })
+  out = out.replace(/`(\/api\/[^`\s]+)`/g, (_, path: string) => {
+    const p = trimApiPathSuffix(path)
+    return `\`${baseUrl}${p}\``
+  })
+  return out
+}
+
+function resolveSkillMarkdownForClient(markdown: string): string {
+  const baseUrl = inferBaseUrlFromWindow()
+  let s = stripYamlFrontMatter(markdown)
+  s = s.replace(new RegExp(PLACEHOLDER_BASE, 'g'), baseUrl)
+  s = applyApiPathOrigin(s, baseUrl)
+  return s
+}
+
 export interface ApiSkillPanelProps {
   /** Raw markdown/text content. Use BASE_URL as placeholder; replaced with origin after mount (and for copy/download). */
   content: string
-  /** Filename when downloading (e.g. "exchange-rate-api-skill.md") */
+  /** Filename when downloading (e.g. `unbnd-exchange-rate-skill.md` from `moduleSkillMarkdownFilename`) */
   downloadFilename: string
   /** When true, panel fills available height (for full-page Skill layout). */
   fill?: boolean
@@ -38,14 +75,7 @@ export function ApiSkillPanel(props: ApiSkillPanelProps) {
 
   const resolveContent = useCallback(() => {
     if (typeof window === 'undefined') return stripYamlFrontMatter(content)
-    // If the app is served under a path prefix (e.g. https://example.com/vercel-openapi),
-    // derive that prefix from the current Skill route: /{module}/skill.
-    const pathname = window.location.pathname || '/'
-    const parts = pathname.split('/').filter(Boolean)
-    const prefixParts = parts.length >= 2 ? parts.slice(0, parts.length - 2) : []
-    const basePath = prefixParts.length > 0 ? `/${prefixParts.join('/')}` : ''
-    const baseUrl = `${window.location.origin}${basePath}`
-    return stripYamlFrontMatter(content.replace(new RegExp(PLACEHOLDER_BASE, 'g'), baseUrl))
+    return resolveSkillMarkdownForClient(content)
   }, [content])
 
   /**

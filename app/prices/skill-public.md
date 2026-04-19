@@ -5,10 +5,19 @@ description: When a user searches products or compares/calc totals → return pr
 
 # Prices API – Products, search, calc (public; agent-ready)
 
+## Base URL
+
+Paths are written as **`BASE_URL` + root path** (e.g. `BASE_URL/api/prices/...`).
+
+- **Third-party / offline agents:** set **`BASE_URL`** to the deployment origin that serves this API (e.g. `https://your-app.vercel.app`), **no trailing slash**. If the app is mounted under a subpath, include that path in `BASE_URL` (e.g. `https://example.com/my-app`).
+- **This site’s Skill tab (copy / download):** the Skill panel replaces the literal substring **`BASE_URL`** with the **current page origin** plus any **base path** inferred from the URL (same behavior as other modules that use this placeholder).
+
+If you only use a root-relative path like `/api/prices/products` without a host, the HTTP client must already be configured with the correct **Host** (typical for same-origin browser calls).
+
 ## When to use
 
 - User wants **product list**, **keyword search**, or **unit-price comparison** (“which cola is cheaper per liter”) using this service’s catalog.
-- **Do not** call for unrelated shopping math without using **POST /api/prices/calc** inputs the API accepts.
+- **Do not** call for unrelated shopping math without using **`POST BASE_URL/api/prices/calc`** with inputs the API accepts.
 - **Do not overuse:** unrelated intent → do not call.
 
 ## Multi-turn / Missing parameters
@@ -18,9 +27,9 @@ description: When a user searches products or compares/calc totals → return pr
 
 ## Parameters
 
-- **GET** `/api/prices/products` — no params.
-- **GET** `/api/prices/products/search?q=` — `q` required.
-- **POST** `/api/prices/calc` — JSON body per **Request** examples in code/spec.
+- **GET** `BASE_URL/api/prices/products` — no params.
+- **GET** `BASE_URL/api/prices/products/search?q=` — `q` required.
+- **POST** `BASE_URL/api/prices/calc` — JSON body per **Request** examples in code/spec.
 
 ## Steps
 
@@ -33,11 +42,11 @@ description: When a user searches products or compares/calc totals → return pr
 
 ## Request
 
-`GET /api/prices/products`
+`GET BASE_URL/api/prices/products`
 
-`GET /api/prices/products/search?q=cola`
+`GET BASE_URL/api/prices/products/search?q=cola`
 
-`POST /api/prices/calc` — `Content-Type: application/json`, e.g.:
+`POST BASE_URL/api/prices/calc` — `Content-Type: application/json`, e.g.:
 `{ "productId": "12", "totalPrice": 12.5, "totalQuantity": 1.5, "quantityUnit": "L" }`
 or `{ "productName": "cola", "totalPrice": 10, "totalQuantity": "= 1000 ml" }`
 
@@ -61,7 +70,7 @@ Standard envelope `{ code, message, data }` on success.
 
 ## Examples
 
-- User: “Search products cola” → `GET /api/prices/products/search?q=cola`.
+- User: “Search products cola” → `GET BASE_URL/api/prices/products/search?q=cola`.
 - User: “Compare price for cola at 12.5 for 1.5L” → **POST** calc with parsed body (verify `data`).
 - User: “DNS lookup” → **Do not call this API**.
 

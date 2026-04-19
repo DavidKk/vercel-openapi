@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { GET } from '@/app/api/skills/route'
 import packageJson from '@/package.json'
 
@@ -19,7 +20,7 @@ describe('Skills index API /api/skills', () => {
     expect(geo).toBeDefined()
 
     expect(Array.isArray((geo as any).files)).toBe(true)
-    const geoFile = (geo as any).files.find((f: any) => f.path === 'geo-api-skill.md')
+    const geoFile = (geo as any).files.find((f: any) => f.path === moduleSkillMarkdownFilename('geo'))
     expect(geoFile).toBeDefined()
     expect(geoFile.name).toBe('geo')
     expect(typeof geoFile.description).toBe('string')

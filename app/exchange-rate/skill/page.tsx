@@ -1,3 +1,4 @@
+import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { ApiSkillPanel } from '@/components/ApiSkillPanel'
 
 import { EXCHANGE_RATE_API_SKILL } from '../skill-content'
@@ -8,7 +9,7 @@ import { EXCHANGE_RATE_API_SKILL } from '../skill-content'
 export default function ExchangeRateSkillPage() {
   return (
     <div className="flex h-full flex-col">
-      <ApiSkillPanel content={EXCHANGE_RATE_API_SKILL} downloadFilename="exchange-rate-api-skill.md" fill />
+      <ApiSkillPanel content={EXCHANGE_RATE_API_SKILL} downloadFilename={moduleSkillMarkdownFilename('exchange-rate')} fill />
     </div>
   )
 }

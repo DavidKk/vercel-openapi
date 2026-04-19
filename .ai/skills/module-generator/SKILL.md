@@ -94,10 +94,11 @@ The generator does **not** create the following. Implement them by hand followin
 
 ### MCP tools
 
-- **Where**: `app/api/mcp/tools/<category>/` (one file per tool or as in existing structure).  
+- **Where**: `app/api/mcp/tools/<category>/` (one file per tool or as in existing structure).
   Register in `app/api/mcp/tools/index.ts` (or the project's MCP tool registry).
-- **What**: Implement the tools listed in the schema's `mcpPage.tools`.  
+- **What**: Implement the tools listed in the schema's `mcpPage.tools`.
   Request/response shape should match what the MCP doc and Playground expect.
+- **MCP doc page (`app/<id>/mcp/page.tsx`):** After `DocPanelHeader`, include **`McpOneClickInstallBar`** with `endpointPath={"/api/mcp/<id>"}` (first child inside the doc `overflow-y-auto` block, `className="mb-3"`). See **`knowledge/glossary.md`** (MCP section) for aggregate vs per-module URLs, resources, and install deeplinks.
 
 ### API and MCP Playground components
 
