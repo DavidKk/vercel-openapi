@@ -50,6 +50,7 @@ package-lock.json
 
 # OS or Editor folders
 .vscode
+.cursor
 .DS_Store
 ._*
 Thumbs.db
