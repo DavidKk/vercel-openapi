@@ -7,7 +7,7 @@ import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 
-type TasiToolName = 'get_tasi_company_daily' | 'get_tasi_summary_daily'
+type TasiToolName = 'get_tasi_company_daily' | 'get_tasi_summary_daily' | 'get_tasi_summary_hourly'
 
 interface TasiMcpState {
   loading: boolean
@@ -23,7 +23,7 @@ interface TasiMcpState {
 const MCP_PATH = '/api/mcp/finance'
 
 /**
- * MCP playground for Finance tools (TASI): get_tasi_company_daily, get_tasi_summary_daily.
+ * MCP playground for Finance tools (TASI): get_tasi_company_daily, get_tasi_summary_daily, get_tasi_summary_hourly.
  */
 export function TasiMcpPlayground() {
   const [state, setState] = useState<TasiMcpState>({
@@ -34,7 +34,7 @@ export function TasiMcpPlayground() {
 
   function handleToolChange(value: string) {
     const tool = value as TasiToolName
-    const nextParams = tool === 'get_tasi_company_daily' ? '{}' : '{}'
+    const nextParams = '{}'
     setState((prev) => ({ ...prev, tool, paramsText: nextParams }))
   }
 
@@ -95,11 +95,15 @@ export function TasiMcpPlayground() {
                 options={[
                   { value: 'get_tasi_company_daily', label: 'get_tasi_company_daily' },
                   { value: 'get_tasi_summary_daily', label: 'get_tasi_summary_daily' },
+                  { value: 'get_tasi_summary_hourly', label: 'get_tasi_summary_hourly' },
                 ]}
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span>params (JSON). Optional: date, or code+from+to for company K-line, or from+to for summary K-line.</span>
+              <span>
+                params (JSON). Daily modes: none = latest; {`{"date":"YYYY-MM-DD"}`} = single day; company K-line {`{"code":"1120","from":"YYYY-MM-DD","to":"YYYY-MM-DD"}`}; summary
+                K-line {`{"from":"YYYY-MM-DD","to":"YYYY-MM-DD"}`}. Hourly tool uses `{}`.
+              </span>
               <textarea
                 className="min-h-[80px] rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-[10px]"
                 value={paramsText}

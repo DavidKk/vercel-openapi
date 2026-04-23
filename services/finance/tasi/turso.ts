@@ -1,6 +1,6 @@
 /**
  * Turso persistence for TASI company daily and market summary.
- * Read/write and 2-year retention. Tables created on first use (IF NOT EXISTS).
+ * Read/write and 1-year retention. Tables created on first use (IF NOT EXISTS).
  */
 
 import { createLogger } from '@/services/logger'
@@ -11,6 +11,7 @@ import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 const logger = createLogger('finance-tasi-turso')
 const COMPANY_TABLE = 'tasi_company_daily'
 const SUMMARY_TABLE = 'tasi_market_summary'
+const SUMMARY_HOURLY_TABLE = 'tasi_market_summary_hourly'
 const WRITE_CHUNK_SIZE = 80
 
 let tablesEnsured = false
@@ -37,6 +38,20 @@ function normalizeCode(value: unknown): string | null {
   const trimmed = value.trim()
   if (!trimmed) return null
   return trimmed.toUpperCase()
+}
+
+/**
+ * Normalize hourly timestamp to ISO UTC hour precision.
+ * @param value Raw timestamp value
+ * @returns ISO timestamp (e.g. 2026-04-23T10:00:00.000Z) or null when invalid
+ */
+function normalizeHourTs(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const t = Date.parse(value)
+  if (Number.isNaN(t)) return null
+  const d = new Date(t)
+  d.setUTCMinutes(0, 0, 0)
+  return d.toISOString()
 }
 
 /**
@@ -74,6 +89,14 @@ async function ensureTables(): Promise<void> {
         payload TEXT NOT NULL
       )
     `)
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS ${SUMMARY_HOURLY_TABLE} (
+        hour_ts TEXT NOT NULL PRIMARY KEY,
+        date TEXT NOT NULL,
+        payload TEXT NOT NULL
+      )
+    `)
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_${SUMMARY_HOURLY_TABLE}_date ON ${SUMMARY_HOURLY_TABLE}(date)`)
     tablesEnsured = true
   } catch {
     // ignore
@@ -225,11 +248,35 @@ export async function writeSummary(date: string, summary: TasiMarketSummary): Pr
   logger.info('writeSummary', { date: normalizedDate })
 }
 
-/** Retention: keep 2 years of data; delete rows with date strictly before cutoff. */
-const RETENTION_DAYS = 365 * 2
+/**
+ * Write market summary hourly snapshot for one hour.
+ *
+ * @param hourTs ISO timestamp (UTC, any minute/second accepted; normalized to hour)
+ * @param summary Market summary payload
+ */
+export async function writeSummaryHourly(hourTs: string, summary: TasiMarketSummary): Promise<void> {
+  const db = getTursoClient()
+  if (!db) return
+  await ensureTables()
+  const normalizedHourTs = normalizeHourTs(hourTs)
+  if (!normalizedHourTs) {
+    logger.warn('writeSummaryHourly skipped: invalid hourTs', { hourTs })
+    return
+  }
+  const date = normalizedHourTs.slice(0, 10)
+  const payload = JSON.stringify(summary)
+  await db.execute({
+    sql: `INSERT OR REPLACE INTO ${SUMMARY_HOURLY_TABLE} (hour_ts, date, payload) VALUES (?, ?, ?)`,
+    args: [normalizedHourTs, date, payload],
+  })
+  logger.info('writeSummaryHourly', { hourTs: normalizedHourTs, date })
+}
+
+/** Retention: keep 1 year of data; delete rows with date strictly before cutoff. */
+const RETENTION_DAYS = 365
 
 /**
- * Delete TASI data older than retention (2 years). Call from cron after write.
+ * Delete TASI data older than retention (1 year). Call from cron after write.
  */
 export async function deleteOlderThanRetention(): Promise<void> {
   const db = getTursoClient()
@@ -240,5 +287,6 @@ export async function deleteOlderThanRetention(): Promise<void> {
   await ensureTables()
   await db.execute({ sql: `DELETE FROM ${COMPANY_TABLE} WHERE date < ?`, args: [cutoff] })
   await db.execute({ sql: `DELETE FROM ${SUMMARY_TABLE} WHERE date < ?`, args: [cutoff] })
+  await db.execute({ sql: `DELETE FROM ${SUMMARY_HOURLY_TABLE} WHERE hour_ts < ?`, args: [`${cutoff}T00:00:00.000Z`] })
   logger.info('deleteOlderThanRetention', { cutoff })
 }

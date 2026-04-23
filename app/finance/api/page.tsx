@@ -32,6 +32,14 @@ export default function FinanceTasiApiPage() {
             </p>
           </div>
 
+          <div className={DOC_ENDPOINT_BOX_CLASS}>
+            <DocEndpointRow method="GET" path="/api/finance/tasi/summary/hourly" enableCopy />
+            <p className={DOC_ENDPOINT_DESC_CLASS}>
+              Hourly alignment check: fetch SAHMK market summary (<code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">SAHMK_API_KEY</code>) and map to current summary
+              shape, then compare with existing <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">/summary/daily</code> fields to evaluate alignment.
+            </p>
+          </div>
+
           <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Response example (company daily)</h2>
           <pre className="max-h-48 overflow-auto rounded bg-white p-2 text-[10px] leading-relaxed text-gray-800">
             {`[{"code":"1120","name":"SNB","date":"2025-03-14","open":42.5,"high":43,"low":42.2,"lastPrice":42.8,"volume":1000000}]`}

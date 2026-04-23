@@ -10,7 +10,7 @@ import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
 import type { RequestExampleInput } from '@/utils/requestExamples'
 
-type Endpoint = 'company' | 'summary'
+type Endpoint = 'company' | 'summary' | 'summaryHourly'
 
 interface TasiApiState {
   loading: boolean
@@ -26,7 +26,7 @@ interface TasiApiState {
 }
 
 /**
- * Playground for GET /api/finance/tasi/company/daily and /api/finance/tasi/summary/daily.
+ * Playground for GET /api/finance/tasi/company/daily, /api/finance/tasi/summary/daily, and /api/finance/tasi/summary/hourly.
  */
 export function TasiApiPlayground() {
   const [state, setState] = useState<TasiApiState>({
@@ -44,6 +44,7 @@ export function TasiApiPlayground() {
     event.preventDefault()
     const baseCompany = '/api/finance/tasi/company/daily'
     const baseSummary = '/api/finance/tasi/summary/daily'
+    const baseSummaryHourly = '/api/finance/tasi/summary/hourly'
 
     let url: string
     if (state.endpoint === 'company') {
@@ -54,7 +55,7 @@ export function TasiApiPlayground() {
       } else {
         url = baseCompany
       }
-    } else {
+    } else if (state.endpoint === 'summary') {
       if (state.from && state.to) {
         url = `${baseSummary}?from=${encodeURIComponent(state.from)}&to=${encodeURIComponent(state.to)}`
       } else if (state.date) {
@@ -62,6 +63,8 @@ export function TasiApiPlayground() {
       } else {
         url = baseSummary
       }
+    } else {
+      url = baseSummaryHourly
     }
 
     try {
@@ -92,7 +95,7 @@ export function TasiApiPlayground() {
   }
 
   const { loading, status, durationMs, error, responseBody, endpoint, date, code, from, to } = state
-  const path = endpoint === 'company' ? '/api/finance/tasi/company/daily' : '/api/finance/tasi/summary/daily'
+  const path = endpoint === 'company' ? '/api/finance/tasi/company/daily' : endpoint === 'summary' ? '/api/finance/tasi/summary/daily' : '/api/finance/tasi/summary/hourly'
 
   const requestExamples: RequestExampleInput = (() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -105,7 +108,7 @@ export function TasiApiPlayground() {
       } else {
         url = path
       }
-    } else {
+    } else if (endpoint === 'summary') {
       if (from && to) {
         url = `${path}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
       } else if (date) {
@@ -113,6 +116,8 @@ export function TasiApiPlayground() {
       } else {
         url = path
       }
+    } else {
+      url = path
     }
 
     return {
@@ -140,19 +145,22 @@ export function TasiApiPlayground() {
                 options={[
                   { value: 'company', label: 'Company daily' },
                   { value: 'summary', label: 'Summary daily' },
+                  { value: 'summaryHourly', label: 'Summary hourly (alignment)' },
                 ]}
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span>date (optional, YYYY-MM-DD)</span>
-              <input
-                type="text"
-                className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                value={date}
-                onChange={(e) => setState((prev) => ({ ...prev, date: e.target.value }))}
-                placeholder="e.g. 2025-03-01"
-              />
-            </label>
+            {endpoint !== 'summaryHourly' && (
+              <label className="flex flex-col gap-1">
+                <span>date (optional, YYYY-MM-DD)</span>
+                <input
+                  type="text"
+                  className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                  value={date}
+                  onChange={(e) => setState((prev) => ({ ...prev, date: e.target.value }))}
+                  placeholder="e.g. 2025-03-01"
+                />
+              </label>
+            )}
             {endpoint === 'company' && (
               <>
                 <label className="flex flex-col gap-1">
@@ -211,6 +219,7 @@ export function TasiApiPlayground() {
                 </label>
               </>
             )}
+            {endpoint === 'summaryHourly' && <p className="text-[10px] text-gray-500">No params needed. This endpoint fetches SAHMK hourly summary alignment data.</p>}
             <div className="flex items-center gap-2">
               <button
                 type="submit"

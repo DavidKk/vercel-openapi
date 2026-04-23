@@ -47,5 +47,7 @@ mcpPage:
       description: 'Get company daily (TASI). Params: optional date (YYYY-MM-DD), or code+from+to for K-line.'
     - name: get_tasi_summary_daily
       description: 'Get market summary (TASI). Params: optional date, or from+to for K-line.'
+    - name: get_tasi_summary_hourly
+      description: 'Get hourly alignment check (SAHMK summary mapped to current daily summary fields).'
   playgroundComponentName: TasiMcpPlayground
   playgroundImportPath: '@/app/finance/mcp/components'

@@ -36,6 +36,12 @@ description: When a user asks for Saudi TASI company daily data or a market summ
 | Single day      | `date=YYYY-MM-DD`                 | Summary for that day (may be `null` in `data` if no row). |
 | Index K-line    | `from=YYYY-MM-DD` `to=YYYY-MM-DD` | Array of daily summary rows (may be `[]`).                |
 
+**Daily-data alignment check (REST only)** `GET /api/finance/tasi/summary/hourly`:
+
+| Mode              | Query    | Meaning                                                                 |
+| ----------------- | -------- | ----------------------------------------------------------------------- |
+| Hourly validation | _(none)_ | Pull SAHMK summary, map to current daily summary fields, return compare |
+
 ## Steps
 
 0. **Conversation cache:** Same full URL (path + query string) already returned **HTTP 200** with usable `data` in this conversation → **reuse**; skip HTTP.
@@ -103,7 +109,7 @@ GET /api/finance/tasi/summary/daily?from=2026-01-01&to=2026-03-01
 | `marketCap`                                                        | Nullable.                      |
 | `notes`                                                            | Optional free-text (nullable). |
 
-**Range limits:** K-line queries are **clamped** to a **maximum span** (order of **two years** of calendar days). If the user asks for a longer range, the server shortens `to` — state that the returned range may be truncated if you surface dates.
+**Range limits:** K-line queries are **clamped** to a **maximum span** (order of **one year** of calendar days). If the user asks for a longer range, the server shortens `to` — state that the returned range may be truncated if you surface dates.
 
 ## Say to the user (one line)
 

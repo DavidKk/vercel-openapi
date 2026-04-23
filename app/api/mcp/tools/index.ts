@@ -6,6 +6,7 @@ import { convert_currency } from './exchange-rate/convert_currency'
 import { get_exchange_rate } from './exchange-rate/get_exchange_rate'
 import { get_tasi_company_daily } from './finance/get_tasi_company_daily'
 import { get_tasi_summary_daily } from './finance/get_tasi_summary_daily'
+import { get_tasi_summary_hourly } from './finance/get_tasi_summary_hourly'
 import { calc_fuel_recharge_promo } from './fuel-price/calc_fuel_recharge_promo'
 import { get_fuel_price } from './fuel-price/get_fuel_price'
 import { get_fuel_price_by_province } from './fuel-price/get_fuel_price_by_province'
@@ -42,6 +43,7 @@ const ALL_TOOLS: Tool[] = [
   get_point_forecast,
   get_tasi_company_daily,
   get_tasi_summary_daily,
+  get_tasi_summary_hourly,
   list_price_lists,
   search_prices,
   calc_prices,
@@ -66,7 +68,7 @@ const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
   weather: ['get_point_weather', 'get_point_forecast'],
-  finance: ['get_tasi_company_daily', 'get_tasi_summary_daily'],
+  finance: ['get_tasi_company_daily', 'get_tasi_summary_daily', 'get_tasi_summary_hourly'],
   prices: ['list_price_lists', 'search_prices', 'calc_prices', 'create_product', 'update_product', 'delete_product'],
   'proxy-rule': ['get_clash_rule_config'],
 }

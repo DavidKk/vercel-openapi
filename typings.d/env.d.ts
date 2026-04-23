@@ -25,6 +25,10 @@ declare namespace NodeJS {
     CRON_SECRET?: string
     /** Finance feed (TASI) base URL: GET .../api/finance/tasi/company/daily (array), .../summary/daily (object) */
     TASI_FEED_URL?: string
+    /** SAHMK API key (used by /api/finance/tasi/summary/hourly and cron hourly sync mode) */
+    SAHMK_API_KEY?: string
+    /** Optional SAHMK API base URL override. Default: https://app.sahmk.sa/api/v1 */
+    SAHMK_API_BASE_URL?: string
     /** FreeCurrencyAPI.com key (optional; when set, exchange rate uses it instead of no-key fallback) */
     FREECURRENCYAPI_API_KEY?: string
     /** QWeather API key (weather module) */
