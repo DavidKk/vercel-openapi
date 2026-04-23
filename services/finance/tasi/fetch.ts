@@ -32,6 +32,46 @@ function getTasiFeedBaseUrl(): string {
 }
 
 /**
+ * Build request headers for cf-feed-bridge calls.
+ * Preferred env:
+ * - TASI_FEED_REQUEST_HEADERS_JSON (JSON object, e.g. {"x-api-key":"...","x-internal-call":"vercel"})
+ *
+ * Legacy envs (backward compatible):
+ * - TASI_FEED_X_API_KEY_HEADER_KEY / TASI_FEED_X_API_KEY_HEADER_VALUE
+ * - TASI_FEED_X_INTERNAL_CALL_HEADER_KEY / TASI_FEED_X_INTERNAL_CALL_HEADER_VALUE
+ */
+function buildBridgeHeaders(): Headers {
+  const headers = new Headers({ Accept: 'application/json' })
+  const headersJson = process.env.TASI_FEED_REQUEST_HEADERS_JSON?.trim()
+  if (headersJson) {
+    try {
+      const parsed = JSON.parse(headersJson) as Record<string, unknown>
+      for (const [key, value] of Object.entries(parsed)) {
+        const k = key.trim()
+        const v = typeof value === 'string' ? value.trim() : String(value ?? '').trim()
+        if (k && v) headers.set(k, v)
+      }
+      return headers
+    } catch {
+      logger.warn('invalid TASI_FEED_REQUEST_HEADERS_JSON; fallback to legacy header envs')
+    }
+  }
+
+  const apiKeyHeaderKey = (process.env.TASI_FEED_X_API_KEY_HEADER_KEY || 'x-api-key').trim()
+  const apiKeyHeaderValue = (process.env.TASI_FEED_X_API_KEY_HEADER_VALUE || '').trim()
+  const internalCallHeaderKey = (process.env.TASI_FEED_X_INTERNAL_CALL_HEADER_KEY || 'x-internal-call').trim()
+  const internalCallHeaderValue = (process.env.TASI_FEED_X_INTERNAL_CALL_HEADER_VALUE || '').trim()
+
+  if (apiKeyHeaderKey && apiKeyHeaderValue) {
+    headers.set(apiKeyHeaderKey, apiKeyHeaderValue)
+  }
+  if (internalCallHeaderKey && internalCallHeaderValue) {
+    headers.set(internalCallHeaderKey, internalCallHeaderValue)
+  }
+  return headers
+}
+
+/**
  * Fetch company daily (today) from cf-feed-bridge.
  * Results are cached in memory for TASI_BRIDGE_CACHE_MS to reduce repeated requests.
  *
@@ -45,7 +85,7 @@ export async function fetchCompanyDailyFromBridge(): Promise<TasiCompanyDailyRec
   }
   const base = getTasiFeedBaseUrl()
   logger.info('company daily: in-memory cache miss, fetching from bridge', { url: `${base}/api/finance/tasi/company/daily` })
-  const res = await fetch(`${base}/api/finance/tasi/company/daily`)
+  const res = await fetch(`${base}/api/finance/tasi/company/daily`, { headers: buildBridgeHeaders() })
   if (!res.ok) {
     logger.fail('company daily: bridge failed', { status: res.status })
     throw new Error(`cf-feed-bridge company/daily failed: ${res.status}`)
@@ -75,7 +115,7 @@ export async function fetchSummaryFromBridge(): Promise<TasiMarketSummary> {
   }
   const base = getTasiFeedBaseUrl()
   logger.info('summary daily: in-memory cache miss, fetching from bridge', { url: `${base}/api/finance/tasi/summary/daily` })
-  const res = await fetch(`${base}/api/finance/tasi/summary/daily`)
+  const res = await fetch(`${base}/api/finance/tasi/summary/daily`, { headers: buildBridgeHeaders() })
   if (!res.ok) {
     logger.fail('summary daily: bridge failed', { status: res.status })
     throw new Error(`cf-feed-bridge summary/daily failed: ${res.status}`)
