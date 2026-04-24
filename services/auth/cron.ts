@@ -20,6 +20,6 @@ export async function ensureCronAuthorized(req: NextRequest): Promise<void> {
   const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null
   const querySecret = req.nextUrl.searchParams.get('secret')
   if (token !== secret && querySecret !== secret) {
-    throw jsonUnauthorized('CRON_SECRET authentication required')
+    throw jsonUnauthorized('Unauthorized')
   }
 }
