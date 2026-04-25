@@ -48,7 +48,7 @@ export const FILTER_BUTTON_CLASS = 'flex items-center gap-1 rounded-lg border bo
 
 export const DEFAULT_NAV = {
   $private: [
-    { name: 'Holiday', href: '/holiday' },
+    { name: 'China Holiday', href: '/holiday' },
     { name: 'China Fuel Price', href: '/fuel-price' },
     { name: 'Geolocation', href: '/geo' },
   ],

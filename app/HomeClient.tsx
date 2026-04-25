@@ -20,17 +20,17 @@ const TABS: { id: HomeTab; label: string; icon: ReactNode }[] = [
 
 /** Module options for ?includes= (same slugs as /api/mcp and function-calling). */
 const TOOL_CATEGORY_LABELS: Record<string, string> = {
-  holiday: 'Holiday',
+  holiday: 'China Holiday',
   'fuel-price': 'China Fuel Price',
   'exchange-rate': 'Exchange Rate',
   weather: 'China Weather',
   movies: 'Movies',
   dns: 'DNS',
   finance: 'Finance',
-  prices: 'Prices',
+  prices: 'China Prices',
 }
 
-const MODULE_OPTIONS_ORDER: string[] = ['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'dns', 'finance']
+const MODULE_OPTIONS_ORDER: string[] = ['exchange-rate', 'movies', 'dns', 'finance', 'holiday', 'prices', 'fuel-price', 'geo', 'weather']
 
 const MODULE_OPTIONS: { id: string; label: string }[] = [
   ...MODULE_OPTIONS_ORDER.filter((id) => id === 'geo' || (TOOL_CATEGORIES as readonly string[]).includes(id)).map((id) => ({
