@@ -1,12 +1,8 @@
-import { QuoteLiteOverview } from '../components/QuoteLiteOverview'
+import { redirect } from 'next/navigation'
 
 /**
- * Gold overview page.
+ * Legacy URL: `/finance/gold` → canonical precious metals route.
  */
-export default function FinanceGoldPage() {
-  return (
-    <section className="flex h-full flex-col">
-      <QuoteLiteOverview />
-    </section>
-  )
+export default function FinanceGoldRedirectPage() {
+  redirect('/finance/precious-metals')
 }

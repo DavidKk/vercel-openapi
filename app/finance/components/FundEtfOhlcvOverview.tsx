@@ -1,22 +1,27 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
 import { useDebugPanel } from '@/components/DebugPanel'
-import type { FinanceMarketDailyRecord } from '@/services/finance/market/daily/types'
+import type { FinanceFundNavDailyRecord, FinanceMarketOhlcvDailyRecord } from '@/services/finance/market/daily/types'
 import { formatNumber, formatPercent } from '@/utils/formatNumber'
 
-import type { FundEtfOhlcvSymbol } from '../constants/fundEtfOhlcv'
+import { type FundEtfOhlcvSymbol, isFundNavCatalogSymbol } from '../constants/fundEtfOhlcv'
 import { FundEtfOhlcvOverviewSkeleton } from './FundEtfOhlcvOverviewSkeleton'
 
 /** Rolling window length (calendar days) for market/daily requests */
 const RANGE_DAYS = 90
 
-interface MarketDailyEnvelope {
+interface MarketOhlcvEnvelope {
   code?: number
-  data?: { items?: FinanceMarketDailyRecord[]; synced?: boolean }
+  data?: { items?: FinanceMarketOhlcvDailyRecord[]; synced?: boolean }
+  message?: string
+}
+
+interface FundNavEnvelope {
+  code?: number
+  data?: { items?: FinanceFundNavDailyRecord[]; synced?: boolean }
   message?: string
 }
 
@@ -53,23 +58,13 @@ function rollingLocalRange(): { startDate: string; endDate: string } {
 }
 
 /**
- * Whether the row was built from fund NAV LSJZ (not exchange OHLCV).
+ * True when any OHLCV row has non-zero volume or amount.
  *
- * @param row Daily record
- * @returns True when source is fund NAV pipeline
- */
-function isFundNavRow(row: FinanceMarketDailyRecord): boolean {
-  return row.source === 'eastmoney-fund-nav'
-}
-
-/**
- * True when any row has non-zero volume or amount (exchange series with liquidity).
- *
- * @param rows Daily records
+ * @param rows Exchange daily records
  * @returns Whether to show volume and amount columns
  */
-function hasLiquidityColumns(rows: FinanceMarketDailyRecord[]): boolean {
-  return rows.some((r) => !isFundNavRow(r) && (r.volume > 0 || r.amount > 0))
+function ohlcvRowsHaveLiquidity(rows: FinanceMarketOhlcvDailyRecord[]): boolean {
+  return rows.some((r) => r.volume > 0 || r.amount > 0)
 }
 
 /** Table header cell classes aligned with the finance stock (TASI) company table. */
@@ -93,7 +88,7 @@ function chgPercentClass(value: number): string {
 }
 
 /**
- * Fund/ETF overview: loads `/api/finance/market/daily` for the summary strip and history table.
+ * Fund/ETF overview: loads `/api/finance/market/daily` (exchange OHLCV) or `/api/finance/fund/nav/daily` (fund NAV) by symbol.
  * MACD fields stay on `GET /api/finance/overview/stock-list` for API consumers only (not shown here).
  * UI copy is English; product titles in the header come from {@link formatFundEtfTitle} (may include Chinese names).
  * In development, registers the global debug panel (`useDebugPanel`): force loading shows a skeleton; force error shows a
@@ -103,7 +98,8 @@ function chgPercentClass(value: number): string {
  * @returns Overview section with latest summary and history table
  */
 export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOverviewProps) {
-  const [items, setItems] = useState<FinanceMarketDailyRecord[]>([])
+  const [ohlcvRows, setOhlcvRows] = useState<FinanceMarketOhlcvDailyRecord[]>([])
+  const [navRows, setNavRows] = useState<FinanceFundNavDailyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -116,31 +112,44 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
     })
     setLoading(true)
     setError(null)
-    setItems([])
+    setOhlcvRows([])
+    setNavRows([])
+    const navMode = isFundNavCatalogSymbol(sym)
     try {
-      const baseUrl = `/api/finance/market/daily?${q.toString()}`
+      const path = navMode ? '/api/finance/fund/nav/daily' : '/api/finance/market/daily'
+      const baseUrl = `${path}?${q.toString()}`
       const res = await fetch(baseUrl, { cache: 'no-store' })
-      const body = (await res.json()) as MarketDailyEnvelope
+      const body = (await res.json()) as MarketOhlcvEnvelope | FundNavEnvelope
       if (!res.ok || (typeof body.code === 'number' && body.code !== 0)) {
         setError(body.message ?? `HTTP ${res.status}`)
-        setItems([])
         return
       }
-      let list = body.data?.items ?? []
-      if (list.length === 0) {
-        const resSync = await fetch(`${baseUrl}&syncIfEmpty=true`, { cache: 'no-store' })
-        const bodySync = (await resSync.json()) as MarketDailyEnvelope
-        if (resSync.ok && (typeof bodySync.code !== 'number' || bodySync.code === 0)) {
-          list = bodySync.data?.items ?? []
+      if (navMode) {
+        let list = (body as FundNavEnvelope).data?.items ?? []
+        if (list.length === 0) {
+          const resSync = await fetch(`${baseUrl}&syncIfEmpty=true`, { cache: 'no-store' })
+          const bodySync = (await resSync.json()) as FundNavEnvelope
+          if (resSync.ok && (typeof bodySync.code !== 'number' || bodySync.code === 0)) {
+            list = bodySync.data?.items ?? []
+          }
         }
+        const sorted = [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+        setNavRows(sorted)
+      } else {
+        let list = (body as MarketOhlcvEnvelope).data?.items ?? []
+        if (list.length === 0) {
+          const resSync = await fetch(`${baseUrl}&syncIfEmpty=true`, { cache: 'no-store' })
+          const bodySync = (await resSync.json()) as MarketOhlcvEnvelope
+          if (resSync.ok && (typeof bodySync.code !== 'number' || bodySync.code === 0)) {
+            list = bodySync.data?.items ?? []
+          }
+        }
+        const sorted = [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+        setOhlcvRows(sorted)
       }
-
-      const sorted = [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-      setItems(sorted)
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Request failed')
-      setItems([])
     } finally {
       setLoading(false)
     }
@@ -150,9 +159,11 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
     void load(symbol)
   }, [load, symbol])
 
-  const latest = items[0] ?? null
-  const latestIsNav = latest != null && isFundNavRow(latest)
-  const showLiquidity = useMemo(() => hasLiquidityColumns(items), [items])
+  const isNavMode = isFundNavCatalogSymbol(symbol)
+  const latestNav = navRows[0] ?? null
+  const latestOhlcv = ohlcvRows[0] ?? null
+  const rowCount = isNavMode ? navRows.length : ohlcvRows.length
+  const showLiquidity = useMemo(() => ohlcvRowsHaveLiquidity(ohlcvRows), [ohlcvRows])
 
   const debug = useDebugPanel()
   const forceLoading = debug?.forceLoading ?? false
@@ -167,9 +178,12 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
     )
   }
 
-  if (forceLoading || (loading && items.length === 0)) {
+  if (forceLoading || (loading && rowCount === 0)) {
     return <FundEtfOhlcvOverviewSkeleton headerAddon={headerAddon} ariaLabel="Loading fund data" />
   }
+
+  const latestDate = isNavMode ? latestNav?.date : latestOhlcv?.date
+  const hasLatest = isNavMode ? latestNav != null : latestOhlcv != null
 
   return (
     <section className="flex min-h-0 flex-1 flex-col">
@@ -180,58 +194,59 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
           <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
             <div className="flex flex-col gap-3 text-base text-gray-800">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-700">{latestIsNav ? 'Latest NAV' : 'Latest session'}</span>
-                {latest ? <span className="text-sm tabular-nums text-gray-500">As of {latest.date}</span> : <span className="text-sm text-gray-400">No data</span>}
+                <span className="font-semibold text-gray-700">{isNavMode ? 'Latest NAV' : 'Latest session'}</span>
+                {latestDate ? <span className="text-sm tabular-nums text-gray-500">As of {latestDate}</span> : <span className="text-sm text-gray-400">No data</span>}
               </div>
-              {latest ? (
+              {hasLatest ? (
                 <>
-                  {latestIsNav ? (
+                  {isNavMode && latestNav ? (
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
                       <div className="flex flex-col">
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Unit NAV</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latest.close)}</span>
+                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestNav.unitNav)}</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Daily chg%</span>
-                        <span className={`tabular-nums font-semibold ${chgPercentClass(latest.changeRate)}`}>{formatPercent(latest.changeRate)}</span>
+                        <span className={`tabular-nums font-semibold ${chgPercentClass(latestNav.dailyChangePercent)}`}>{formatPercent(latestNav.dailyChangePercent)}</span>
                       </div>
                     </div>
-                  ) : (
+                  ) : null}
+                  {!isNavMode && latestOhlcv ? (
                     <div className={`grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 ${showLiquidity ? 'lg:grid-cols-7' : 'lg:grid-cols-5'}`}>
                       <div className="flex flex-col">
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Open</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latest.open)}</span>
+                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.open)}</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">High</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latest.high)}</span>
+                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.high)}</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Low</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latest.low)}</span>
+                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.low)}</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Close</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latest.close)}</span>
+                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.close)}</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Chg%</span>
-                        <span className={`tabular-nums font-semibold ${chgPercentClass(latest.changeRate)}`}>{formatPercent(latest.changeRate)}</span>
+                        <span className={`tabular-nums font-semibold ${chgPercentClass(latestOhlcv.changeRate)}`}>{formatPercent(latestOhlcv.changeRate)}</span>
                       </div>
                       {showLiquidity ? (
                         <>
                           <div className="flex flex-col">
                             <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Vol</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latest.volume, { maxFractionDigits: 0 })}</span>
+                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.volume, { maxFractionDigits: 0 })}</span>
                           </div>
                           <div className="flex flex-col">
                             <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Amount</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latest.amount)}</span>
+                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.amount)}</span>
                           </div>
                         </>
                       ) : null}
                     </div>
-                  )}
+                  ) : null}
                 </>
               ) : (
                 <p className="text-sm text-gray-500">
@@ -242,7 +257,7 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
             </div>
           </div>
 
-          {items.length === 0 && !loading ? (
+          {rowCount === 0 && !loading ? (
             <div className="flex min-h-[8rem] flex-1 items-center justify-center p-8" role="status" aria-live="polite">
               <p className="text-sm text-gray-400">No rows.</p>
             </div>
@@ -251,7 +266,7 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
               <caption className="sr-only">Daily history for the last {RANGE_DAYS} calendar days</caption>
               <thead className="sticky top-0 z-20 bg-gray-100">
                 <tr className="shadow-[0_1px_0_0_rgba(0,0,0,0.08)]">
-                  {latestIsNav ? (
+                  {isNavMode ? (
                     <>
                       <th scope="col" className={thDate}>
                         Date
@@ -298,32 +313,36 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) =>
-                  isFundNavRow(row) ? (
-                    <tr key={row.date} className="group border-b border-gray-100 hover:bg-gray-50">
-                      <td className={tdDate}>{row.date}</td>
-                      <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.close)}</td>
-                      <td className={`px-2 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ${chgPercentClass(row.changeRate)}`}>{formatPercent(row.changeRate)}</td>
-                    </tr>
-                  ) : (
-                    <tr key={row.date} className="group border-b border-gray-100 hover:bg-gray-50">
-                      <td className={tdDate}>{row.date}</td>
-                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.open)}</td>
-                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.high)}</td>
-                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.low)}</td>
-                      <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.close)}</td>
-                      <td className={`px-2 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ${chgPercentClass(row.changeRate)}`}>{formatPercent(row.changeRate)}</td>
-                      {showLiquidity ? (
-                        <>
-                          <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-800 whitespace-nowrap">
-                            {formatNumber(row.volume, { maxFractionDigits: 0 })}
-                          </td>
-                          <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.amount)}</td>
-                        </>
-                      ) : null}
-                    </tr>
-                  )
-                )}
+                {isNavMode
+                  ? navRows.map((row) => (
+                      <tr key={row.date} className="group border-b border-gray-100 hover:bg-gray-50">
+                        <td className={tdDate}>{row.date}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.unitNav)}</td>
+                        <td className={`px-2 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ${chgPercentClass(row.dailyChangePercent)}`}>
+                          {formatPercent(row.dailyChangePercent)}
+                        </td>
+                      </tr>
+                    ))
+                  : ohlcvRows.map((row) => (
+                      <tr key={row.date} className="group border-b border-gray-100 hover:bg-gray-50">
+                        <td className={tdDate}>{row.date}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.open)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.high)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.low)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.close)}</td>
+                        <td className={`px-2 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ${chgPercentClass(row.changeRate)}`}>
+                          {formatPercent(row.changeRate)}
+                        </td>
+                        {showLiquidity ? (
+                          <>
+                            <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-800 whitespace-nowrap">
+                              {formatNumber(row.volume, { maxFractionDigits: 0 })}
+                            </td>
+                            <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.amount)}</td>
+                          </>
+                        ) : null}
+                      </tr>
+                    ))}
               </tbody>
             </table>
           )}

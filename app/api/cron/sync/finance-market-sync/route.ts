@@ -11,12 +11,12 @@ const logger = createLogger('cron-finance-market-sync')
 /**
  * GET /api/cron/sync/finance-market-sync
  * Query:
- * - symbols: optional comma-separated six-digit symbols
+ * - symbols: optional comma-separated symbols (six-digit and/or XAUUSD)
  *   fallback to env FINANCE_MARKET_SYMBOLS, then all Fund/ETF OHLCV tickers from the Finance UI allowlist
  * - startDate/endDate: optional YYYY-MM-DD (when both provided, run range backfill mode)
  */
 export const GET = cron(async (_req, ctx) => {
-  const defaultSymbols = FUND_ETF_OHLCV_SYMBOLS.join(',')
+  const defaultSymbols = [...FUND_ETF_OHLCV_SYMBOLS, 'XAUUSD'].join(',')
   const symbolsRaw = (ctx.searchParams.get('symbols') ?? process.env.FINANCE_MARKET_SYMBOLS ?? defaultSymbols).trim()
   const startDate = (ctx.searchParams.get('startDate') ?? '').trim()
   const endDate = (ctx.searchParams.get('endDate') ?? '').trim()

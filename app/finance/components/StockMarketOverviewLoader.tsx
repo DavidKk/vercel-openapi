@@ -19,7 +19,7 @@ interface StockMarketOverviewLoaderProps {
 }
 
 /**
- * Client-side loader for FMP-backed stock overview: same skeleton and debug panel behavior as
+ * Client-side loader for non-TASI index overview (Yahoo + Eastmoney upstream): same skeleton as
  * {@link TasiOverviewLoader}; loads market summary only (no company table).
  */
 export function StockMarketOverviewLoader({ market, headerTitle = '', headerAddon }: StockMarketOverviewLoaderProps) {

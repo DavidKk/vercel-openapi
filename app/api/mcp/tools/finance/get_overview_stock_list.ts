@@ -8,7 +8,7 @@ import { getOverviewStockList } from '@/services/finance/overview/stockList'
  */
 export const get_overview_stock_list = tool(
   'get_overview_stock_list',
-  'Overview stockList (not full OHLCV): one row per symbol for the range end with price and MACD streak counts. Params: symbols, startDate, endDate; optional syncIfEmpty (default true for allowlisted fund/ETF). For full daily rows use get_market_daily.',
+  'Overview stockList (not full OHLCV): one row per symbol for the range end with price and MACD streak counts. Params: symbols, startDate, endDate; optional syncIfEmpty (default true for allowlisted fund/ETF). For full exchange rows use get_market_daily; for fund NAV LSJZ rows use get_fund_nav_daily.',
   z.object({
     symbols: z.string().describe('Comma-separated six-digit symbols'),
     startDate: z.string().describe('Range start YYYY-MM-DD'),

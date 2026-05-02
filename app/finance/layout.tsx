@@ -1,4 +1,4 @@
-import { TbApi, TbChartLine, TbCode, TbCurrencyDollar, TbFileText, TbRobot, TbWorld } from 'react-icons/tb'
+import { TbApi, TbChartLine, TbCode, TbCoin, TbCurrencyDollar, TbFileText, TbRobot } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -11,23 +11,23 @@ interface FinanceLayoutProps {
 const FINANCE_SIDEBAR_ITEMS = [
   {
     href: '/finance/stock',
-    title: 'Stock Overview',
-    ariaLabel: 'Stock Overview',
+    title: 'Stocks',
+    ariaLabel: 'Stocks',
     icon: <TbChartLine className="h-5 w-5" />,
     matchChildPaths: true,
   },
   {
     href: '/finance/fund',
-    title: 'Fund Overview',
-    ariaLabel: 'Fund Overview',
+    title: 'Funds',
+    ariaLabel: 'Funds',
     icon: <TbCurrencyDollar className="h-5 w-5" />,
     matchChildPaths: true,
   },
   {
-    href: '/finance/gold',
-    title: 'Gold Overview',
-    ariaLabel: 'Gold Overview',
-    icon: <TbWorld className="h-5 w-5" />,
+    href: '/finance/precious-metals',
+    title: 'Precious metals',
+    ariaLabel: 'Precious metals — XAU spot demo only today (like TASI-only on stocks)',
+    icon: <TbCoin className="h-5 w-5" />,
     matchChildPaths: true,
   },
   { href: '/finance/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },

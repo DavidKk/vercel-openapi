@@ -14,13 +14,16 @@ export interface StockMarketSummary {
   low: number | null
   close: number | null
   change: number | null
-  /** Daily % change; FMP from changesPercentage / changePercentage or derived from previousClose vs price. */
+  /** Daily % change (Yahoo: vs chartPreviousClose; Eastmoney: kline changeRate). */
   changePercent: number | null
-  /** Share / contract volume; FMP from volume (or avg aliases). Null when upstream omits it. */
+  /** Share / contract volume; null when upstream omits it (some index bars use zero volume). */
   volumeTraded: number | null
   /**
-   * TASI: exchange turnover in SAR. FMP indices: close×volume when both known (notional index units, not SAR).
+   * TASI: exchange turnover in SAR. Yahoo: close×volume when volume known. Eastmoney: 成交额 when present.
    */
   valueTraded: number | null
-  source: 'tasi' | 'fmp'
+  /**
+   * `fmp` is legacy Turso-only; new rows use Yahoo (US + fallback) or Eastmoney global-index `secid` where wired.
+   */
+  source: 'tasi' | 'yahoo' | 'eastmoney-index' | 'fmp'
 }

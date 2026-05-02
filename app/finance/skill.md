@@ -1,18 +1,28 @@
 ---
 name: finance
-description: When a user asks for Saudi TASI company/index daily (feed/Turso) or a stock-market summary (any overview market) → use the correct REST path and optional market param.
+description: Stocks (index snapshot + exchange index/company daily & hourly; TASI feed today), funds (six-digit OHLCV vs NAV daily), precious metals (XAUUSD via market/daily + Turso eastmoney-precious-spot) — pick the matching REST path.
 ---
 
-# Finance API — stock markets + TASI feed (agent-ready)
+# Finance API — Stocks / Funds / Precious metals (agent-ready)
+
+## Taxonomy (same as sidebar)
+
+| Major               | Meaning                                                                                                                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stocks**          | Stock market: multi-market **index snapshot**, exchange-scoped **index daily**, **index hourly**, **constituent company daily** — today only **TASI** is implemented for `market=` feed paths. |
+| **Funds**           | Six-digit **daily** data in **two shapes**: **exchange daily bars (OHLCV)** vs **NAV disclosure (unit + daily %)**.                                                                            |
+| **Precious metals** | Spot **XAUUSD** daily OHLCV via same route as ETF kline (`GET /api/finance/market/daily?symbols=XAUUSD`); Turso `source=eastmoney-precious-spot`. Only XAUUSD in scope today.                  |
 
 ## When to use
 
-- **Any overview market latest snapshot** (TASI, S&P 500, Dow Jones, Nasdaq, …): `GET /api/finance/stock/summary?market=...` or batch `markets=...`.
-- **Saudi TASI only** — full **company daily** list, **index** history / K-line from feed + Turso: canonical `GET /api/finance/market/company/daily` and `GET /api/finance/market/summary/daily` with **`market=TASI`** (default). Legacy `/api/finance/tasi/...` URLs still work for existing integrations.
-- **Hourly alignment (REST)**: `GET /api/finance/market/summary/hourly?market=TASI` (generic `market`; **TASI only** today). Legacy `GET /api/finance/tasi/summary/hourly` is the same handler.
-- **Six-digit full OHLCV table** (Turso date range, optional `withIndicators` / `syncIfEmpty`): `GET /api/finance/market/daily?symbols=...&startDate=...&endDate=...`.
-- **Overview `stockList` + MACD on latest bar only** (aggregated one row per symbol, not the full daily series): `GET /api/finance/overview/stock-list?symbols=...&startDate=...&endDate=...` (optional `syncIfEmpty`).
-- **Do not** use TASI feed paths for non-TASI company lists — they return **400**; use **stock summary** instead for other indices.
+- **Stocks — index snapshot (all overview markets)** (TASI, S&P 500, Dow Jones, Nasdaq, …): `GET /api/finance/stock/summary?market=...` or batch `markets=...`.
+- **Stocks — index daily (exchange feed; TASI only today)** — index K-line / summary from feed + Turso: `GET /api/finance/market/summary/daily` with **`market=TASI`** (default). Legacy `/api/finance/tasi/summary/daily` works.
+- **Stocks — index hourly (exchange feed; TASI only today)**: `GET /api/finance/market/summary/hourly?market=TASI`. Legacy `GET /api/finance/tasi/summary/hourly` is the same handler.
+- **Stocks — constituents daily (exchange feed; TASI only today)** — company list / K-line: `GET /api/finance/market/company/daily` with **`market=TASI`** (default). Legacy `/api/finance/tasi/company/daily` works.
+- **Funds / precious spot — exchange-style daily OHLCV** (Turso range; six-digit symbols **or** `XAUUSD`; rejects NAV-only codes; optional `withIndicators` / `syncIfEmpty`): `GET /api/finance/market/daily?symbols=...&startDate=...&endDate=...`.
+- **Funds — NAV disclosure daily series** (unit + daily %; LSJZ-backed codes only; optional `syncIfEmpty`): `GET /api/finance/fund/nav/daily?symbols=...&startDate=...&endDate=...`.
+- **Funds — overview `stockList` + MACD** (latest bar per symbol, not full daily rows): `GET /api/finance/overview/stock-list?symbols=...&startDate=...&endDate=...` (optional `syncIfEmpty`).
+- **Do not** use exchange `market=` feed paths for non-TASI markets — they return **400**; use **`/api/finance/stock/summary`** for other overview indices.
 
 ## Multi-turn / Missing parameters
 
@@ -22,7 +32,7 @@ description: When a user asks for Saudi TASI company/index daily (feed/Turso) or
 
 ## Parameters (canonical REST)
 
-### Stock summary (all overview markets)
+### Stocks — index snapshot (all overview markets)
 
 `GET /api/finance/stock/summary`
 
@@ -33,7 +43,7 @@ description: When a user asks for Saudi TASI company/index daily (feed/Turso) or
 
 **HTTP 200 body:** `{ "code": 0, "message": "ok", "data": … }` — single: `data: { "market", "summary" }`; batch: `data: { "items": [...] }`.
 
-### Company daily (TASI feed / Turso)
+### Stocks — constituents daily (TASI feed / Turso)
 
 `GET /api/finance/market/company/daily` — **`market=TASI`** (default). K-line checked first if `code` + `from` + `to` present.
 
@@ -43,7 +53,7 @@ description: When a user asks for Saudi TASI company/index daily (feed/Turso) or
 | Single historical day | `date=YYYY-MM-DD`                   |
 | Company K-line        | `code=<ticker>` `from=...` `to=...` |
 
-### Market summary daily (TASI index feed / Turso)
+### Stocks — index daily (TASI index feed / Turso)
 
 `GET /api/finance/market/summary/daily` — **`market=TASI`** (default).
 
@@ -53,14 +63,14 @@ description: When a user asks for Saudi TASI company/index daily (feed/Turso) or
 | Single day   | `date=YYYY-MM-DD`                 |
 | Index K-line | `from=YYYY-MM-DD` `to=YYYY-MM-DD` |
 
-### Hourly alignment
+### Stocks — index hourly alignment
 
 `GET /api/finance/market/summary/hourly` — optional `market=TASI` (default). **TASI only** today; no other query params.
 
 ## Steps
 
 0. **Conversation cache:** Same full URL already returned **HTTP 200** with usable `data` → reuse.
-1. **Choose path:** stock overview → **stock/summary**; Saudi companies / TASI index history → **market/company** or **market/summary** with `market=TASI`.
+1. **Choose path:** stocks snapshot → **stock/summary**; stocks exchange feed (TASI today) → **market/company/daily** or **market/summary/daily** / **hourly** with `market=TASI`; funds → **market/daily** vs **fund/nav/daily** vs **overview/stock-list**.
 2. **Validate** required query parts for that mode.
 3. **GET** only (no body).
 4. **Check HTTP** then envelope `{ code, message, data }` on **200**.
@@ -95,7 +105,8 @@ GET /api/finance/tasi/summary/hourly
 | `get_market_company_daily`  | TASI company rows; optional `market` (default TASI); `date` or `code`+`from`+`to`.                                                                                                        |
 | `get_market_summary_daily`  | TASI index daily / K-line; optional `market` (default TASI).                                                                                                                              |
 | `get_market_summary_hourly` | TASI SAHMK alignment; optional `market` (default TASI).                                                                                                                                   |
-| `get_market_daily`          | `symbols`, `startDate`, `endDate`; optional `withIndicators`; optional `syncIfEmpty` (default **true** for allowlisted fund/ETF symbols). Returns `synced` when ingest ran.               |
+| `get_market_daily`          | Exchange OHLCV only: `symbols`, `startDate`, `endDate`; optional `withIndicators`; optional `syncIfEmpty` (default **true**). Fund NAV codes → `get_fund_nav_daily`.                      |
+| `get_fund_nav_daily`        | Fund NAV only: same `symbols` / dates; optional `syncIfEmpty` (default **true** for allowlisted NAV catalog). Returns `{ items, synced }` with `unitNav` + `dailyChangePercent`.          |
 | `get_overview_stock_list`   | Same date range + `symbols`; optional `syncIfEmpty`. Returns `{ stockList, synced }` — **one row per symbol** (latest bar + MACD streak), not the full daily series (`get_market_daily`). |
 
 ## Response
@@ -103,7 +114,8 @@ GET /api/finance/tasi/summary/hourly
 Same envelope: **`{ code: 0, message: "ok", data: … }`**. **`data`** may be `[]` or `null` on **200** — treat as no rows, not a transport error.
 
 - **`/api/finance/stock/summary`:** `data` is `{ market, summary }` (single) or `{ items }` (batch), not a bare `ok` flag.
-- **`/api/finance/market/daily`:** `data` includes `{ items, synced }`; `synced: true` means an allowlisted on-demand ingest ran before the final read.
+- **`/api/finance/market/daily`:** `data` is `{ items, synced }` with **exchange OHLCV** rows only (`items[].open` … `turnoverRate`, optional `macdUp`/`macdDown`).
+- **`/api/finance/fund/nav/daily`:** `data` is `{ items, synced }` with **fund NAV** rows (`items[].unitNav`, `items[].dailyChangePercent` only).
 
 ## Examples
 

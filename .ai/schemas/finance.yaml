@@ -1,4 +1,4 @@
-# Finance module — stock overview (multi-market) + TASI feed (company/index daily) + six-digit OHLCV.
+# Finance module — Stocks (TASI-only exchange feed today) / Funds (two six-digit daily types) / Precious metals (XAUUSD via market/daily + Turso eastmoney-precious-spot).
 
 id: finance
 name: Finance
@@ -24,7 +24,7 @@ sidebarItems:
 
 apiPage:
   title: Finance REST API
-  subtitle: Stock summary for all overview markets; TASI company/index daily via market= query; six-digit OHLCV; overview stockList+MACD; hourly alignment.
+  subtitle: Stocks — multi-market index snapshot plus exchange-scoped index/company series (TASI-only feed today). Funds — six-digit exchange daily bars vs NAV disclosure daily. Precious metals — XAUUSD on GET /api/finance/market/daily (Turso source eastmoney-precious-spot).
   endpoints:
     - method: GET
       path: /api/finance/overview/stock-list
@@ -35,7 +35,7 @@ apiPage:
       path: /api/finance/stock/summary
       description: 'Latest index snapshot. Query: market (single, default TASI) or markets (comma-separated). Envelope {code,message,data}; batch uses same cold-start as single per market.'
       exampleResponse: |
-        {"code":0,"message":"ok","data":{"market":"S&P 500","summary":{"market":"S&P 500","date":"2026-05-01","open":5604.1,"high":5650.2,"low":5588.9,"close":5637.2,"change":25.1,"changePercent":0.45,"source":"fmp"}}}
+        {"code":0,"message":"ok","data":{"market":"S&P 500","summary":{"market":"S&P 500","date":"2026-05-01","open":5604.1,"high":5650.2,"low":5588.9,"close":5637.2,"change":25.1,"changePercent":0.45,"source":"yahoo"}}}
     - method: GET
       path: /api/finance/market/company/daily
       description: 'Generic market= (default TASI); TASI only today. No params = today all companies. date= single day. code+from+to = company K-line. Non-TASI → 400.'
@@ -53,22 +53,29 @@ apiPage:
         {}
     - method: GET
       path: /api/finance/market/daily
-      description: 'Six-digit OHLCV (e.g. 518880). Query: symbols,startDate,endDate. Optional withIndicators; optional syncIfEmpty for allowlisted fund/ETF. data.synced when ingest ran.'
+      description: 'Six-digit exchange OHLCV only (e.g. 518880). Rejects fund NAV codes (400). Query: symbols,startDate,endDate. Optional withIndicators; optional syncIfEmpty for allowlisted fund/ETF. data.synced when ingest ran.'
       exampleResponse: |
-        {"code":0,"message":"ok","data":{"items":[{"date":"2025-04-30","symbol":"518880","open":5.715,"close":5.739,"high":5.758,"low":5.715,"volume":2579209,"amount":1480522810,"amplitude":0,"changeRate":1.11,"changeAmount":0.063,"turnoverRate":5.97,"macdUp":3,"macdDown":0,"source":"eastmoney","isPlaceholder":false}],"synced":false}}
+        {"code":0,"message":"ok","data":{"items":[{"date":"2025-04-30","symbol":"518880","open":5.715,"close":5.739,"high":5.758,"low":5.715,"volume":2579209,"amount":1480522810,"amplitude":0,"changeRate":1.11,"changeAmount":0.063,"turnoverRate":5.97,"macdUp":3,"macdDown":0}],"synced":false}}
+    - method: GET
+      path: /api/finance/fund/nav/daily
+      description: 'Fund LSJZ NAV only (configured NAV six-digit codes). Query: symbols,startDate,endDate; optional syncIfEmpty for allowlisted NAV catalog. data.items: unitNav, dailyChangePercent.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"items":[{"date":"2024-12-31","symbol":"012922","unitNav":1.346,"dailyChangePercent":-1.15}],"synced":false}}
   playgroundComponentName: FinanceApiPlayground
   playgroundImportPath: '@/app/finance/api/components'
 
 mcpPage:
   title: Finance MCP tools
-  subtitle: Market-aware TASI feed tools, hourly alignment, six-digit OHLCV, and multi-market stock summary.
+  subtitle: Market-aware TASI feed tools, hourly alignment, six-digit exchange OHLCV, fund NAV daily, and multi-market stock summary.
   tools:
     - name: get_stock_summary
       description: 'Params: market (single) or markets (comma-separated batch).'
     - name: get_overview_stock_list
       description: 'Params: symbols, startDate, endDate; optional syncIfEmpty. Returns stockList with MACD streak.'
     - name: get_market_daily
-      description: 'Params: symbols, startDate, endDate; optional withIndicators; optional syncIfEmpty (default true for allowlisted symbols). Returns synced.'
+      description: 'Exchange OHLCV only: symbols, startDate, endDate; optional withIndicators; optional syncIfEmpty (default true). Fund NAV → get_fund_nav_daily.'
+    - name: get_fund_nav_daily
+      description: 'Fund NAV only: symbols, startDate, endDate; optional syncIfEmpty (default true for allowlisted NAV catalog). Returns items with unitNav and dailyChangePercent.'
     - name: get_market_company_daily
       description: 'Params: optional market (TASI default), date, or code+from+to for K-line.'
     - name: get_market_summary_daily

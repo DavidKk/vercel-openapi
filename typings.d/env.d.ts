@@ -24,8 +24,9 @@ declare namespace NodeJS {
     /** Secret for cron routes (e.g. /api/cron/sync/movies-sync, tasi-sync) */
     CRON_SECRET?: string
     /**
-     * Finance feed (TASI) base URL: GET .../market/company/daily?market=TASI (array),
-     * .../market/summary/daily?market=TASI (object). Legacy /api/finance/tasi/* aliases same handlers.
+     * cf-feed-bridge base URL (no trailing slash). Server-side TASI ingest calls
+     * `GET {TASI_FEED_URL}/api/finance/tasi/company/daily` and `.../tasi/summary/daily` (see `services/finance/tasi/fetch.ts`).
+     * Public Next API remains `/api/finance/market/company/daily` etc.
      */
     TASI_FEED_URL?: string
     /** Preferred feed request headers JSON. Example: {"x-api-key":"...","x-internal-call":"vercel"} */

@@ -1,5 +1,5 @@
 import { getFundEtfDisplayName } from '@/app/finance/constants/fundEtfOhlcv'
-import { attachMacdIndicators, getMarketDailyWithOptionalSync, isFundEtfOhlcvSymbolSetAllowedForSync, parseDate, parseSymbols } from '@/services/finance/market/daily'
+import { attachMacdIndicators, getMarketDailyWithOptionalSync, isMarketDailyOhlcvSymbolSetAllowedForSync, parseDate, parseSymbols } from '@/services/finance/market/daily'
 import type { FinanceMarketDailyRecord } from '@/services/finance/market/daily/types'
 
 /**
@@ -76,7 +76,7 @@ export async function getOverviewStockList(options: {
   if (symbols.length === 0 || !sd || !ed || sd > ed) {
     return { stockList: [], synced: false }
   }
-  const allow = isFundEtfOhlcvSymbolSetAllowedForSync(symbols)
+  const allow = isMarketDailyOhlcvSymbolSetAllowedForSync(symbols)
   const { items, synced } = await getMarketDailyWithOptionalSync({
     symbolsRaw: options.symbolsRaw,
     startDate: options.startDate,

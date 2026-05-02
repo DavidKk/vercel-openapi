@@ -14,7 +14,7 @@ export default function FinanceMcpPage() {
       <section className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col border-r border-gray-200 bg-white md:w-1/2 md:min-w-[320px] md:flex-1">
         <DocPanelHeader
           title="Finance MCP tools"
-          subtitle="Market-aware tools: TASI company/index daily (optional market, default TASI), hourly alignment, six-digit OHLCV, and multi-market stock summary."
+          subtitle="Same grouping as the finance sidebar: stocks (index snapshot + TASI-only exchange daily/hourly + constituents), funds (exchange daily bars vs NAV daily + overview stock-list), precious metals (no MCP — XAU demo page only)."
         />
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
           <McpOneClickInstallBar endpointPath="/api/mcp/finance" className="mb-3" />
@@ -42,11 +42,15 @@ export default function FinanceMcpPage() {
               <code className="rounded bg-gray-100 px-0.5">market=TASI</code>).
             </li>
             <li>
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_daily</code> — Six-digit symbols OHLCV:{' '}
-              <code className="rounded bg-gray-100 px-0.5">symbols</code>, <code className="rounded bg-gray-100 px-0.5">startDate</code>,{' '}
-              <code className="rounded bg-gray-100 px-0.5">endDate</code>; optional <code className="rounded bg-gray-100 px-0.5">withIndicators</code>; optional{' '}
-              <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code> (default true for allowlisted fund/ETF). Returns{' '}
-              <code className="rounded bg-gray-100 px-0.5">synced</code>.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_daily</code> — OHLCV for six-digit symbols or{' '}
+              <code className="rounded bg-gray-100 px-0.5">XAUUSD</code> (rejects fund NAV codes): <code className="rounded bg-gray-100 px-0.5">symbols</code>,{' '}
+              <code className="rounded bg-gray-100 px-0.5">startDate</code>, <code className="rounded bg-gray-100 px-0.5">endDate</code>; optional{' '}
+              <code className="rounded bg-gray-100 px-0.5">withIndicators</code>; optional <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code>.
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_fund_nav_daily</code> — Fund NAV only (LSJZ): same date params; optional{' '}
+              <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code>. Returns <code className="rounded bg-gray-100 px-0.5">unitNav</code> and{' '}
+              <code className="rounded bg-gray-100 px-0.5">dailyChangePercent</code> per row.
             </li>
             <li>
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_overview_stock_list</code> — Latest per symbol with MACD streak (stock.md):{' '}

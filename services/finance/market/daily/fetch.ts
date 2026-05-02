@@ -41,6 +41,21 @@ export function buildEastmoneySecid(symbol: string): string {
   return `0.${symbol}`
 }
 
+/** Eastmoney unified `secid` for spot gold vs USD (`push2his` stock/kline; name 黄金/美元). */
+export const EASTMONEY_XAUUSD_SECID = '122.XAU'
+
+/**
+ * Resolve `secid` for Eastmoney historical kline (`/api/qt/stock/kline/get`).
+ * Six-digit symbols use SH/SZ market prefix rules; **XAUUSD** maps to {@link EASTMONEY_XAUUSD_SECID}.
+ *
+ * @param symbol Six-digit code or `XAUUSD`
+ * @returns `secid` query value
+ */
+export function resolveEastmoneySecidForKline(symbol: string): string {
+  if (symbol === 'XAUUSD') return EASTMONEY_XAUUSD_SECID
+  return buildEastmoneySecid(symbol)
+}
+
 /**
  * Parse Eastmoney kline row into canonical daily record.
  *
@@ -107,7 +122,7 @@ export async function fetchDailyRangeFromEastmoney(
   const today = new Date()
   const defaultEnd = `${today.getUTCFullYear()}${String(today.getUTCMonth() + 1).padStart(2, '0')}${String(today.getUTCDate()).padStart(2, '0')}`
   const params = new URLSearchParams({
-    secid: buildEastmoneySecid(symbol),
+    secid: resolveEastmoneySecidForKline(symbol),
     fields1: 'f1,f2,f3,f4,f5',
     fields2: 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
     klt: '101',
@@ -133,9 +148,80 @@ export async function fetchDailyRangeFromEastmoney(
   const records: FinanceMarketDailyRecord[] = []
   for (const line of lines) {
     const parsed = parseEastmoneyKline(symbol, line)
-    if (parsed) records.push(parsed)
+    if (!parsed) continue
+    parsed.source = symbol === 'XAUUSD' ? 'eastmoney-precious-spot' : 'eastmoney'
+    records.push(parsed)
   }
   return records
+}
+
+/**
+ * Fetch daily kline rows using a raw Eastmoney `secid` (global indices: e.g. `100.HSI`, `1.000300`).
+ *
+ * @param secid Eastmoney `secid` query value
+ * @param recordSymbol Label stored on each {@link FinanceMarketDailyRecord.symbol}
+ * @param options Range options (same semantics as {@link fetchDailyRangeFromEastmoney})
+ * @returns Parsed daily records
+ */
+export async function fetchDailyRangeFromEastmoneySecid(
+  secid: string,
+  recordSymbol: string,
+  options: {
+    endDate?: string
+    limit: number
+  }
+): Promise<FinanceMarketDailyRecord[]> {
+  const base = decodeBase64Url(EASTMONEY_KLINE_BASE64)
+  const referer = decodeBase64Url(EASTMONEY_REFERER_BASE64)
+  const today = new Date()
+  const defaultEnd = `${today.getUTCFullYear()}${String(today.getUTCMonth() + 1).padStart(2, '0')}${String(today.getUTCDate()).padStart(2, '0')}`
+  const params = new URLSearchParams({
+    secid,
+    fields1: 'f1,f2,f3,f4,f5',
+    fields2: 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
+    klt: '101',
+    fqt: '1',
+    end: options.endDate ?? defaultEnd,
+    lmt: String(options.limit),
+  })
+  const url = `${base}?${params.toString()}`
+  logger.info('fetch eastmoney kline by secid', { secid, recordSymbol })
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': EASTMONEY_UA,
+      Referer: referer,
+    },
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!response.ok) {
+    logger.warn('eastmoney secid fetch failed', { secid, status: response.status })
+    return []
+  }
+  const body = (await response.json()) as { data?: { klines?: string[] } }
+  const lines = body?.data?.klines ?? []
+  const records: FinanceMarketDailyRecord[] = []
+  for (const line of lines) {
+    const parsed = parseEastmoneyKline(recordSymbol, line)
+    if (!parsed) continue
+    parsed.source = 'eastmoney-global-index'
+    records.push(parsed)
+  }
+  return records
+}
+
+/**
+ * Latest daily bar for a global index via raw Eastmoney `secid`.
+ *
+ * @param secid Eastmoney `secid` (e.g. `100.HSI`)
+ * @param recordSymbol Stored on returned row `symbol`
+ * @returns Latest row or null
+ */
+export async function fetchLatestDailyFromEastmoneySecid(secid: string, recordSymbol: string): Promise<FinanceMarketDailyRecord | null> {
+  const records = await fetchDailyRangeFromEastmoneySecid(secid, recordSymbol, {
+    endDate: undefined,
+    limit: 1,
+  })
+  return records[0] ?? null
 }
 
 /** Single row from Eastmoney fund LSJZ JSON */

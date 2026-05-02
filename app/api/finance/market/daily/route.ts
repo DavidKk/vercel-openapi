@@ -1,6 +1,12 @@
 import { api } from '@/initializer/controller'
-import { jsonSuccess } from '@/initializer/response'
-import { getMarketDailyWithOptionalSync, isFundEtfOhlcvSymbolSetAllowedForSync, parseSymbols } from '@/services/finance/market/daily'
+import { cacheControlNoStoreHeaders, jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
+import {
+  getMarketDailyWithOptionalSync,
+  isMarketDailyOhlcvSymbolSetAllowedForSync,
+  marketDailySymbolsRejectionMessage,
+  parseSymbols,
+  toPublicOhlcvRecord,
+} from '@/services/finance/market/daily'
 import { createLogger } from '@/services/logger'
 
 export const runtime = 'nodejs'
@@ -9,13 +15,14 @@ const logger = createLogger('api-finance-market-daily')
 
 /**
  * GET /api/finance/market/daily
+ * Exchange-traded daily bars only (no fund NAV codes — use `GET /api/finance/fund/nav/daily`).
  * Query:
- * - symbols: comma-separated six-digit symbols (required)
+ * - symbols: comma-separated symbols (required): six-digit ETF/stock codes or **XAUUSD** (spot gold vs USD, Eastmoney `122.XAU`)
  * - startDate: YYYY-MM-DD (required)
  * - endDate: YYYY-MM-DD (required)
  * - withIndicators: true/false (optional, default false)
  * - syncIfEmpty: when `true` and the first read returns no rows, runs Eastmoney range ingest then re-reads
- *   (only if every symbol is in `FUND_ETF_OHLCV_SYMBOLS`; Turso must be configured for writes)
+ *   (only if every symbol is allowlisted: `FUND_ETF_OHLCV_SYMBOLS` and/or `XAUUSD`; Turso must be configured for writes)
  */
 export const GET = api(async (_req, ctx) => {
   const symbolsRaw = ctx.searchParams.get('symbols') ?? ''
@@ -25,7 +32,13 @@ export const GET = api(async (_req, ctx) => {
   const syncIfEmpty = (ctx.searchParams.get('syncIfEmpty') ?? '').toLowerCase() === 'true'
   logger.info('request', { symbolsRaw, startDate, endDate, withIndicators, syncIfEmpty })
 
-  const allowIngest = isFundEtfOhlcvSymbolSetAllowedForSync(parseSymbols(symbolsRaw))
+  const symbols = parseSymbols(symbolsRaw)
+  const navReject = marketDailySymbolsRejectionMessage(symbols)
+  if (navReject) {
+    return jsonInvalidParameters(navReject, { headers: cacheControlNoStoreHeaders() })
+  }
+
+  const allowIngest = isMarketDailyOhlcvSymbolSetAllowedForSync(symbols)
   const { items, synced } = await getMarketDailyWithOptionalSync({
     symbolsRaw,
     startDate,
@@ -38,9 +51,14 @@ export const GET = api(async (_req, ctx) => {
     logger.warn('syncIfEmpty produced no rows', { symbolsRaw, allowIngest, synced })
   }
 
+  const publicItems = items.map(toPublicOhlcvRecord).filter((row): row is NonNullable<typeof row> => row != null)
+  if (publicItems.length !== items.length) {
+    logger.warn('dropped non-OHLCV rows from market/daily response', { symbolsRaw, internal: items.length, public: publicItems.length })
+  }
+
   return jsonSuccess(
     {
-      items,
+      items: publicItems,
       synced,
     },
     {

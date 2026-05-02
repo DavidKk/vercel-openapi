@@ -10,7 +10,7 @@ import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
 import type { RequestExampleInput } from '@/utils/requestExamples'
 
-type Endpoint = 'company' | 'summary' | 'summaryHourly' | 'stockSummary' | 'stockSummaryBatch' | 'marketDaily' | 'overviewStockList'
+type Endpoint = 'company' | 'summary' | 'summaryHourly' | 'stockSummary' | 'stockSummaryBatch' | 'marketDaily' | 'fundNavDaily' | 'overviewStockList'
 
 interface FinanceApiState {
   loading: boolean
@@ -37,7 +37,7 @@ interface FinanceApiState {
 }
 
 /**
- * Interactive GET playground for Finance REST routes (TASI market scopes, stock summary, six-digit daily).
+ * Interactive GET playground for Finance REST routes (TASI market scopes, stock summary, six-digit exchange OHLCV vs fund NAV daily).
  */
 export function FinanceApiPlayground() {
   const [state, setState] = useState<FinanceApiState>({
@@ -67,6 +67,7 @@ export function FinanceApiPlayground() {
     if (endpoint === 'summary') return '/api/finance/market/summary/daily'
     if (endpoint === 'summaryHourly') return '/api/finance/market/summary/hourly'
     if (endpoint === 'marketDaily') return '/api/finance/market/daily'
+    if (endpoint === 'fundNavDaily') return '/api/finance/fund/nav/daily'
     if (endpoint === 'overviewStockList') return '/api/finance/overview/stock-list'
     return '/api/finance/stock/summary'
   }
@@ -78,6 +79,7 @@ export function FinanceApiPlayground() {
     const baseSummaryHourly = '/api/finance/market/summary/hourly'
     const baseStock = '/api/finance/stock/summary'
     const baseMarketDaily = '/api/finance/market/daily'
+    const baseFundNavDaily = '/api/finance/fund/nav/daily'
     const baseOverviewStockList = '/api/finance/overview/stock-list'
 
     let url: string
@@ -122,6 +124,13 @@ export function FinanceApiPlayground() {
       if (state.mdWithIndicators) q.set('withIndicators', 'true')
       if (state.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
       url = `${baseMarketDaily}?${q.toString()}`
+    } else if (state.endpoint === 'fundNavDaily') {
+      const q = new URLSearchParams()
+      q.set('symbols', state.mdSymbols)
+      q.set('startDate', state.mdStart)
+      q.set('endDate', state.mdEnd)
+      if (state.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      url = `${baseFundNavDaily}?${q.toString()}`
     } else if (state.endpoint === 'overviewStockList') {
       const q = new URLSearchParams()
       q.set('symbols', state.ovSymbols)
@@ -231,6 +240,13 @@ export function FinanceApiPlayground() {
       if (mdWithIndicators) q.set('withIndicators', 'true')
       if (mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
       url = `${path}?${q.toString()}`
+    } else if (endpoint === 'fundNavDaily') {
+      const q = new URLSearchParams()
+      q.set('symbols', mdSymbols)
+      q.set('startDate', mdStart)
+      q.set('endDate', mdEnd)
+      if (mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      url = `${path}?${q.toString()}`
     } else if (endpoint === 'overviewStockList') {
       const q = new URLSearchParams()
       q.set('symbols', ovSymbols)
@@ -275,23 +291,29 @@ export function FinanceApiPlayground() {
                   { value: 'summaryHourly', label: 'TASI — Summary hourly' },
                   { value: 'stockSummary', label: 'Stock summary — single market' },
                   { value: 'stockSummaryBatch', label: 'Stock summary — batch (markets=)' },
-                  { value: 'marketDaily', label: 'Six-digit — Market daily OHLCV' },
+                  { value: 'marketDaily', label: 'Six-digit — Exchange daily OHLCV' },
+                  { value: 'fundNavDaily', label: 'Six-digit — Fund NAV daily (LSJZ)' },
                   { value: 'overviewStockList', label: 'Overview — stockList + MACD (latest per symbol)' },
                 ]}
               />
             </label>
-            {endpoint !== 'summaryHourly' && endpoint !== 'stockSummary' && endpoint !== 'stockSummaryBatch' && endpoint !== 'marketDaily' && endpoint !== 'overviewStockList' && (
-              <label className="flex flex-col gap-1">
-                <span>date (optional, YYYY-MM-DD)</span>
-                <input
-                  type="text"
-                  className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                  value={date}
-                  onChange={(e) => setState((prev) => ({ ...prev, date: e.target.value }))}
-                  placeholder="e.g. 2025-03-01"
-                />
-              </label>
-            )}
+            {endpoint !== 'summaryHourly' &&
+              endpoint !== 'stockSummary' &&
+              endpoint !== 'stockSummaryBatch' &&
+              endpoint !== 'marketDaily' &&
+              endpoint !== 'fundNavDaily' &&
+              endpoint !== 'overviewStockList' && (
+                <label className="flex flex-col gap-1">
+                  <span>date (optional, YYYY-MM-DD)</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={date}
+                    onChange={(e) => setState((prev) => ({ ...prev, date: e.target.value }))}
+                    placeholder="e.g. 2025-03-01"
+                  />
+                </label>
+              )}
             {endpoint === 'company' && (
               <>
                 <label className="flex flex-col gap-1">
@@ -413,7 +435,7 @@ export function FinanceApiPlayground() {
                 </label>
               </>
             )}
-            {endpoint === 'marketDaily' && (
+            {(endpoint === 'marketDaily' || endpoint === 'fundNavDaily') && (
               <>
                 <label className="flex flex-col gap-1">
                   <span>symbols (comma-separated six-digit)</span>
@@ -422,7 +444,7 @@ export function FinanceApiPlayground() {
                     className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
                     value={mdSymbols}
                     onChange={(e) => setState((prev) => ({ ...prev, mdSymbols: e.target.value }))}
-                    placeholder="518880,510300"
+                    placeholder={endpoint === 'fundNavDaily' ? '012922,016665' : '518880,510300'}
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -445,13 +467,15 @@ export function FinanceApiPlayground() {
                     placeholder="YYYY-MM-DD"
                   />
                 </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={mdWithIndicators} onChange={(e) => setState((prev) => ({ ...prev, mdWithIndicators: e.target.checked }))} />
-                  <span>withIndicators</span>
-                </label>
+                {endpoint === 'marketDaily' ? (
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={mdWithIndicators} onChange={(e) => setState((prev) => ({ ...prev, mdWithIndicators: e.target.checked }))} />
+                    <span>withIndicators</span>
+                  </label>
+                ) : null}
                 <label className="flex items-center gap-2">
                   <input type="checkbox" checked={mdSyncIfEmpty} onChange={(e) => setState((prev) => ({ ...prev, mdSyncIfEmpty: e.target.checked }))} />
-                  <span>syncIfEmpty (allowlisted fund/ETF symbols only)</span>
+                  <span>syncIfEmpty (allowlisted symbols only)</span>
                 </label>
               </>
             )}

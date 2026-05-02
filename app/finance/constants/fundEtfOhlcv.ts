@@ -1,3 +1,5 @@
+import { FUND_NAV_SIX_DIGIT_CODES } from '@/services/finance/market/daily/fundNavSymbols'
+
 /**
  * Fund / ETF / LOF six-digit symbols backed by offline CSV under `股票历史数据/` (ingest + `/finance/fund`).
  * Order: numeric sort. NAV-only codes use Eastmoney LSJZ via {@link isFundNavSixDigitSymbol} in services.
@@ -71,6 +73,19 @@ const FUND_ETF_DISPLAY_NAMES = {
 
 const FUND_ETF_SYMBOL_SET = new Set<string>(FUND_ETF_SYMBOL_ORDER as unknown as string[])
 
+/** Six-digit codes in this catalog that use fund NAV (LSJZ) instead of exchange OHLCV. */
+const FUND_NAV_SYMBOL_SET = new Set<string>(FUND_NAV_SIX_DIGIT_CODES)
+
+/**
+ * Whether this catalog symbol uses fund NAV APIs (`/api/finance/fund/nav/daily`) instead of exchange OHLCV.
+ *
+ * @param symbol Six-digit code
+ * @returns True when the UI should call the fund NAV route
+ */
+export function isFundNavCatalogSymbol(symbol: string): boolean {
+  return FUND_NAV_SYMBOL_SET.has(symbol)
+}
+
 /**
  * Display name only (no six-digit code).
  *
@@ -110,6 +125,44 @@ export const FUND_ETF_DEFAULT_SYMBOL: FundEtfOhlcvSymbol = '515180'
  * Rows for dropdowns: `key` is route segment, `title` is `name (code)`.
  */
 export const FUND_ETF_OHLCV_SUB_TABS: ReadonlyArray<{ key: string; title: string }> = [...FUND_ETF_OHLCV_ROWS]
+
+/**
+ * One section in the fund page symbol picker (exchange daily vs fund NAV).
+ */
+export interface FundEtfDropdownGroup {
+  /** Stable section id */
+  groupId: 'session' | 'nav'
+  /** Non-interactive heading shown above the rows */
+  groupLabel: string
+  /** Menu rows for this section */
+  rows: ReadonlyArray<{ key: string; title: string }>
+}
+
+const SESSION_SYMBOLS = FUND_ETF_SYMBOL_ORDER.filter((s) => !FUND_NAV_SYMBOL_SET.has(s))
+const NAV_SYMBOLS = FUND_ETF_SYMBOL_ORDER.filter((s) => FUND_NAV_SYMBOL_SET.has(s))
+
+function fundEtfTabRows(symbols: readonly FundEtfOhlcvSymbol[]): ReadonlyArray<{ key: string; title: string }> {
+  return symbols.map((key) => ({ key, title: formatFundEtfTitle(key) }))
+}
+
+const FUND_ETF_DROPDOWN_GROUPS_RAW: ReadonlyArray<FundEtfDropdownGroup> = [
+  {
+    groupId: 'session',
+    groupLabel: 'Exchange daily (OHLCV)',
+    rows: fundEtfTabRows(SESSION_SYMBOLS),
+  },
+  {
+    groupId: 'nav',
+    groupLabel: 'Fund NAV (unit value)',
+    rows: fundEtfTabRows(NAV_SYMBOLS),
+  },
+]
+
+/**
+ * Grouped rows for `/finance/fund` dropdown: trading-session bars first, then NAV-only funds.
+ * Empty sections are omitted.
+ */
+export const FUND_ETF_DROPDOWN_GROUPS: ReadonlyArray<FundEtfDropdownGroup> = FUND_ETF_DROPDOWN_GROUPS_RAW.filter((g) => g.rows.length > 0)
 
 /**
  * Whether a symbol is one of the configured Fund/ETF tickers.

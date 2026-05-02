@@ -2,10 +2,22 @@ import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLAS
 import { DocEndpointRow } from '@/components/DocEndpointRow'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 
+import {
+  FINANCE_MAJOR,
+  FUNDS_API_SECTION_TITLE,
+  FUNDS_DAILY_SUBTYPE,
+  FUNDS_OVERVIEW_STOCKLIST_TITLE,
+  PRECIOUS_METALS_API_PLACEHOLDER,
+  PRECIOUS_METALS_API_SECTION_SUBTITLE,
+  STOCKS_API_SECTION_TITLE,
+  STOCKS_API_SUBGROUP,
+} from '../constants/financeApiTaxonomy'
 import { FinanceApiPlayground } from './components'
 
+const SUBHEAD = 'mt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-700'
+
 /**
- * Finance REST API page. Left: docs; Right: playground.
+ * Finance REST API page. Left: docs grouped like sidebar (Stocks / Funds / Precious metals); Right: playground.
  */
 export default function FinanceApiPage() {
   return (
@@ -13,47 +25,51 @@ export default function FinanceApiPage() {
       <section className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col border-r border-gray-200 bg-white md:w-1/2 md:min-w-[320px] md:flex-1">
         <DocPanelHeader
           title="Finance REST API"
-          subtitle="Stock overview markets (FMP + TASI), Saudi company/index daily (TASI feed + Turso), six-digit OHLCV, and hourly alignment. Prefer market query on canonical paths below."
+          subtitle="Grouped like the finance sidebar: stocks (index snapshot + exchange daily/hourly + constituents; feed TASI-only today), funds (two six-digit daily shapes), precious metals (XAUUSD on market/daily + Turso source eastmoney-precious-spot)."
         />
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
-          <h2 className={DOC_SECTION_TITLE_CLASS}>Overview stockList (MACD on latest bar)</h2>
+          <h2 className={DOC_SECTION_TITLE_CLASS}>
+            {FINANCE_MAJOR.stocks} — {STOCKS_API_SECTION_TITLE}
+          </h2>
           <p className="mb-2 text-[10px] leading-relaxed text-gray-600">
-            Unlike <code className="rounded bg-gray-100 px-1 py-0.5">GET /api/finance/market/daily</code> (full OHLCV rows for the range), this endpoint returns one summarized row
-            per symbol plus MACD streak fields on that latest bar.
+            These are <strong className="font-medium">stock-market</strong> series (指数与成分). Paths use <code className="rounded bg-gray-100 px-1 py-0.5">market=</code> where
+            noted; <strong className="font-medium">only TASI is wired</strong> for exchange-feed routes today — other markets return <strong className="font-medium">400</strong>.
+            Use <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/stock/summary</code> for other overview indices. Legacy{' '}
+            <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/tasi/…</code> aliases the same handlers.
           </p>
-          <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/finance/overview/stock-list" enableCopy />
-            <p className={DOC_ENDPOINT_DESC_CLASS}>
-              Required: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">symbols</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>
-              , <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>. Returns envelope{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.stockList</code> (fields: date, stockCode, stockName, price, macdUp, macdDown) using the same MACD
-              math as <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">stock.md</code> (pandas EWM 12/26/9, histogram 2×(DIF−DEA), streak from latest). Optional{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code> for allowlisted fund/ETF symbols.
-            </p>
-          </div>
 
-          <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Stock summary (all overview markets)</h2>
+          <h3 className={SUBHEAD}>{STOCKS_API_SUBGROUP.indexSnapshotMultiMarket}</h3>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/finance/stock/summary" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Envelope <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{`{ code, message, data }`}</code>: single →{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.market</code> + <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.summary</code>;
               batch → <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.items</code>.{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=TASI</code> (default) or{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">S&amp;P 500</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">Dow Jones</code>,{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">Nasdaq</code>, … — latest snapshot (TASI from feed path; others from FMP where supported). Batch:{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">markets=TASI,S&amp;P 500,Dow Jones</code> (same cold-start as single per market).
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=TASI</code> (default) or S&amp;P 500, Dow Jones, Nasdaq, … — latest snapshot (TASI from feed
+              path; others from Eastmoney global index + Yahoo chart, no paid API key).
             </p>
           </div>
 
-          <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Market-scoped daily &amp; hourly (generic URL; TASI only today)</h2>
-          <p className="mb-2 text-[10px] leading-relaxed text-gray-600">
-            All paths below use a <code className="rounded bg-gray-100 px-1 py-0.5">market</code> query (default <code className="rounded bg-gray-100 px-1 py-0.5">TASI</code>). The
-            interface is generic; <strong className="font-medium">only TASI is implemented</strong> for these feeds — other markets return{' '}
-            <strong className="font-medium">400</strong>. Use <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/stock/summary</code> for other indices. Legacy{' '}
-            <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/tasi/…</code> aliases the same handlers.
-          </p>
+          <h3 className={SUBHEAD}>{STOCKS_API_SUBGROUP.indexDailyFromFeed}</h3>
+          <div className={DOC_ENDPOINT_BOX_CLASS}>
+            <DocEndpointRow method="GET" path="/api/finance/market/summary/daily" enableCopy />
+            <p className={DOC_ENDPOINT_DESC_CLASS}>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=TASI</code> (default). No params = today index summary.{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">date=</code> single day; <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">from</code> +{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">to</code> = index K-line.
+            </p>
+          </div>
 
+          <h3 className={SUBHEAD}>{STOCKS_API_SUBGROUP.indexHourlyFromFeed}</h3>
+          <div className={DOC_ENDPOINT_BOX_CLASS}>
+            <DocEndpointRow method="GET" path="/api/finance/market/summary/hourly" enableCopy />
+            <p className={DOC_ENDPOINT_DESC_CLASS}>
+              Optional <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=TASI</code> (default). <strong className="font-medium">TASI only</strong> — SAHMK vs
+              daily summary field alignment. <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">SAHMK_API_KEY</code> server-side.
+            </p>
+          </div>
+
+          <h3 className={SUBHEAD}>{STOCKS_API_SUBGROUP.constituentsDailyFromFeed}</h3>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/finance/market/company/daily" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
@@ -64,37 +80,55 @@ export default function FinanceApiPage() {
             </p>
           </div>
 
-          <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/finance/market/summary/daily" enableCopy />
-            <p className={DOC_ENDPOINT_DESC_CLASS}>
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=TASI</code> (default). No params = today index summary.{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">date=</code> single day; <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">from</code> +{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">to</code> = index K-line.
-            </p>
-          </div>
-
-          <div className={DOC_ENDPOINT_BOX_CLASS}>
-            <DocEndpointRow method="GET" path="/api/finance/market/summary/hourly" enableCopy />
-            <p className={DOC_ENDPOINT_DESC_CLASS}>
-              Optional <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=TASI</code> (default). <strong className="font-medium">TASI only</strong> — SAHMK vs
-              daily summary field alignment. <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">SAHMK_API_KEY</code> server-side.
-            </p>
-          </div>
-
-          <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Six-digit market OHLCV (full daily series)</h2>
+          <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>
+            {FINANCE_MAJOR.funds} — {FUNDS_API_SECTION_TITLE}
+          </h2>
           <p className="mb-2 text-[10px] leading-relaxed text-gray-600">
-            Raw (or indicator-enriched) daily rows for each symbol in the date window — not the single-row-per-symbol overview used by stock-list above.
+            Six-digit catalog: two <strong className="font-medium">daily</strong> response families — <strong className="font-medium">exchange OHLCV</strong> (listed/traded) vs{' '}
+            <strong className="font-medium">NAV disclosure</strong> (unit + daily %). Do not mix symbols across routes.
           </p>
+
+          <h3 className={SUBHEAD}>{FUNDS_DAILY_SUBTYPE.exchangeDailyBars}</h3>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/finance/market/daily" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
-              Required: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">symbols</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>
-              , <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>. Optional{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators=true</code>,{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty=true</code> (on-demand ingest only when every symbol is on the configured fund/ETF
-              allowlist). Response <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.synced</code> is true when that ingest ran.
+              Required: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">symbols</code> (six-digit or{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">XAUUSD</code>), <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>,{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>. Optional{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>.
+              Turso stores <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">source=eastmoney</code> vs{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">eastmoney-precious-spot</code> for XAUUSD. Fund NAV-only codes →{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/fund/nav/daily</code>.
             </p>
           </div>
+
+          <h3 className={SUBHEAD}>{FUNDS_DAILY_SUBTYPE.navDisclosureDaily}</h3>
+          <div className={DOC_ENDPOINT_BOX_CLASS}>
+            <DocEndpointRow method="GET" path="/api/finance/fund/nav/daily" enableCopy />
+            <p className={DOC_ENDPOINT_DESC_CLASS}>
+              Required: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">symbols</code> (configured NAV codes only),{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>. Optional{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>. Response rows:{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">unitNav</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">dailyChangePercent</code>{' '}
+              only.
+            </p>
+          </div>
+
+          <h3 className={SUBHEAD}>{FUNDS_OVERVIEW_STOCKLIST_TITLE}</h3>
+          <div className={DOC_ENDPOINT_BOX_CLASS}>
+            <DocEndpointRow method="GET" path="/api/finance/overview/stock-list" enableCopy />
+            <p className={DOC_ENDPOINT_DESC_CLASS}>
+              Required: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">symbols</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>
+              , <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>. Returns{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.stockList</code> (latest bar per symbol + MACD streak). Optional{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code> for allowlisted fund/ETF symbols.
+            </p>
+          </div>
+
+          <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>
+            {FINANCE_MAJOR.preciousMetals} — {PRECIOUS_METALS_API_SECTION_SUBTITLE}
+          </h2>
+          <p className="text-[10px] leading-relaxed text-gray-600">{PRECIOUS_METALS_API_PLACEHOLDER}</p>
 
           <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Response example (company daily)</h2>
           <pre className="max-h-48 overflow-auto rounded bg-white p-2 text-[10px] leading-relaxed text-gray-800">

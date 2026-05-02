@@ -47,6 +47,25 @@ function focusMenuInitial(menu: HTMLElement | null) {
   menu.focus({ preventScroll: true })
 }
 
+/**
+ * Scroll the first selected option into view inside the menu’s scrollable region (custom scrollbar panel).
+ * {@link focusMenuInitial} uses `preventScroll`, so the list would otherwise stay at the top.
+ * @param menu Root element of the portaled menu panel
+ */
+function scrollMenuSelectionIntoView(menu: HTMLElement | null) {
+  if (!menu) {
+    return
+  }
+  const selected =
+    menu.querySelector<HTMLElement>('button[role="option"][aria-selected="true"]:not([disabled])') ??
+    menu.querySelector<HTMLElement>('[role="menuitemradio"][aria-checked="true"]:not([disabled])') ??
+    menu.querySelector<HTMLElement>('[role="menuitem"][aria-selected="true"]:not([aria-disabled="true"])')
+  if (!selected) {
+    return
+  }
+  selected.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+}
+
 export interface FloatingDropdownProps {
   /** Whether the menu panel is visible */
   open: boolean
@@ -157,7 +176,9 @@ export function FloatingDropdown(props: FloatingDropdownProps) {
     updatePosition()
     const raf = requestAnimationFrame(() => {
       updatePosition()
-      focusMenuInitial(menuRef.current)
+      const panel = menuRef.current
+      focusMenuInitial(panel)
+      scrollMenuSelectionIntoView(panel)
     })
     function onReposition() {
       updatePosition()

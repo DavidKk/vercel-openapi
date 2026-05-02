@@ -8,7 +8,10 @@ import type { FinanceMarketDailyRecord } from './types'
 
 export type { FundNavSixDigitCode } from './fundNavSymbols'
 export { FUND_NAV_SIX_DIGIT_CODES, isFundNavSixDigitSymbol } from './fundNavSymbols'
-export { isFundEtfOhlcvSymbolSetAllowedForSync } from './syncAllowlist'
+export { toPublicFundNavRecord, toPublicOhlcvRecord } from './publicRecords'
+export { fundNavDailySymbolsRejectionMessage, marketDailySymbolsRejectionMessage } from './symbolPolicy'
+export { isFundEtfOhlcvSymbolSetAllowedForSync, isFundNavSymbolSetAllowedForSync, isMarketDailyOhlcvSymbolSetAllowedForSync } from './syncAllowlist'
+export type { FinanceFundNavDailyRecord, FinanceMarketOhlcvDailyRecord } from './types'
 
 const logger = createLogger('finance-market-daily')
 
@@ -29,8 +32,11 @@ export function parseDate(value: string): string | null {
   return value
 }
 
+/** Non–six-digit symbols accepted on OHLCV market routes (uppercase canonical). */
+const MARKET_DAILY_EXTRA_SYMBOLS = new Set<string>(['XAUUSD'])
+
 /**
- * Parse and validate six-digit symbols from comma-separated text.
+ * Parse and validate symbols from comma-separated text: six-digit codes plus allowlisted tickers (e.g. **XAUUSD**).
  *
  * @param symbolsRaw Comma-separated symbols
  * @returns Valid unique symbol list
@@ -38,8 +44,13 @@ export function parseDate(value: string): string | null {
 export function parseSymbols(symbolsRaw: string): string[] {
   const set = new Set<string>()
   for (const chunk of symbolsRaw.split(',')) {
-    const symbol = chunk.trim()
-    if (/^\d{6}$/.test(symbol)) set.add(symbol)
+    const raw = chunk.trim()
+    if (/^\d{6}$/.test(raw)) {
+      set.add(raw)
+      continue
+    }
+    const upper = raw.toUpperCase()
+    if (MARKET_DAILY_EXTRA_SYMBOLS.has(upper)) set.add(upper)
   }
   return [...set]
 }
@@ -107,8 +118,15 @@ export async function getMarketDailyWithOptionalSync(options: {
  * @param symbols Symbol list
  * @returns Sync summary
  */
+function isValidMarketDailyIngestSymbol(symbol: string): boolean {
+  return /^\d{6}$/.test(symbol) || symbol === 'XAUUSD'
+}
+
+/**
+ * @param symbols Raw symbol strings (may include spaces)
+ */
 export async function runMarketDailyIngest(symbols: string[]): Promise<{ total: number; written: number }> {
-  const validSymbols = symbols.filter((symbol) => /^\d{6}$/.test(symbol))
+  const validSymbols = symbols.map((s) => s.trim()).filter(isValidMarketDailyIngestSymbol)
   if (validSymbols.length === 0) return { total: 0, written: 0 }
   const results = await Promise.all(
     validSymbols.map((symbol) => (isFundNavSixDigitSymbol(symbol) ? fetchLatestFundNavFromEastmoney(symbol) : fetchLatestDailyFromEastmoney(symbol)))
@@ -130,7 +148,7 @@ export async function runMarketDailyIngest(symbols: string[]): Promise<{ total: 
 export async function runMarketDailyIngestRange(options: { symbols: string[]; startDate: string; endDate: string }): Promise<{ total: number; written: number }> {
   const startDate = parseDate(options.startDate)
   const endDate = parseDate(options.endDate)
-  const validSymbols = options.symbols.filter((symbol) => /^\d{6}$/.test(symbol))
+  const validSymbols = options.symbols.filter(isValidMarketDailyIngestSymbol)
   if (!startDate || !endDate || startDate > endDate || validSymbols.length === 0) {
     return { total: 0, written: 0 }
   }

@@ -1,5 +1,5 @@
 /**
- * API skill document for agents: Finance REST under /api/finance/market/* (TASI), /api/finance/stock/summary (multi-market), and related MCP tools.
+ * API skill document for agents: Finance REST (stocks / funds / precious metals), TASI-scoped market routes, and related MCP tools.
  */
 import TASI_API_SKILL_MD from './skill.md?raw'
 

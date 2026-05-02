@@ -25,7 +25,7 @@ export interface TasiOverviewSkeletonProps {
 
 /**
  * Skeleton for stock overview: header row + market summary strip + table header + body rows.
- * Used by TASI loader and FMP market loader for identical loading UX.
+ * Used by TASI loader and non-TASI index loader for identical loading UX.
  */
 export function TasiOverviewSkeleton(props?: TasiOverviewSkeletonProps) {
   const leadingTitle = props?.leadingTitle?.trim() ?? ''

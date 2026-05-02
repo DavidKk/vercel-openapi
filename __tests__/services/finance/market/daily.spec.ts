@@ -25,6 +25,11 @@ describe('services/finance/market/daily', () => {
     expect(symbols).toEqual(['518880', '510300', '000001'])
   })
 
+  it('should parse XAUUSD case-insensitively alongside six-digit codes', () => {
+    const symbols = parseSymbols('518880, xauusd')
+    expect(symbols).toEqual(['518880', 'XAUUSD'])
+  })
+
   it('should map fund LSJZ row to daily record with NAV as close and changeRate', () => {
     const row = parseEastmoneyFundNavLsjzItem('012922', { FSRQ: '2024-12-31', DWJZ: '1.3460', JZZZL: '-1.15' })
     expect(row).toMatchObject({

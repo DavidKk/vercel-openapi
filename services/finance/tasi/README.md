@@ -4,7 +4,7 @@
 
 - **KV (Upstash)**: Current-day snapshot (`tasi-daily.json` payload). Source of truth for "today" when not expired. Must have a TTL; after expiry we re-fetch from remote.
 - **DB (Turso)**: Backup / history only. Not used for "current" read. New trading days are written here for backup and for K-line / history APIs.
-- **Remote (cf-feed-bridge)**: Live data. Used when the KV snapshot is expired or missing.
+- **Remote (cf-feed-bridge)**: Live data. Used when the KV snapshot is expired or missing. Server calls **`GET {TASI_FEED_URL}/api/finance/tasi/company/daily`** and **`.../tasi/summary/daily`** (not `/api/finance/market/*` — those are this Next app’s public routes).
 
 ## Read path (today)
 

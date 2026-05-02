@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 
 /**
- * Gold overview page.
+ * Legacy quote-lite route → canonical precious metals overview.
  */
 export default function FinanceQuoteLitePage() {
-  redirect('/finance/gold')
+  redirect('/finance/precious-metals')
 }

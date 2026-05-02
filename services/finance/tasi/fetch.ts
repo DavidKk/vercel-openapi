@@ -9,6 +9,12 @@ import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 
 const logger = createLogger('finance-tasi-fetch')
 
+/**
+ * Paths on **cf-feed-bridge** (Worker). Bridge uses `/api/finance/tasi/*`; this app’s Next routes use `/api/finance/market/*` as the public API.
+ */
+const BRIDGE_COMPANY_DAILY_PATH = '/api/finance/tasi/company/daily'
+const BRIDGE_SUMMARY_DAILY_PATH = '/api/finance/tasi/summary/daily'
+
 /** TTL for in-memory cache (ms). 60s to reduce requests during development. */
 const TASI_BRIDGE_CACHE_MS = 60 * 1000
 
@@ -84,11 +90,12 @@ export async function fetchCompanyDailyFromBridge(): Promise<TasiCompanyDailyRec
     return companyCache!.value
   }
   const base = getTasiFeedBaseUrl()
-  logger.info('company daily: in-memory cache miss, fetching from bridge', { url: `${base}/api/finance/market/company/daily?market=TASI` })
-  const res = await fetch(`${base}/api/finance/market/company/daily?market=TASI`, { headers: buildBridgeHeaders() })
+  const url = `${base}${BRIDGE_COMPANY_DAILY_PATH}`
+  logger.info('company daily: in-memory cache miss, fetching from bridge', { url })
+  const res = await fetch(url, { headers: buildBridgeHeaders() })
   if (!res.ok) {
-    logger.fail('company daily: bridge failed', { status: res.status })
-    throw new Error(`cf-feed-bridge company/daily failed: ${res.status}`)
+    logger.fail('company daily: bridge failed', { status: res.status, url })
+    throw new Error(`cf-feed-bridge company/daily failed: ${res.status} (${url})`)
   }
   const body = (await res.json()) as TasiCompanyDailyRecord[] | { data?: TasiCompanyDailyRecord[] }
   const data = Array.isArray(body) ? body : body?.data
@@ -114,11 +121,12 @@ export async function fetchSummaryFromBridge(): Promise<TasiMarketSummary> {
     return summaryCache!.value
   }
   const base = getTasiFeedBaseUrl()
-  logger.info('summary daily: in-memory cache miss, fetching from bridge', { url: `${base}/api/finance/market/summary/daily?market=TASI` })
-  const res = await fetch(`${base}/api/finance/market/summary/daily?market=TASI`, { headers: buildBridgeHeaders() })
+  const url = `${base}${BRIDGE_SUMMARY_DAILY_PATH}`
+  logger.info('summary daily: in-memory cache miss, fetching from bridge', { url })
+  const res = await fetch(url, { headers: buildBridgeHeaders() })
   if (!res.ok) {
-    logger.fail('summary daily: bridge failed', { status: res.status })
-    throw new Error(`cf-feed-bridge summary/daily failed: ${res.status}`)
+    logger.fail('summary daily: bridge failed', { status: res.status, url })
+    throw new Error(`cf-feed-bridge summary/daily failed: ${res.status} (${url})`)
   }
   const body = (await res.json()) as TasiMarketSummary | { data?: TasiMarketSummary }
   const data = body != null && typeof body === 'object' && 'data' in body && (body as { data?: TasiMarketSummary }).data != null ? (body as { data: TasiMarketSummary }).data : body
