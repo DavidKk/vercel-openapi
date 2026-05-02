@@ -2,13 +2,14 @@ import type { FinanceFundNavDailyRecord, FinanceMarketDailyRecord, FinanceMarket
 
 /**
  * Map an internal persisted row to the exchange OHLCV public shape; skip fund NAV rows.
+ * Every OHLCV object includes `macdUp` and `macdDown` (number or `null`), matching stock.md `stockList` MACD streak fields.
  *
  * @param row Row from Turso / ingest pipeline
  * @returns Public OHLCV object or null when the row is fund NAV
  */
 export function toPublicOhlcvRecord(row: FinanceMarketDailyRecord): FinanceMarketOhlcvDailyRecord | null {
   if (row.source === 'eastmoney-fund-nav') return null
-  const out: FinanceMarketOhlcvDailyRecord = {
+  return {
     date: row.date,
     symbol: row.symbol,
     open: row.open,
@@ -21,12 +22,9 @@ export function toPublicOhlcvRecord(row: FinanceMarketDailyRecord): FinanceMarke
     changeRate: row.changeRate,
     changeAmount: row.changeAmount,
     turnoverRate: row.turnoverRate,
+    macdUp: row.macdUp ?? null,
+    macdDown: row.macdDown ?? null,
   }
-  if (row.macdUp != null || row.macdDown != null) {
-    out.macdUp = row.macdUp ?? null
-    out.macdDown = row.macdDown ?? null
-  }
-  return out
 }
 
 /**

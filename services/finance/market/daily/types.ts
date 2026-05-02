@@ -41,8 +41,15 @@ export interface FinanceMarketOhlcvDailyRecord {
   changeRate: number
   changeAmount: number
   turnoverRate: number
-  macdUp?: number | null
-  macdDown?: number | null
+  /**
+   * MACD histogram streak (Python `get_macd` / stock.md). Always on OHLCV rows; `null` when `withIndicators` was false or this bar is not the
+   * enriched latest-in-range bar for its symbol.
+   */
+  macdUp: number | null
+  /**
+   * MACD histogram streak down phase after the up phase; same presence rules as `macdUp` on this row.
+   */
+  macdDown: number | null
 }
 
 /**

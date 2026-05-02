@@ -124,9 +124,11 @@ export default function FinanceApiPage() {
             </p>
             <DocEndpointRow method="GET" path="/api/finance/fund/518880/ohlcv/dailylatest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
-              Latest one OHLCV bar for that path symbol. Response <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{`{ asOf, items, synced }`}</code>. Optional{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators</code>; <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>{' '}
-              defaults <strong className="font-medium">true</strong> when omitted. Legacy:{' '}
+              Latest one OHLCV bar for that path symbol. Response <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{`{ asOf, items, synced }`}</code>.{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators</code> defaults <strong className="font-medium">true</strong> (pass{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">false</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">0</code>,{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">no</code>, or <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">off</code> to skip MACD
+              streak); <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code> defaults <strong className="font-medium">true</strong> when omitted. Legacy:{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/daily/latest?symbols=…</code>.
             </p>
           </div>

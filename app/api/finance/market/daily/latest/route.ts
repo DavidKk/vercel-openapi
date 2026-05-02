@@ -1,6 +1,12 @@
 import { api } from '@/initializer/controller'
 import { cacheControlNoStoreHeaders, jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
-import { getMarketOhlcvLatestDaily, isMarketDailyOhlcvSymbolSetAllowedForSync, marketDailySymbolsRejectionMessage, parseSymbols } from '@/services/finance/market/daily'
+import {
+  getMarketOhlcvLatestDaily,
+  isMarketDailyOhlcvSymbolSetAllowedForSync,
+  marketDailySymbolsRejectionMessage,
+  parseSymbols,
+  parseWithIndicatorsLatestDefaultTrue,
+} from '@/services/finance/market/daily'
 import { createLogger } from '@/services/logger'
 
 export const runtime = 'nodejs'
@@ -10,12 +16,12 @@ const logger = createLogger('api-finance-market-daily-latest')
 /**
  * GET /api/finance/market/daily/latest
  * One latest exchange OHLCV bar per symbol (six-digit or XAUUSD). Rejects fund NAV codes.
- * Query: symbols (required). Optional withIndicators; syncIfEmpty defaults true when omitted.
+ * Query: symbols (required). Optional withIndicators (defaults **true**; `false`, `0`, `no`, or `off` to skip MACD streak); syncIfEmpty defaults true when omitted.
  * Response data: { asOf, items, synced } — asOf is ISO-8601 response time; items[].date is the bar calendar date.
  */
 export const GET = api(async (_req, ctx) => {
   const symbolsRaw = ctx.searchParams.get('symbols') ?? ''
-  const withIndicators = (ctx.searchParams.get('withIndicators') ?? '').toLowerCase() === 'true'
+  const withIndicators = parseWithIndicatorsLatestDefaultTrue(ctx.searchParams.get('withIndicators'))
   const syncRaw = ctx.searchParams.get('syncIfEmpty')
   const syncIfEmpty = syncRaw == null || syncRaw === '' ? true : syncRaw.toLowerCase() === 'true'
   logger.info('request', { symbolsRaw, withIndicators, syncIfEmpty })

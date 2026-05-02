@@ -20,7 +20,8 @@ const logger = createLogger('api-finance-market-daily')
  * - symbols: comma-separated symbols (required): six-digit ETF/stock codes or **XAUUSD** (spot gold vs USD, Eastmoney `122.XAU`)
  * - startDate: YYYY-MM-DD (required)
  * - endDate: YYYY-MM-DD (required)
- * - withIndicators: true/false (optional, default false)
+ * - withIndicators: true/false (optional, default false) — streak counts on the latest bar per symbol when true;
+ *   every item always includes `macdUp` and `macdDown` (number or null)
  * - syncIfEmpty: when `true` and the first read returns no rows, runs Eastmoney range ingest then re-reads
  *   (only if every symbol is allowlisted: `FUND_ETF_OHLCV_SYMBOLS` and/or `XAUUSD`; Turso must be configured for writes)
  */

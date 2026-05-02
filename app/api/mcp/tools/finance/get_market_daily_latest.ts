@@ -8,10 +8,13 @@ import { getMarketOhlcvLatestDaily, isMarketDailyOhlcvSymbolSetAllowedForSync, m
  */
 export const get_market_daily_latest = tool(
   'get_market_daily_latest',
-  'Latest one exchange OHLCV row per symbol (no start/end dates). Optional withIndicators; syncIfEmpty defaults true. Returns { asOf, items, synced } where asOf is ISO-8601 response time and items[].date is the bar trade calendar date.',
+  'Latest one exchange OHLCV row per symbol (no start/end dates). withIndicators defaults true (pass false to skip); syncIfEmpty defaults true. Returns { asOf, items, synced }; items[].macdUp/macdDown always present (null if skipped or insufficient lookback).',
   z.object({
     symbols: z.string().describe('Comma-separated symbols: six-digit codes and/or XAUUSD'),
-    withIndicators: z.boolean().optional().describe('Whether to include macdUp/macdDown on rows when enough history exists'),
+    withIndicators: z
+      .boolean()
+      .optional()
+      .describe('Defaults true (MACD streak on latest bar). Set false to skip indicator CPU; items always include macdUp/macdDown (null when off or insufficient history)'),
     syncIfEmpty: z.boolean().optional().describe('When true (default), fetch latest from Eastmoney for symbols missing in Turso (allowlisted set only)'),
   }),
   async (params) => {
@@ -27,7 +30,7 @@ export const get_market_daily_latest = tool(
     const allowOnDemandIngest = isMarketDailyOhlcvSymbolSetAllowedForSync(symbols)
     return getMarketOhlcvLatestDaily({
       symbolsRaw: params.symbols,
-      withIndicators: params.withIndicators ?? false,
+      withIndicators: params.withIndicators !== false,
       syncIfEmpty,
       allowOnDemandIngest,
     })

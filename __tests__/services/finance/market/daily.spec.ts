@@ -1,5 +1,5 @@
 import { fetchDailyRangeFromEastmoney, fetchFundNavRangeFromEastmoney, parseEastmoneyFundNavLsjzItem } from '@/services/finance/market/daily/fetch'
-import { getMarketDaily, parseSymbols, runMarketDailyIngestRange } from '@/services/finance/market/daily/index'
+import { getMarketDaily, parseSymbols, runMarketDailyIngestRange, toPublicOhlcvRecord } from '@/services/finance/market/daily/index'
 import { readMarketDailyByRange, upsertMarketDailyRecords } from '@/services/finance/market/daily/turso'
 
 jest.mock('@/services/finance/market/daily/fetch', () => ({
@@ -18,6 +18,40 @@ jest.mock('@/services/finance/market/daily/turso', () => ({
 describe('services/finance/market/daily', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  it('should always set macdUp and macdDown on public OHLCV rows (null when absent on internal row)', () => {
+    const base = {
+      date: '2025-01-01',
+      symbol: '518880',
+      open: 1,
+      close: 2,
+      high: 2,
+      low: 1,
+      volume: 1,
+      amount: 1,
+      amplitude: 0,
+      changeRate: 0,
+      changeAmount: 0,
+      turnoverRate: 0,
+      source: 'eastmoney' as const,
+      isPlaceholder: false,
+    }
+    const without = toPublicOhlcvRecord({ ...base })
+    expect(without).not.toBeNull()
+    expect(without).toEqual(
+      expect.objectContaining({
+        macdUp: null,
+        macdDown: null,
+      })
+    )
+    const withMacd = toPublicOhlcvRecord({ ...base, macdUp: 2, macdDown: 1 })
+    expect(withMacd).toEqual(
+      expect.objectContaining({
+        macdUp: 2,
+        macdDown: 1,
+      })
+    )
   })
 
   it('should parse symbols as unique six-digit codes', () => {

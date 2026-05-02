@@ -1,7 +1,13 @@
 import { singleFundPathSymbol } from '@/app/api/finance/fund/fundSymbolPath'
 import { api } from '@/initializer/controller'
 import { cacheControlNoStoreHeaders, jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
-import { getMarketOhlcvLatestDaily, isMarketDailyOhlcvSymbolSetAllowedForSync, marketDailySymbolsRejectionMessage, parseSymbols } from '@/services/finance/market/daily'
+import {
+  getMarketOhlcvLatestDaily,
+  isMarketDailyOhlcvSymbolSetAllowedForSync,
+  marketDailySymbolsRejectionMessage,
+  parseSymbols,
+  parseWithIndicatorsLatestDefaultTrue,
+} from '@/services/finance/market/daily'
 import { createLogger } from '@/services/logger'
 
 export const runtime = 'nodejs'
@@ -11,6 +17,7 @@ const logger = createLogger('api-finance-fund-symbol-ohlcv-dailylatest')
 /**
  * GET /api/finance/fund/:symbol/ohlcv/dailylatest
  * Single-symbol latest OHLCV bar (same semantics as GET /api/finance/market/daily/latest?symbols=:symbol).
+ * Query: optional withIndicators (defaults **true**; `false`, `0`, `no`, or `off` to skip MACD streak); syncIfEmpty defaults true when omitted.
  */
 export const GET = api<{ symbol: string }>(async (_req, ctx) => {
   const params = await ctx.params
@@ -19,7 +26,7 @@ export const GET = api<{ symbol: string }>(async (_req, ctx) => {
     return jsonInvalidParameters('Path must be a single six-digit code or XAUUSD.', { headers: cacheControlNoStoreHeaders() })
   }
   const symbolsRaw = sym
-  const withIndicators = (ctx.searchParams.get('withIndicators') ?? '').toLowerCase() === 'true'
+  const withIndicators = parseWithIndicatorsLatestDefaultTrue(ctx.searchParams.get('withIndicators'))
   const syncRaw = ctx.searchParams.get('syncIfEmpty')
   const syncIfEmpty = syncRaw == null || syncRaw === '' ? true : syncRaw.toLowerCase() === 'true'
   logger.info('request', { symbolsRaw, withIndicators, syncIfEmpty })

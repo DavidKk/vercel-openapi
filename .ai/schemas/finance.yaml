@@ -63,7 +63,7 @@ apiPage:
         {"code":0,"message":"ok","data":{"items":[],"synced":false}}
     - method: GET
       path: /api/finance/fund/518880/ohlcv/dailylatest
-      description: 'Single-symbol latest OHLCV bar. Optional withIndicators; syncIfEmpty defaults true. Legacy GET /api/finance/market/daily/latest?symbols=518880.'
+      description: 'Single-symbol latest OHLCV bar. withIndicators defaults true (pass false, 0, no, or off to skip MACD streak); syncIfEmpty defaults true. Legacy GET /api/finance/market/daily/latest?symbols=518880.'
       exampleResponse: |
         {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[],"synced":false}}
     - method: GET
@@ -103,14 +103,14 @@ apiPage:
         {}
     - method: GET
       path: /api/finance/market/daily
-      description: 'Six-digit exchange OHLCV only (e.g. 518880). Rejects fund NAV codes (400). Query: symbols,startDate,endDate. Optional withIndicators; optional syncIfEmpty for allowlisted fund/ETF. data.synced when ingest ran.'
+      description: 'Six-digit exchange OHLCV only (e.g. 518880). Rejects fund NAV codes (400). Query: symbols,startDate,endDate. Optional withIndicators; optional syncIfEmpty for allowlisted fund/ETF. Each item always includes macdUp/macdDown (numbers when withIndicators=true on the latest bar per symbol, else null). data.synced when ingest ran.'
       exampleResponse: |
-        {"code":0,"message":"ok","data":{"items":[{"date":"2025-04-30","symbol":"518880","open":5.715,"close":5.739,"high":5.758,"low":5.715,"volume":2579209,"amount":1480522810,"amplitude":0,"changeRate":1.11,"changeAmount":0.063,"turnoverRate":5.97,"macdUp":3,"macdDown":0}],"synced":false}}
+        {"code":0,"message":"ok","data":{"items":[{"date":"2025-04-29","symbol":"518880","open":5.7,"close":5.71,"high":5.72,"low":5.69,"volume":1,"amount":1,"amplitude":0,"changeRate":0,"changeAmount":0,"turnoverRate":0,"macdUp":null,"macdDown":null},{"date":"2025-04-30","symbol":"518880","open":5.715,"close":5.739,"high":5.758,"low":5.715,"volume":2579209,"amount":1480522810,"amplitude":0,"changeRate":1.11,"changeAmount":0.063,"turnoverRate":5.97,"macdUp":3,"macdDown":0}],"synced":false}}
     - method: GET
       path: /api/finance/market/daily/latest
-      description: 'Latest one OHLCV bar per symbol (no date range). Query: symbols; optional withIndicators; syncIfEmpty defaults true. data: asOf (ISO-8601), items (same row shape as market/daily), synced.'
+      description: 'Latest one OHLCV bar per symbol (no date range). Query: symbols; withIndicators defaults true (false, 0, no, or off to skip); syncIfEmpty defaults true. data: asOf (ISO-8601), items (same row shape as market/daily, always macdUp/macdDown keys), synced.'
       exampleResponse: |
-        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[{"date":"2026-05-01","symbol":"510300","open":4.1,"close":4.09,"high":4.12,"low":4.08,"volume":1,"amount":1,"amplitude":0,"changeRate":0,"changeAmount":0,"turnoverRate":0}],"synced":false}}
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[{"date":"2026-05-01","symbol":"510300","open":4.1,"close":4.09,"high":4.12,"low":4.08,"volume":1,"amount":1,"amplitude":0,"changeRate":0,"changeAmount":0,"turnoverRate":0,"macdUp":2,"macdDown":0}],"synced":false}}
     - method: GET
       path: /api/finance/fund/nav/daily
       description: 'Fund LSJZ NAV only (configured NAV six-digit codes). Query: symbols,startDate,endDate; optional syncIfEmpty for allowlisted NAV catalog. data.items: unitNav, dailyChangePercent.'
@@ -145,7 +145,7 @@ mcpPage:
     - name: get_market_daily
       description: 'Exchange OHLCV only: symbols, startDate, endDate; optional withIndicators; optional syncIfEmpty (default true). Fund NAV → get_fund_nav_daily.'
     - name: get_market_daily_latest
-      description: 'Latest one OHLCV bar per symbol: symbols only; optional withIndicators; optional syncIfEmpty (default true). Returns { asOf, items, synced }.'
+      description: 'Latest one OHLCV bar per symbol: symbols only; withIndicators defaults true (boolean false to skip); optional syncIfEmpty (default true). Returns { asOf, items, synced }.'
     - name: get_fund_nav_daily
       description: 'Fund NAV only: symbols, startDate, endDate; optional syncIfEmpty (default true for allowlisted NAV catalog). Returns items with unitNav and dailyChangePercent.'
     - name: get_fund_nav_daily_latest

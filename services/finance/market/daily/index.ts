@@ -14,6 +14,7 @@ export { toPublicFundNavRecord, toPublicOhlcvRecord }
 export { fundNavDailySymbolsRejectionMessage, marketDailySymbolsRejectionMessage } from './symbolPolicy'
 export { isFundEtfOhlcvSymbolSetAllowedForSync, isFundNavSymbolSetAllowedForSync, isMarketDailyOhlcvSymbolSetAllowedForSync } from './syncAllowlist'
 export type { FinanceFundNavDailyRecord, FinanceMarketOhlcvDailyRecord } from './types'
+export { parseWithIndicatorsLatestDefaultTrue } from './withIndicatorsQuery'
 
 const logger = createLogger('finance-market-daily')
 

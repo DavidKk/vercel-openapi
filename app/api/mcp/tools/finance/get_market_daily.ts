@@ -14,12 +14,15 @@ import {
  */
 export const get_market_daily = tool(
   'get_market_daily',
-  'Get exchange daily OHLCV for six-digit symbols (e.g. 518880). Canonical REST per symbol: GET /api/finance/fund/{symbol}/ohlcv/daily. Fund NAV codes must use get_fund_nav_daily. Requires symbols,startDate,endDate; optional withIndicators; optional syncIfEmpty (default true) re-fetches from Eastmoney when Turso is empty for allowlisted fund/ETF symbols only. Returns items plus synced when a backfill ingest ran.',
+  'Get exchange daily OHLCV for six-digit symbols (e.g. 518880). Canonical REST per symbol: GET /api/finance/fund/{symbol}/ohlcv/daily. Fund NAV codes must use get_fund_nav_daily. Requires symbols,startDate,endDate; optional withIndicators; optional syncIfEmpty (default true) re-fetches from Eastmoney when Turso is empty for allowlisted fund/ETF symbols only. Each item always includes macdUp and macdDown (null unless withIndicators and enriched). Returns items plus synced when a backfill ingest ran.',
   z.object({
     symbols: z.string().describe('Comma-separated symbols: six-digit codes and/or XAUUSD, e.g. 518880,510300 or XAUUSD'),
     startDate: z.string().describe('Start date YYYY-MM-DD'),
     endDate: z.string().describe('End date YYYY-MM-DD'),
-    withIndicators: z.boolean().optional().describe('Whether to include macdUp/macdDown on latest row'),
+    withIndicators: z
+      .boolean()
+      .optional()
+      .describe('When true, computes MACD streak counts on the latest bar per symbol; items always include macdUp and macdDown keys (null when false or insufficient history)'),
     syncIfEmpty: z.boolean().optional().describe('When true (default), attempt allowlisted on-demand ingest if first read is empty'),
   }),
   async (params) => {

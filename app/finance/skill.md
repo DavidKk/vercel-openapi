@@ -104,19 +104,19 @@ GET /api/finance/tasi/summary/hourly
 
 ## MCP / function calling (same `tool` names as POST `/api/mcp/finance`)
 
-| Tool                              | Role                                                                                                                                                                                      |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_stock_summary`               | Latest snapshot: `market` or `markets` (comma-separated).                                                                                                                                 |
-| `get_market_company_daily`        | TASI company rows; optional `market` (default TASI); `date` or `code`+`from`+`to`.                                                                                                        |
-| `get_market_summary_daily`        | TASI index daily / K-line; optional `market` (default TASI).                                                                                                                              |
-| `get_market_summary_hourly`       | TASI SAHMK alignment; optional `market` (default TASI).                                                                                                                                   |
-| `get_market_daily`                | Exchange OHLCV only: `symbols`, `startDate`, `endDate`; optional `withIndicators`; optional `syncIfEmpty` (default **true**). Fund NAV codes → `get_fund_nav_daily`.                      |
-| `get_market_daily_latest`         | Latest one OHLCV bar per symbol: `symbols` only; optional `withIndicators`; optional `syncIfEmpty` (default **true**). Returns `{ asOf, items, synced }`.                                 |
-| `get_fund_nav_daily`              | Fund NAV only: same `symbols` / dates; optional `syncIfEmpty` (default **true** for allowlisted NAV catalog). Returns `{ items, synced }` with `unitNav` + `dailyChangePercent`.          |
-| `get_fund_nav_daily_latest`       | Latest one NAV row per symbol: `symbols` only; optional `syncIfEmpty` (default **true**). Returns `{ asOf, items, synced }`.                                                              |
-| `get_market_summary_daily_latest` | TASI index latest session; optional `market` (default TASI). Returns `{ asOf, dataDate, summary }`.                                                                                       |
-| `get_market_company_daily_latest` | TASI all companies latest session; optional `market` (default TASI). Returns `{ asOf, dataDate, items }`.                                                                                 |
-| `get_overview_stock_list`         | Same date range + `symbols`; optional `syncIfEmpty`. Returns `{ stockList, synced }` — **one row per symbol** (latest bar + MACD streak), not the full daily series (`get_market_daily`). |
+| Tool                              | Role                                                                                                                                                                                                           |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_stock_summary`               | Latest snapshot: `market` or `markets` (comma-separated).                                                                                                                                                      |
+| `get_market_company_daily`        | TASI company rows; optional `market` (default TASI); `date` or `code`+`from`+`to`.                                                                                                                             |
+| `get_market_summary_daily`        | TASI index daily / K-line; optional `market` (default TASI).                                                                                                                                                   |
+| `get_market_summary_hourly`       | TASI SAHMK alignment; optional `market` (default TASI).                                                                                                                                                        |
+| `get_market_daily`                | Exchange OHLCV only: `symbols`, `startDate`, `endDate`; optional `withIndicators`; optional `syncIfEmpty` (default **true**). Fund NAV codes → `get_fund_nav_daily`.                                           |
+| `get_market_daily_latest`         | Latest one OHLCV bar per symbol: `symbols` only; optional `withIndicators` (default **true**, pass `false` to skip MACD streak); optional `syncIfEmpty` (default **true**). Returns `{ asOf, items, synced }`. |
+| `get_fund_nav_daily`              | Fund NAV only: same `symbols` / dates; optional `syncIfEmpty` (default **true** for allowlisted NAV catalog). Returns `{ items, synced }` with `unitNav` + `dailyChangePercent`.                               |
+| `get_fund_nav_daily_latest`       | Latest one NAV row per symbol: `symbols` only; optional `syncIfEmpty` (default **true**). Returns `{ asOf, items, synced }`.                                                                                   |
+| `get_market_summary_daily_latest` | TASI index latest session; optional `market` (default TASI). Returns `{ asOf, dataDate, summary }`.                                                                                                            |
+| `get_market_company_daily_latest` | TASI all companies latest session; optional `market` (default TASI). Returns `{ asOf, dataDate, items }`.                                                                                                      |
+| `get_overview_stock_list`         | Same date range + `symbols`; optional `syncIfEmpty`. Returns `{ stockList, synced }` — **one row per symbol** (latest bar + MACD streak), not the full daily series (`get_market_daily`).                      |
 
 ## Response
 
