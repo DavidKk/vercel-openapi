@@ -10,49 +10,16 @@ jest.mock('@/services/finance/stock/turso', () => ({
   upsertStockSummaryDaily: jest.fn(),
 }))
 
-/** Minimal Yahoo chart v8 body used in tests */
-function yahooChartBody(overrides: Record<string, unknown> = {}): unknown {
-  return {
-    chart: {
-      result: [
-        {
-          meta: {
-            currency: 'USD',
-            symbol: '^GSPC',
-            regularMarketPrice: 7230.12,
-            chartPreviousClose: 7165.08,
-            regularMarketDayHigh: 7272.52,
-            regularMarketDayLow: 7229.32,
-            regularMarketVolume: 2918281000,
-            regularMarketTime: 1714521600,
-            exchangeTimezoneName: 'America/New_York',
-            ...overrides,
-          },
-          timestamp: [1714521600],
-          indicators: {
-            quote: [
-              {
-                open: [7234.5],
-                high: [7272.5],
-                low: [7229.3],
-                close: [7230.12],
-                volume: [2918281000],
-              },
-            ],
-          },
-        },
-      ],
-      error: null,
-    },
-  }
-}
-
 describe('services/finance/stock', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
     jest.clearAllMocks()
-    process.env = { ...originalEnv }
+    process.env = {
+      ...originalEnv,
+      FMP_API_KEY: 'test-key',
+      FMP_BASE_URL: 'https://example.test/stable',
+    }
     global.fetch = jest.fn()
   })
 
@@ -72,7 +39,7 @@ describe('services/finance/stock', () => {
       changePercent: 0.2,
       volumeTraded: 100,
       valueTraded: 150,
-      source: 'yahoo',
+      source: 'fmp',
     })
 
     const summary = await getStockSummary('S&P 500')
@@ -81,22 +48,38 @@ describe('services/finance/stock', () => {
     expect(upsertStockSummaryDaily).not.toHaveBeenCalled()
   })
 
-  it('should fetch Yahoo chart once and upsert on cold start for US index', async () => {
+  it('should fetch once and upsert on cold start', async () => {
     ;(readLatestStockSummary as jest.Mock).mockResolvedValue(null)
     ;(fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify(yahooChartBody()),
+      json: async () => [
+        {
+          open: 5600,
+          dayHigh: 5650,
+          dayLow: 5588,
+          price: 5637,
+          change: 25,
+          changesPercentage: '0.45%',
+          volume: 12345,
+          timestamp: 1714521600,
+        },
+      ],
     })
 
     const summary = await getStockSummary('S&P 500')
     expect(summary).toMatchObject({
       market: 'S&P 500',
-      close: 7230.12,
-      source: 'yahoo',
+      open: 5600,
+      high: 5650,
+      low: 5588,
+      close: 5637,
+      change: 25,
+      changePercent: 0.45,
+      volumeTraded: 12345,
+      valueTraded: 5637 * 12345,
+      source: 'fmp',
     })
-    expect(summary?.changePercent).toBeCloseTo(((7230.12 - 7165.08) / 7165.08) * 100)
     expect(fetch).toHaveBeenCalledTimes(1)
-    expect((fetch as jest.Mock).mock.calls[0][0]).toContain('query1.finance.yahoo.com')
     expect(upsertStockSummaryDaily).toHaveBeenCalledTimes(1)
   })
 
@@ -104,7 +87,18 @@ describe('services/finance/stock', () => {
     ;(readLatestStockSummary as jest.Mock).mockResolvedValue(null)
     ;(fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify(yahooChartBody()),
+      json: async () => [
+        {
+          open: 5600,
+          dayHigh: 5650,
+          dayLow: 5588,
+          price: 5637,
+          change: 25,
+          changesPercentage: '0.45%',
+          volume: 12345,
+          timestamp: 1714521600,
+        },
+      ],
     })
 
     const items = await getStockSummaryBatch(['S&P 500', 'Dow Jones'])
@@ -117,38 +111,55 @@ describe('services/finance/stock', () => {
 
   it('should dedupe concurrent cold-start refresh per market', async () => {
     ;(readLatestStockSummary as jest.Mock).mockResolvedValue(null)
-    ;(fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      text: async () => JSON.stringify(yahooChartBody()),
-    })
+    ;(fetch as jest.Mock).mockImplementation(
+      async () =>
+        ({
+          ok: true,
+          json: async () => [
+            {
+              open: 5600,
+              dayHigh: 5650,
+              dayLow: 5588,
+              price: 5637,
+              change: 25,
+              changesPercentage: 0.45,
+              volume: 12345,
+              timestamp: 1714521600,
+            },
+          ],
+        }) as Response
+    )
 
     const [a, b] = await Promise.all([getStockSummary('S&P 500'), getStockSummary('S&P 500')])
-    expect(a?.close).toBe(7230.12)
-    expect(b?.close).toBe(7230.12)
+    expect(a?.close).toBe(5637)
+    expect(b?.close).toBe(5637)
     expect(fetch).toHaveBeenCalledTimes(1)
     expect(upsertStockSummaryDaily).toHaveBeenCalledTimes(1)
   })
 
-  it('should prefer Eastmoney when secid is configured for a market', async () => {
+  it('should accept single-object FMP quote JSON (non-array)', async () => {
     ;(readLatestStockSummary as jest.Mock).mockResolvedValue(null)
     ;(fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: {
-          klines: ['2026-04-30,23715.71,24292.38,24293.11,23715.71,0,0.00,2.41,1.00,571.00,0.00'],
-        },
+        price: 100,
+        previousClose: 80,
+        volume: 10,
+        open: 81,
+        dayHigh: 101,
+        dayLow: 79,
+        timestamp: 1714521600,
       }),
     })
 
-    const summary = await getStockSummary('DAX 30')
-    expect(summary?.source).toBe('eastmoney-index')
-    expect(summary?.close).toBe(24292.38)
-    expect((fetch as jest.Mock).mock.calls[0][0]).toContain('push2his.eastmoney.com')
-    expect(fetch).toHaveBeenCalledTimes(1)
-    expect(upsertStockSummaryDaily).toHaveBeenCalledTimes(1)
+    const summary = await getStockSummary('S&P 500')
+    expect(summary?.close).toBe(100)
+    expect(summary?.volumeTraded).toBe(10)
+    expect(summary?.changePercent).toBeCloseTo(25)
+    expect(summary?.valueTraded).toBe(1000)
   })
 
-  it('should refresh legacy fmp cache when close exists but chg/vol/value were null', async () => {
+  it('should refresh fmp cache when close exists but chg/vol/value were null', async () => {
     ;(readLatestStockSummary as jest.Mock).mockResolvedValue({
       market: 'S&P 500',
       date: '2026-01-01',
@@ -164,20 +175,39 @@ describe('services/finance/stock', () => {
     })
     ;(fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify(yahooChartBody({ regularMarketPrice: 5637, chartPreviousClose: 5600, regularMarketVolume: 999 })),
+      json: async () => ({
+        price: 5637,
+        previous_close: 5600,
+        volume: 999,
+        open: 5600,
+        day_high: 5650,
+        day_low: 5588,
+        timestamp: 1714521600,
+      }),
     })
 
     const summary = await getStockSummary('S&P 500')
     expect(fetch).toHaveBeenCalled()
     expect(summary?.volumeTraded).toBe(999)
-    expect(summary?.source).toBe('yahoo')
+    expect(summary?.changePercent).toBeCloseTo(((5637 - 5600) / 5600) * 100)
     expect(upsertStockSummaryDaily).toHaveBeenCalled()
   })
 
   it('should run ingest and write all successful markets', async () => {
     ;(fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify(yahooChartBody()),
+      json: async () => [
+        {
+          open: 5600,
+          dayHigh: 5650,
+          dayLow: 5588,
+          price: 5637,
+          change: 25,
+          changesPercentage: 0.45,
+          volume: 12345,
+          timestamp: 1714521600,
+        },
+      ],
     })
 
     const result = await runStockSummaryIngest(['S&P 500', 'Dow Jones'])

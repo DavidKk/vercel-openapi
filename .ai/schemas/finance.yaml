@@ -35,7 +35,7 @@ apiPage:
       path: /api/finance/stock/summary
       description: 'Latest index snapshot. Query: market (single, default TASI) or markets (comma-separated). Envelope {code,message,data}; batch uses same cold-start as single per market.'
       exampleResponse: |
-        {"code":0,"message":"ok","data":{"market":"S&P 500","summary":{"market":"S&P 500","date":"2026-05-01","open":5604.1,"high":5650.2,"low":5588.9,"close":5637.2,"change":25.1,"changePercent":0.45,"source":"yahoo"}}}
+        {"code":0,"message":"ok","data":{"market":"S&P 500","summary":{"market":"S&P 500","date":"2026-05-01","open":5604.1,"high":5650.2,"low":5588.9,"close":5637.2,"change":25.1,"changePercent":0.45,"source":"fmp"}}}
     - method: GET
       path: /api/finance/market/company/daily
       description: 'Generic market= (default TASI); TASI only today. No params = today all companies. date= single day. code+from+to = company K-line. Non-TASI → 400.'

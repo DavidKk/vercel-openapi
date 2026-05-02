@@ -16,10 +16,9 @@ export interface FinanceMarketDailyRecord {
   turnoverRate: number
   /**
    * eastmoney: A-share / ETF six-digit kline; eastmoney-precious-spot: spot bullion (e.g. XAUUSD via 122.XAU);
-   * eastmoney-fund-nav: fund unit NAV + daily return % (same row shape, different semantics);
-   * eastmoney-global-index: `push2his` kline with explicit `secid` (e.g. 100.HSI, 1.000300).
+   * eastmoney-fund-nav: fund unit NAV + daily return % (same row shape, different semantics).
    */
-  source: 'eastmoney' | 'eastmoney-precious-spot' | 'eastmoney-fund-nav' | 'eastmoney-global-index'
+  source: 'eastmoney' | 'eastmoney-precious-spot' | 'eastmoney-fund-nav'
   isPlaceholder: boolean
   macdUp?: number | null
   macdDown?: number | null

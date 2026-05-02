@@ -22,7 +22,7 @@ export interface TasiOverviewProps {
   /** Optional inline control placed near the header title. */
   headerAddon?: ReactNode
   /**
-   * When true (default), OHLC and turnover labels use SAR (TASI). When false (non-TASI index markets),
+   * When true (default), OHLC and turnover labels use SAR (TASI). When false (FMP index markets),
    * labels omit SAR and value traded is described as close×volume.
    */
   useTasiCurrencyLabels?: boolean

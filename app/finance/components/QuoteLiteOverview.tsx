@@ -63,8 +63,8 @@ const tdDate = 'sticky left-0 z-10 bg-white px-2 py-1.5 font-mono font-semibold 
 
 /**
  * Precious metals spot overview: loads `/api/finance/market/daily` for **XAUUSD** with
- * **`syncIfEmpty=true`** so an empty Turso window triggers one server-side Eastmoney range ingest
- * (cold start), then the same summary + table shell as fund OHLCV.
+ * **`syncIfEmpty=true`** so an empty Turso window triggers one server-side Eastmoney range
+ * ingest (cold start), then the same summary + table shell as fund OHLCV.
  *
  * @returns Full-height section with header, summary strip, and descending daily table
  */

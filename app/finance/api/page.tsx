@@ -46,7 +46,7 @@ export default function FinanceApiPage() {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.market</code> + <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.summary</code>;
               batch → <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.items</code>.{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=TASI</code> (default) or S&amp;P 500, Dow Jones, Nasdaq, … — latest snapshot (TASI from feed
-              path; others from Eastmoney global index + Yahoo chart, no paid API key).
+              path; others from FMP where supported).
             </p>
           </div>
 

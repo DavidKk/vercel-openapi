@@ -21,7 +21,7 @@ export const STOCKS_API_SECTION_TITLE = 'Market index & listed companies'
  * 对应关系：多市场指数快照 + 单市场指数日 K / 小时 + 成分股日数据。
  */
 export const STOCKS_API_SUBGROUP = {
-  /** Multi-market latest bar (TASI bridge + Eastmoney/Yahoo index snapshot where wired). */
+  /** Multi-market latest bar (FMP + TASI where wired). */
   indexSnapshotMultiMarket: 'Index — latest snapshot (multi-market)',
   /** Exchange index daily OHLC / summary from feed. */
   indexDailyFromFeed: 'Index — daily series (exchange feed)',
