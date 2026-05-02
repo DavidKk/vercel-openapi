@@ -21,7 +21,7 @@ declare namespace NodeJS {
     TMDB_LANGUAGE?: string
     /** TMDB region */
     TMDB_REGION?: string
-    /** Secret for cron routes (e.g. /api/cron/sync/movies-sync, tasi-sync) */
+    /** Secret for internal automation routes (scheduled jobs; not part of the public API surface) */
     CRON_SECRET?: string
     /**
      * cf-feed-bridge base URL (no trailing slash). Server-side TASI ingest calls

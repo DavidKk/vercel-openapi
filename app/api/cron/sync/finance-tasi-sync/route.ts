@@ -6,18 +6,18 @@ import { createLogger } from '@/services/logger'
 
 export const runtime = 'nodejs'
 
-const logger = createLogger('cron-tasi-sync')
+const logger = createLogger('cron-finance-tasi-sync')
 
 /**
- * Finance (TASI) sync cron with dual modes:
- * - mode=daily (default): existing daily ingest (bridge -> Turso/KV).
- * - mode=hourly: SAHMK hourly summary ingest (writes hourly table only).
+ * TASI (Saudi exchange) daily or hourly ingest: cf-feed-bridge → Turso/KV, plus optional SAHMK hourly alignment.
+ * Query: `mode=daily` (default) or `mode=hourly`.
+ * For FMP multi-market summaries use sibling `finance-fmp-sync`. For Eastmoney OHLCV use `finance-eastmoney-sync`.
  * Auth: CRON_SECRET (Bearer or ?secret=).
  */
 export const GET = cron(async (_req, ctx) => {
   const mode = ctx.searchParams.get('mode') === 'hourly' ? 'hourly' : 'daily'
-  logger.info('tasi-sync cron start', { mode })
+  logger.info('finance-tasi-sync start', { mode })
   const result = mode === 'hourly' ? await runIngestHourlySummary() : await runIngest()
-  logger.info('tasi-sync cron done', { mode, result })
+  logger.info('finance-tasi-sync done', { mode, result })
   return jsonSuccess(result, { headers: cacheControlNoStoreHeaders() })
 })

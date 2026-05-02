@@ -45,4 +45,4 @@
 ## Reference
 
 - Logger implementation: `services/logger/index.ts` — `createLogger(moduleName)` returns `{ info, ok, warn, fail }`.
-- Existing usage: `services/finance/tasi/*.ts`, `app/api/weather/route.ts`, `app/api/cron/sync/finance-sync/route.ts`, `services/fetch/index.ts`.
+- Existing usage: `services/finance/tasi/*.ts`, `app/api/weather/route.ts`, `app/api/cron/sync/finance-tasi-sync/route.ts`, `services/fetch/index.ts`.

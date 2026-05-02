@@ -244,10 +244,7 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
                   ) : null}
                 </>
               ) : (
-                <p className="text-sm text-gray-500">
-                  No rows for this window. Configure Turso and run <code className="rounded bg-gray-200 px-1 text-[11px]">GET /api/cron/sync/finance-market-sync</code>, or rely on
-                  auto backfill for allowlisted symbols.
-                </p>
+                <p className="text-sm text-gray-500">No rows for this window. Configure Turso; allowlisted public routes may auto backfill when you open this page.</p>
               )}
             </div>
           </div>

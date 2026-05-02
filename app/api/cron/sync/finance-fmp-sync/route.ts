@@ -5,11 +5,12 @@ import { createLogger } from '@/services/logger'
 
 export const runtime = 'nodejs'
 
-const logger = createLogger('cron-finance-stock-sync')
+const logger = createLogger('cron-finance-fmp-sync')
 
 /**
- * Stock summary sync cron.
- * Supports optional `markets` query parameter (comma separated names).
+ * FMP (Financial Modeling Prep) multi-market index/stock summary ingest for non-TASI Finance markets.
+ * Query: optional `markets` (comma-separated names); defaults to full configured market list.
+ * For TASI use `finance-tasi-sync`. For Eastmoney daily OHLCV use `finance-eastmoney-sync`.
  *
  * @returns Ingest execution result
  */
@@ -23,8 +24,8 @@ export const GET = cron(async (_req, ctx) => {
         .filter((v): v is (typeof STOCK_MARKETS)[number] => v != null)
     : STOCK_MARKETS
 
-  logger.info('finance-stock-sync cron start', { markets })
+  logger.info('finance-fmp-sync start', { markets })
   const result = await runStockSummaryIngest(markets)
-  logger.info('finance-stock-sync cron done', { markets, result })
+  logger.info('finance-fmp-sync done', { markets, result })
   return jsonSuccess(result, { headers: cacheControlNoStoreHeaders() })
 })

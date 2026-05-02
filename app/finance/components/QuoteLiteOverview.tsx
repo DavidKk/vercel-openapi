@@ -115,9 +115,7 @@ export function QuoteLiteOverview() {
     return (
       <section className="flex min-h-0 flex-1 flex-col items-center justify-center bg-white p-4">
         <p className="max-w-md text-center text-sm text-red-600">{error}</p>
-        <p className="mt-2 max-w-md text-center text-xs text-gray-500">
-          Check Turso env and network; you can still run <code className="rounded bg-gray-100 px-1">GET /api/cron/sync/finance-market-sync?symbols=XAUUSD</code> manually.
-        </p>
+        <p className="mt-2 max-w-md text-center text-xs text-gray-500">Check Turso env and network. Allowlisted public OHLCV routes may backfill empty ranges on read.</p>
       </section>
     )
   }
@@ -193,8 +191,7 @@ export function QuoteLiteOverview() {
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">
-                  No rows for this window after a cold-start sync. Configure Turso, confirm Eastmoney is reachable, or run{' '}
-                  <code className="rounded bg-gray-200 px-1 text-[11px]">GET /api/cron/sync/finance-market-sync?symbols=XAUUSD</code>.
+                  No rows for this window after a cold-start sync. Configure Turso and confirm Eastmoney is reachable; allowlisted reads may still backfill.
                 </p>
               )}
             </div>

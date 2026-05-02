@@ -113,7 +113,7 @@ const FUND_ETF_OHLCV_ROWS = FUND_ETF_SYMBOL_ORDER.map((key) => ({
   title: formatFundEtfTitle(key),
 }))
 
-/** Keys as a list for cron and iteration */
+/** Keys as a list for batch iteration and server-side defaults */
 export const FUND_ETF_OHLCV_SYMBOLS = [...FUND_ETF_SYMBOL_ORDER]
 
 /**
