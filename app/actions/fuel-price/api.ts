@@ -78,23 +78,21 @@ async function writeFuelPriceToKv(key: string, fuelPriceData: FuelPrice): Promis
  * @param previous Previous fuel price data
  * @returns boolean True if prices are different, false otherwise
  */
-function hasFuelPriceChanged(current: FuelPrice, previous: FuelPrice | null): boolean {
+export function hasFuelPriceChanged(current: FuelPrice, previous: FuelPrice | null): boolean {
   if (!previous) {
     return true
   }
 
-  // Compare the data arrays
   if (current.data.length !== previous.data.length) {
     return true
   }
 
-  // Compare each province's prices
-  for (let i = 0; i < current.data.length; i++) {
-    const currentCity = current.data[i]
-    const previousCity = previous.data[i]
+  const previousByProvince = new Map(previous.data.map((item) => [item.province, item]))
 
+  for (const currentCity of current.data) {
+    const previousCity = previousByProvince.get(currentCity.province)
     if (
-      currentCity.province !== previousCity.province ||
+      !previousCity ||
       currentCity.b92 !== previousCity.b92 ||
       currentCity.b95 !== previousCity.b95 ||
       currentCity.b98 !== previousCity.b98 ||
