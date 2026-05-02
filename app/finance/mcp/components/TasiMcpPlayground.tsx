@@ -7,35 +7,42 @@ import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 
-type TasiToolName = 'get_tasi_company_daily' | 'get_tasi_summary_daily' | 'get_tasi_summary_hourly'
+type FinanceMcpToolName = 'get_market_company_daily' | 'get_market_summary_daily' | 'get_market_summary_hourly' | 'get_market_daily' | 'get_stock_summary'
 
-interface TasiMcpState {
+interface FinanceMcpPlaygroundState {
   loading: boolean
   status?: number
   durationMs?: number
   error?: string
   responseBody?: string
-  tool: TasiToolName
+  tool: FinanceMcpToolName
   paramsText: string
 }
 
 /** MCP endpoint for this module (POST /api/mcp/finance) */
 const MCP_PATH = '/api/mcp/finance'
 
+const DEFAULT_PARAMS: Record<FinanceMcpToolName, string> = {
+  get_market_company_daily: '{"market":"TASI"}',
+  get_market_summary_daily: '{"market":"TASI"}',
+  get_market_summary_hourly: '{"market":"TASI"}',
+  get_market_daily: '{"symbols":"518880","startDate":"2025-01-01","endDate":"2025-03-01"}',
+  get_stock_summary: '{"market":"TASI"}',
+}
+
 /**
- * MCP playground for Finance tools (TASI): get_tasi_company_daily, get_tasi_summary_daily, get_tasi_summary_hourly.
+ * MCP playground for Finance tools (market-aware TASI feed tools plus stock summary and market daily OHLCV).
  */
 export function TasiMcpPlayground() {
-  const [state, setState] = useState<TasiMcpState>({
+  const [state, setState] = useState<FinanceMcpPlaygroundState>({
     loading: false,
-    tool: 'get_tasi_company_daily',
-    paramsText: '{}',
+    tool: 'get_market_company_daily',
+    paramsText: DEFAULT_PARAMS.get_market_company_daily,
   })
 
   function handleToolChange(value: string) {
-    const tool = value as TasiToolName
-    const nextParams = '{}'
-    setState((prev) => ({ ...prev, tool, paramsText: nextParams }))
+    const tool = value as FinanceMcpToolName
+    setState((prev) => ({ ...prev, tool, paramsText: DEFAULT_PARAMS[tool] }))
   }
 
   async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
@@ -93,16 +100,21 @@ export function TasiMcpPlayground() {
                 value={tool}
                 onChange={handleToolChange}
                 options={[
-                  { value: 'get_tasi_company_daily', label: 'get_tasi_company_daily' },
-                  { value: 'get_tasi_summary_daily', label: 'get_tasi_summary_daily' },
-                  { value: 'get_tasi_summary_hourly', label: 'get_tasi_summary_hourly' },
+                  { value: 'get_market_company_daily', label: 'get_market_company_daily' },
+                  { value: 'get_market_summary_daily', label: 'get_market_summary_daily' },
+                  { value: 'get_market_summary_hourly', label: 'get_market_summary_hourly' },
+                  { value: 'get_market_daily', label: 'get_market_daily' },
+                  { value: 'get_stock_summary', label: 'get_stock_summary' },
                 ]}
               />
             </label>
             <label className="flex flex-col gap-1">
               <span>
-                params (JSON). Daily modes: none = latest; {`{"date":"YYYY-MM-DD"}`} = single day; company K-line {`{"code":"1120","from":"YYYY-MM-DD","to":"YYYY-MM-DD"}`}; summary
-                K-line {`{"from":"YYYY-MM-DD","to":"YYYY-MM-DD"}`}. Hourly tool uses `{}`.
+                params (JSON). TASI feed tools: optional <code className="rounded bg-gray-100 px-0.5">market</code> (default TASI). Company/summary daily: same modes as REST —{' '}
+                <code className="rounded bg-gray-100 px-0.5">{'{}'}</code> latest, <code className="rounded bg-gray-100 px-0.5">{`{"date":"YYYY-MM-DD"}`}</code>, or K-line fields.{' '}
+                <code className="rounded bg-gray-100 px-0.5">get_stock_summary</code>: <code className="rounded bg-gray-100 px-0.5">market</code> or{' '}
+                <code className="rounded bg-gray-100 px-0.5">markets</code> (comma-separated). <code className="rounded bg-gray-100 px-0.5">get_market_daily</code>: symbols,
+                startDate, endDate; optional <code className="rounded bg-gray-100 px-0.5">withIndicators</code>.
               </span>
               <textarea
                 className="min-h-[80px] rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-[10px]"

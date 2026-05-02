@@ -1,4 +1,4 @@
-# Finance module – equity/index daily (company + market summary). Currently TASI only.
+# Finance module — stock overview (multi-market) + TASI feed (company/index daily) + six-digit OHLCV.
 
 id: finance
 name: Finance
@@ -24,30 +24,49 @@ sidebarItems:
 
 apiPage:
   title: Finance REST API
-  subtitle: Company daily and market summary (currently TASI). Today from feed; history and K-line from Turso.
+  subtitle: Stock summary for all overview markets; TASI company/index daily via market= query; six-digit OHLCV; hourly alignment.
   endpoints:
     - method: GET
-      path: /finance/tasi/company/daily
-      description: 'No params = today all companies. date=YYYY-MM-DD = that day. code=xxx&from=...&to=... = company K-line.'
+      path: /api/finance/stock/summary
+      description: 'Latest index snapshot. Query: market (single, default TASI) or markets (comma-separated). TASI uses feed path internally; others FMP where supported; Turso cache.'
+      exampleResponse: |
+        {"ok":true,"market":"S&P 500","summary":{"market":"S&P 500","date":"2026-05-01","open":5604.1,"high":5650.2,"low":5588.9,"close":5637.2,"change":25.1,"changePercent":0.45,"source":"fmp"}}
+    - method: GET
+      path: /api/finance/market/company/daily
+      description: 'Generic market= (default TASI); TASI only today. No params = today all companies. date= single day. code+from+to = company K-line. Non-TASI → 400.'
       exampleResponse: |
         [{"code":"1120","name":"SNB","date":"2025-03-14","open":42.5,"high":43,"low":42.2,"lastPrice":42.8,"volume":1000000}]
     - method: GET
-      path: /finance/tasi/summary/daily
-      description: 'No params = today. date=YYYY-MM-DD = that day. from=...&to=... = market K-line.'
+      path: /api/finance/market/summary/daily
+      description: 'Generic market= (default TASI); TASI only today. No params = today index. date= single day. from+to = index K-line. Non-TASI → /api/finance/stock/summary.'
       exampleResponse: |
         {"date":"2025-03-14","open":12000,"high":12100,"low":11950,"close":12050,"volumeTraded":100000000}
+    - method: GET
+      path: /api/finance/market/summary/hourly
+      description: 'Generic market= (default TASI); TASI only today. SAHMK hourly alignment vs daily summary. Legacy /api/finance/tasi/summary/hourly is alias.'
+      exampleResponse: |
+        {}
+    - method: GET
+      path: /api/finance/market/daily
+      description: 'MVP for six-digit OHLCV symbols (e.g. 518880). Query: symbols,startDate,endDate. Optional withIndicators=true adds macdUp/macdDown on latest row per symbol.'
+      exampleResponse: |
+        {"items":[{"date":"2025-04-30","symbol":"518880","open":5.715,"close":5.739,"high":5.758,"low":5.715,"volume":2579209,"amount":1480522810,"amplitude":0,"changeRate":1.11,"changeAmount":0.063,"turnoverRate":5.97,"macdUp":3,"macdDown":0,"source":"eastmoney","isPlaceholder":false}]}
   playgroundComponentName: TasiApiPlayground
   playgroundImportPath: '@/app/finance/api/components'
 
 mcpPage:
   title: Finance MCP tools
-  subtitle: Tools for company daily and market summary (currently TASI; today, history, K-line).
+  subtitle: Market-aware TASI feed tools, hourly alignment, six-digit OHLCV, and multi-market stock summary.
   tools:
-    - name: get_tasi_company_daily
-      description: 'Get company daily (TASI). Params: optional date (YYYY-MM-DD), or code+from+to for K-line.'
-    - name: get_tasi_summary_daily
-      description: 'Get market summary (TASI). Params: optional date, or from+to for K-line.'
-    - name: get_tasi_summary_hourly
-      description: 'Get hourly alignment check (SAHMK summary mapped to current daily summary fields).'
+    - name: get_stock_summary
+      description: 'Params: market (single) or markets (comma-separated batch).'
+    - name: get_market_daily
+      description: 'Params: symbols, startDate, endDate; optional withIndicators.'
+    - name: get_market_company_daily
+      description: 'Params: optional market (TASI default), date, or code+from+to for K-line.'
+    - name: get_market_summary_daily
+      description: 'Params: optional market (TASI default), date, or from+to for K-line. Other markets → use get_stock_summary.'
+    - name: get_market_summary_hourly
+      description: 'Params: optional market (TASI default). SAHMK hourly alignment vs daily summary.'
   playgroundComponentName: TasiMcpPlayground
   playgroundImportPath: '@/app/finance/mcp/components'

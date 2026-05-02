@@ -10,6 +10,10 @@ export interface DashboardSidebarItem {
   title: string
   ariaLabel: string
   icon: React.ReactNode
+  /**
+   * When true, the item is active for `pathname === href` or `pathname` under `href/` (e.g. `/finance/stock/tasi`).
+   */
+  matchChildPaths?: boolean
 }
 
 interface DashboardSidebarProps {
@@ -21,8 +25,9 @@ const linkActive = 'bg-gray-900 text-white shadow-sm hover:bg-gray-800 hover:tex
 const linkInactive = 'text-gray-500'
 
 /**
- * Icon-only sidebar that highlights the link matching the current pathname.
- * Used in fuel-price, holiday, and geo dashboard layouts.
+ * Icon-only sidebar that highlights the link matching the current pathname (exact, or prefix when `matchChildPaths`).
+ * Tooltip text comes from each item's `title` (e.g. Stock Overview, API).
+ * Used in fuel-price, holiday, finance, and geo dashboard layouts.
  * @param props Sidebar items (href, title, ariaLabel, icon)
  * @returns Nav element with icon links and active state
  */
@@ -32,14 +37,12 @@ export function DashboardSidebar(props: Readonly<DashboardSidebarProps>) {
 
   return (
     <nav className="flex w-14 flex-col items-center gap-3 border-r border-gray-200 bg-white py-3">
-      {items.map((item, index) => {
-        const isActive = pathname === item.href
+      {items.map((item) => {
+        const isActive = pathname === item.href || Boolean(item.matchChildPaths && pathname.startsWith(`${item.href}/`))
         const className = [linkBase, isActive ? linkActive : linkInactive].join(' ')
-        /** First item in every module is the Overview entry; tooltip label is always OVERVIEW */
-        const tooltipContent = index === 0 ? 'OVERVIEW' : item.title
         return (
-          <Tooltip key={item.href} content={tooltipContent} placement="right">
-            <Link href={item.href} className={className} aria-label={item.ariaLabel}>
+          <Tooltip key={item.href} content={item.title} placement="right">
+            <Link href={item.href} className={className} aria-label={item.ariaLabel} aria-current={isActive ? 'page' : undefined}>
               {item.icon}
             </Link>
           </Tooltip>

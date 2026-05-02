@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
 import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
@@ -9,14 +10,39 @@ import { getLatestValidSnapshotFromIdb } from '@/services/finance/tasi/browser'
 
 import { TasiOverview } from './TasiOverview'
 
-/** Skeleton for TASI overview: header + market summary row + table header + table rows. */
-function TasiOverviewSkeleton() {
+/** Props for the shared stock/TASI overview skeleton. */
+export interface TasiOverviewSkeletonProps {
+  /**
+   * Optional left header label in the skeleton header. When empty, a pulse placeholder is shown
+   * (matches live overview when `headerTitle` is omitted).
+   */
+  leadingTitle?: string
+  /** Same as live overview header (e.g. market dropdown); when set, replaces the right-side pulse. */
+  headerAddon?: ReactNode
+  /** Accessible name for the busy region. */
+  ariaLabel?: string
+}
+
+/**
+ * Skeleton for stock overview: header row + market summary strip + table header + body rows.
+ * Used by TASI loader and FMP market loader for identical loading UX.
+ */
+export function TasiOverviewSkeleton(props?: TasiOverviewSkeletonProps) {
+  const leadingTitle = props?.leadingTitle?.trim() ?? ''
+  const ariaLabel = props?.ariaLabel ?? 'Loading overview data'
+  const showLeadingTitle = leadingTitle.length > 0
+  const { headerAddon } = props ?? {}
   return (
-    <section className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label="Loading TASI data">
+    <section className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label={ariaLabel}>
       <div className="flex min-h-0 flex-1 flex-col bg-white">
         <div className={`shrink-0 min-h-[63px] ${CONTENT_HEADER_CLASS} gap-2`}>
-          <span className="text-base font-semibold text-gray-700">Tasi</span>
-          <div className="ml-auto h-9 w-56 animate-pulse rounded border border-gray-200 bg-gray-100" aria-hidden />
+          {showLeadingTitle ? (
+            <span className="text-base font-semibold text-gray-700">{leadingTitle}</span>
+          ) : (
+            <span className="h-6 w-24 shrink-0 animate-pulse rounded bg-gray-200" aria-hidden />
+          )}
+          {headerAddon != null ? headerAddon : null}
+          <div className="relative ml-auto h-9 w-56 animate-pulse rounded border border-gray-200 bg-gray-100" aria-hidden />
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
@@ -75,7 +101,7 @@ function TasiOverviewSkeleton() {
 /**
  * Client-side loader for TASI overview: IDB cache used only when not expired (same TTL as server KV snapshot); else fetch from API.
  */
-export function TasiOverviewLoader() {
+export function TasiOverviewLoader(props?: { headerTitle?: string; headerAddon?: ReactNode }) {
   const [company, setCompany] = useState<TasiCompanyDailyRecord[] | null>(null)
   const [summary, setSummary] = useState<TasiMarketSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -101,8 +127,8 @@ export function TasiOverviewLoader() {
       /** Cache miss or expired: fetch from API. */
       try {
         const [companyRes, summaryRes] = await Promise.all([
-          fetch('/api/finance/tasi/company/daily', { cache: 'default' }),
-          fetch('/api/finance/tasi/summary/daily', { cache: 'default' }),
+          fetch('/api/finance/market/company/daily?market=TASI', { cache: 'default' }),
+          fetch('/api/finance/market/summary/daily?market=TASI', { cache: 'default' }),
         ])
         if (cancelled) return
         if (!companyRes.ok || !summaryRes.ok) {
@@ -141,8 +167,8 @@ export function TasiOverviewLoader() {
   }
 
   if (forceLoading || (loading && !company && !summary && !error)) {
-    return <TasiOverviewSkeleton />
+    return <TasiOverviewSkeleton leadingTitle={props?.headerTitle} headerAddon={props?.headerAddon} ariaLabel="Loading TASI data" />
   }
 
-  return <TasiOverview company={company} summary={summary} error={error} />
+  return <TasiOverview company={company} summary={summary} error={error} headerTitle={props?.headerTitle} headerAddon={props?.headerAddon} useTasiCurrencyLabels />
 }

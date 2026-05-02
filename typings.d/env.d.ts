@@ -23,7 +23,10 @@ declare namespace NodeJS {
     TMDB_REGION?: string
     /** Secret for cron routes (e.g. /api/cron/sync/movies-sync, tasi-sync) */
     CRON_SECRET?: string
-    /** Finance feed (TASI) base URL: GET .../api/finance/tasi/company/daily (array), .../summary/daily (object) */
+    /**
+     * Finance feed (TASI) base URL: GET .../market/company/daily?market=TASI (array),
+     * .../market/summary/daily?market=TASI (object). Legacy /api/finance/tasi/* aliases same handlers.
+     */
     TASI_FEED_URL?: string
     /** Preferred feed request headers JSON. Example: {"x-api-key":"...","x-internal-call":"vercel"} */
     TASI_FEED_REQUEST_HEADERS_JSON?: string
@@ -35,7 +38,7 @@ declare namespace NodeJS {
     TASI_FEED_X_INTERNAL_CALL_HEADER_KEY?: string
     /** Header value for internal-call header */
     TASI_FEED_X_INTERNAL_CALL_HEADER_VALUE?: string
-    /** SAHMK API key (used by /api/finance/tasi/summary/hourly and cron hourly sync mode) */
+    /** SAHMK API key (used by GET /api/finance/market/summary/hourly?market=TASI and cron hourly sync mode) */
     SAHMK_API_KEY?: string
     /** Optional SAHMK API base URL override. Default: https://app.sahmk.sa/api/v1 */
     SAHMK_API_BASE_URL?: string

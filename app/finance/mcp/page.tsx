@@ -8,35 +8,47 @@ import { TasiMcpPlayground } from './components'
 /**
  * Finance MCP tools page. Left: docs; Right: playground.
  */
-export default function FinanceTasiMcpPage() {
+export default function FinanceMcpPage() {
   return (
     <div className="flex h-full flex-nowrap overflow-x-auto overscroll-x-contain md:overflow-visible">
       <section className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col border-r border-gray-200 bg-white md:w-1/2 md:min-w-[320px] md:flex-1">
-        <DocPanelHeader title="Finance MCP tools" subtitle="Tools for TASI daily data: company daily rows and market summary (latest, single day, K-line)." />
+        <DocPanelHeader
+          title="Finance MCP tools"
+          subtitle="Market-aware tools: TASI company/index daily (optional market, default TASI), hourly alignment, six-digit OHLCV, and multi-market stock summary."
+        />
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
           <McpOneClickInstallBar endpointPath="/api/mcp/finance" className="mb-3" />
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="POST" path="/api/mcp/finance" />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
-              Call with <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ tool, params }'}</code> to run a tool.
+              Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ "tool": "<name>", "params": { ... } }'}</code>.
             </p>
           </div>
-          <h2 className={DOC_SECTION_TITLE_CLASS}>Available tools</h2>
-          <ul className="mb-3 list-disc pl-4">
-            <li className="mb-1">
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_tasi_company_daily</code> – Company daily data. No params = latest snapshot;{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">date</code> = single day;{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">code+from+to</code> = K-line.
+          <h2 className={DOC_SECTION_TITLE_CLASS}>Tools</h2>
+          <ul className="mb-3 list-disc space-y-1.5 pl-4">
+            <li>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_company_daily</code> — Saudi company rows (
+              <code className="rounded bg-gray-100 px-0.5">market=TASI</code> only). Params: optional <code className="rounded bg-gray-100 px-0.5">market</code>,{' '}
+              <code className="rounded bg-gray-100 px-0.5">date</code>, or <code className="rounded bg-gray-100 px-0.5">code</code>+
+              <code className="rounded bg-gray-100 px-0.5">from</code>+<code className="rounded bg-gray-100 px-0.5">to</code>.
             </li>
             <li>
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_tasi_summary_daily</code> – Market summary daily data. No params = latest snapshot;{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">date</code> = single day; <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">from+to</code> =
-              K-line.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_summary_daily</code> — TASI index daily / K-line via feed+Turso (
+              <code className="rounded bg-gray-100 px-0.5">market=TASI</code> only). Other indices → <code className="rounded bg-gray-100 px-0.5">get_stock_summary</code>.
             </li>
             <li>
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_tasi_summary_hourly</code> – Hourly alignment check. Pull SAHMK summary and compare mapped fields
-              with current daily summary.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_summary_hourly</code> — TASI SAHMK hourly alignment check (
+              <code className="rounded bg-gray-100 px-0.5">market=TASI</code>).
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_daily</code> — Six-digit symbols OHLCV:{' '}
+              <code className="rounded bg-gray-100 px-0.5">symbols</code>, <code className="rounded bg-gray-100 px-0.5">startDate</code>,{' '}
+              <code className="rounded bg-gray-100 px-0.5">endDate</code>; optional <code className="rounded bg-gray-100 px-0.5">withIndicators</code>.
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_stock_summary</code> — Latest snapshot: <code className="rounded bg-gray-100 px-0.5">market</code>{' '}
+              or batch <code className="rounded bg-gray-100 px-0.5">markets</code> (comma-separated names).
             </li>
           </ul>
         </div>

@@ -10,7 +10,7 @@ import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
 import type { RequestExampleInput } from '@/utils/requestExamples'
 
-type Endpoint = 'company' | 'summary' | 'summaryHourly'
+type Endpoint = 'company' | 'summary' | 'summaryHourly' | 'stockSummaryTasi'
 
 interface TasiApiState {
   loading: boolean
@@ -26,7 +26,7 @@ interface TasiApiState {
 }
 
 /**
- * Playground for GET /api/finance/tasi/company/daily, /api/finance/tasi/summary/daily, and /api/finance/tasi/summary/hourly.
+ * TASI-only demo playground for Finance market and stock GET APIs (no multi-market picker).
  */
 export function TasiApiPlayground() {
   const [state, setState] = useState<TasiApiState>({
@@ -42,29 +42,43 @@ export function TasiApiPlayground() {
 
   async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const baseCompany = '/api/finance/tasi/company/daily'
-    const baseSummary = '/api/finance/tasi/summary/daily'
-    const baseSummaryHourly = '/api/finance/tasi/summary/hourly'
+    const baseCompany = '/api/finance/market/company/daily'
+    const baseSummary = '/api/finance/market/summary/daily'
+    const baseSummaryHourly = '/api/finance/market/summary/hourly'
+    const baseStockSummaryTasi = '/api/finance/stock/summary'
 
     let url: string
     if (state.endpoint === 'company') {
+      const q = new URLSearchParams()
+      q.set('market', 'TASI')
       if (state.code && state.from && state.to) {
-        url = `${baseCompany}?code=${encodeURIComponent(state.code)}&from=${encodeURIComponent(state.from)}&to=${encodeURIComponent(state.to)}`
+        q.set('code', state.code)
+        q.set('from', state.from)
+        q.set('to', state.to)
+        url = `${baseCompany}?${q.toString()}`
       } else if (state.date) {
-        url = `${baseCompany}?date=${encodeURIComponent(state.date)}`
+        q.set('date', state.date)
+        url = `${baseCompany}?${q.toString()}`
       } else {
-        url = baseCompany
+        url = `${baseCompany}?market=TASI`
       }
     } else if (state.endpoint === 'summary') {
+      const q = new URLSearchParams()
+      q.set('market', 'TASI')
       if (state.from && state.to) {
-        url = `${baseSummary}?from=${encodeURIComponent(state.from)}&to=${encodeURIComponent(state.to)}`
+        q.set('from', state.from)
+        q.set('to', state.to)
+        url = `${baseSummary}?${q.toString()}`
       } else if (state.date) {
-        url = `${baseSummary}?date=${encodeURIComponent(state.date)}`
+        q.set('date', state.date)
+        url = `${baseSummary}?${q.toString()}`
       } else {
-        url = baseSummary
+        url = `${baseSummary}?market=TASI`
       }
+    } else if (state.endpoint === 'summaryHourly') {
+      url = `${baseSummaryHourly}?market=TASI`
     } else {
-      url = baseSummaryHourly
+      url = `${baseStockSummaryTasi}?market=TASI`
     }
 
     try {
@@ -95,29 +109,49 @@ export function TasiApiPlayground() {
   }
 
   const { loading, status, durationMs, error, responseBody, endpoint, date, code, from, to } = state
-  const path = endpoint === 'company' ? '/api/finance/tasi/company/daily' : endpoint === 'summary' ? '/api/finance/tasi/summary/daily' : '/api/finance/tasi/summary/hourly'
+  const path =
+    endpoint === 'company'
+      ? '/api/finance/market/company/daily'
+      : endpoint === 'summary'
+        ? '/api/finance/market/summary/daily'
+        : endpoint === 'summaryHourly'
+          ? '/api/finance/market/summary/hourly'
+          : '/api/finance/stock/summary'
 
   const requestExamples: RequestExampleInput = (() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
     let url: string
     if (endpoint === 'company') {
+      const q = new URLSearchParams()
+      q.set('market', 'TASI')
       if (code && from && to) {
-        url = `${path}?code=${encodeURIComponent(code)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+        q.set('code', code)
+        q.set('from', from)
+        q.set('to', to)
+        url = `${path}?${q.toString()}`
       } else if (date) {
-        url = `${path}?date=${encodeURIComponent(date)}`
+        q.set('date', date)
+        url = `${path}?${q.toString()}`
       } else {
-        url = path
+        url = `${path}?market=TASI`
       }
     } else if (endpoint === 'summary') {
+      const q = new URLSearchParams()
+      q.set('market', 'TASI')
       if (from && to) {
-        url = `${path}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+        q.set('from', from)
+        q.set('to', to)
+        url = `${path}?${q.toString()}`
       } else if (date) {
-        url = `${path}?date=${encodeURIComponent(date)}`
+        q.set('date', date)
+        url = `${path}?${q.toString()}`
       } else {
-        url = path
+        url = `${path}?market=TASI`
       }
+    } else if (endpoint === 'summaryHourly') {
+      url = `${path}?market=TASI`
     } else {
-      url = path
+      url = `${path}?market=TASI`
     }
 
     return {
@@ -132,9 +166,12 @@ export function TasiApiPlayground() {
       <PlaygroundPanelHeader />
       <form className="flex min-h-0 flex-1 flex-col gap-px bg-gray-100" onSubmit={handleSendRequest}>
         <div className="flex flex-col bg-white">
-          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
-            <span className="font-medium text-gray-800">Request</span>
-            <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET {path}</span>
+          <div className="flex shrink-0 flex-col gap-1 border-b border-gray-100 px-3 py-2 text-[11px]">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-gray-800">Request</span>
+              <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET {path}</span>
+            </div>
+            <p className="text-[10px] text-gray-500">TASI-only demo — no multi-market picker.</p>
           </div>
           <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">
@@ -143,13 +180,14 @@ export function TasiApiPlayground() {
                 value={endpoint}
                 onChange={(v) => setState((prev) => ({ ...prev, endpoint: v as Endpoint }))}
                 options={[
-                  { value: 'company', label: 'Company daily' },
-                  { value: 'summary', label: 'Summary daily' },
-                  { value: 'summaryHourly', label: 'Summary hourly (alignment)' },
+                  { value: 'company', label: 'TASI — Company daily' },
+                  { value: 'summary', label: 'TASI — Summary daily' },
+                  { value: 'summaryHourly', label: 'TASI — Summary hourly (alignment)' },
+                  { value: 'stockSummaryTasi', label: 'TASI — Stock summary' },
                 ]}
               />
             </label>
-            {endpoint !== 'summaryHourly' && (
+            {endpoint !== 'summaryHourly' && endpoint !== 'stockSummaryTasi' && (
               <label className="flex flex-col gap-1">
                 <span>date (optional, YYYY-MM-DD)</span>
                 <input
@@ -219,7 +257,8 @@ export function TasiApiPlayground() {
                 </label>
               </>
             )}
-            {endpoint === 'summaryHourly' && <p className="text-[10px] text-gray-500">No params needed. This endpoint fetches SAHMK hourly summary alignment data.</p>}
+            {endpoint === 'summaryHourly' && <p className="text-[10px] text-gray-500">Hourly TASI buckets for alignment checks against daily summary fields.</p>}
+            {endpoint === 'stockSummaryTasi' && <p className="text-[10px] text-gray-500">Fixed GET with market=TASI (no batch or extra params).</p>}
             <div className="flex items-center gap-2">
               <button
                 type="submit"

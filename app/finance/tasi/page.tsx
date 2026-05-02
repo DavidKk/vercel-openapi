@@ -1,13 +1,9 @@
-import { TasiOverviewLoader } from '../components'
+import { redirect } from 'next/navigation'
 
 /**
- * TASI market overview page. Data is loaded client-side (IDB-first then API) so browser cache is used.
- * Used at /finance/tasi.
+ * Legacy route for TASI overview.
+ * Redirects to /finance/stock.
  */
 export default function FinanceTasiPage() {
-  return (
-    <section className="flex h-full flex-col">
-      <TasiOverviewLoader />
-    </section>
-  )
+  redirect('/finance/stock')
 }

@@ -41,7 +41,7 @@ export default function RootLayout(props: Readonly<RootLayoutProps>) {
   const { children } = props
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <Analytics />
       <SpeedInsights />
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex flex-col overflow-hidden`}>

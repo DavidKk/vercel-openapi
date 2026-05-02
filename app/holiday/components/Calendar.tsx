@@ -10,6 +10,7 @@ import type { Holiday } from '@/app/actions/holiday/api'
 import { getHolidaysForYear } from '@/app/holiday/lib/getHolidaysForYear'
 import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
 import { useDebugPanel } from '@/components/DebugPanel'
+import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
 import { EmptyState } from '@/components/EmptyState'
 import { FloatingDropdown } from '@/components/FloatingDropdown'
 
@@ -190,7 +191,7 @@ export function Calendar(props: CalendarProps) {
                 aria-label="Search holidays"
               />
             </div>
-            <ul className="max-h-56 overflow-auto" role="listbox">
+            <DropdownMenuScrollArea as="ul" scrollClassName="max-h-56" scrollProps={{ role: 'listbox' }}>
               {pickerOptions.length === 0 ? (
                 <li className="px-3 py-2.5 text-sm text-gray-500">无匹配节日</li>
               ) : (
@@ -203,7 +204,7 @@ export function Calendar(props: CalendarProps) {
                   </li>
                 ))
               )}
-            </ul>
+            </DropdownMenuScrollArea>
           </FloatingDropdown>
         </div>
       </div>

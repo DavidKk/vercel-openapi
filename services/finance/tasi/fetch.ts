@@ -84,8 +84,8 @@ export async function fetchCompanyDailyFromBridge(): Promise<TasiCompanyDailyRec
     return companyCache!.value
   }
   const base = getTasiFeedBaseUrl()
-  logger.info('company daily: in-memory cache miss, fetching from bridge', { url: `${base}/api/finance/tasi/company/daily` })
-  const res = await fetch(`${base}/api/finance/tasi/company/daily`, { headers: buildBridgeHeaders() })
+  logger.info('company daily: in-memory cache miss, fetching from bridge', { url: `${base}/api/finance/market/company/daily?market=TASI` })
+  const res = await fetch(`${base}/api/finance/market/company/daily?market=TASI`, { headers: buildBridgeHeaders() })
   if (!res.ok) {
     logger.fail('company daily: bridge failed', { status: res.status })
     throw new Error(`cf-feed-bridge company/daily failed: ${res.status}`)
@@ -114,8 +114,8 @@ export async function fetchSummaryFromBridge(): Promise<TasiMarketSummary> {
     return summaryCache!.value
   }
   const base = getTasiFeedBaseUrl()
-  logger.info('summary daily: in-memory cache miss, fetching from bridge', { url: `${base}/api/finance/tasi/summary/daily` })
-  const res = await fetch(`${base}/api/finance/tasi/summary/daily`, { headers: buildBridgeHeaders() })
+  logger.info('summary daily: in-memory cache miss, fetching from bridge', { url: `${base}/api/finance/market/summary/daily?market=TASI` })
+  const res = await fetch(`${base}/api/finance/market/summary/daily?market=TASI`, { headers: buildBridgeHeaders() })
   if (!res.ok) {
     logger.fail('summary daily: bridge failed', { status: res.status })
     throw new Error(`cf-feed-bridge summary/daily failed: ${res.status}`)

@@ -4,6 +4,49 @@ import classNames from 'classnames'
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+const VIEWPORT_MARGIN = 8
+const MENU_GAP = 4
+
+/**
+ * Move focus to the trigger’s first tabbable control (usually the visible button).
+ * @param wrap Trigger wrapper element from {@link FloatingDropdown}
+ */
+function restoreTriggerFocus(wrap: HTMLDivElement | null) {
+  if (!wrap) {
+    return
+  }
+  const el = wrap.querySelector<HTMLElement>(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )
+  el?.focus()
+}
+
+/**
+ * Focus the best default item inside an open dropdown panel (selected option, checked radio, or first control).
+ * @param menu Root element of the portaled menu panel
+ */
+function focusMenuInitial(menu: HTMLElement | null) {
+  if (!menu) {
+    return
+  }
+  const selectedOption = menu.querySelector<HTMLElement>('button[role="option"][aria-selected="true"]:not([disabled])')
+  if (selectedOption) {
+    selectedOption.focus({ preventScroll: true })
+    return
+  }
+  const checkedRadio = menu.querySelector<HTMLElement>('[role="menuitemradio"][aria-checked="true"]:not([disabled])')
+  if (checkedRadio) {
+    checkedRadio.focus({ preventScroll: true })
+    return
+  }
+  const first = menu.querySelector<HTMLElement>('button:not([disabled]), [href], [role="menuitem"]:not([aria-disabled="true"])')
+  if (first) {
+    first.focus({ preventScroll: true })
+    return
+  }
+  menu.focus({ preventScroll: true })
+}
+
 export interface FloatingDropdownProps {
   /** Whether the menu panel is visible */
   open: boolean
@@ -25,13 +68,16 @@ export interface FloatingDropdownProps {
   zIndexClassName?: string
   /**
    * Classes on the trigger wrapper (the box used for layout + `getBoundingClientRect`).
-   * Use `flex w-full` when the trigger should span a wide parent (e.g. a full-width channel picker); default `inline-flex` keeps intrinsic width (e.g. holiday toolbar button).
+   * Use `flex w-full` when the trigger should span a wide parent (e.g. a full-width channel picker).
+   * Default `inline-flex` keeps intrinsic width (e.g. holiday toolbar button).
    */
   triggerWrapperClassName?: string
 }
 
 /**
  * Renders a dropdown panel in a portal with `position: fixed` so ancestors with `overflow: hidden` do not clip it.
+ * For scrollable menus, use `DropdownMenuScrollArea` from `@/components/DropdownMenuScrollArea`,
+ * or add class `dropdown-menu-scroll` on an `overflow-auto` node to hide the native bar (see `app/globals.css`).
  * Does not toggle `open` on trigger click — the trigger must call `onOpenChange` (e.g. flip boolean on button click).
  * Closes on outside mousedown and Escape.
  * @param props Portal dropdown configuration
@@ -54,7 +100,12 @@ export function FloatingDropdown(props: FloatingDropdownProps) {
 
   const triggerWrapRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const openRef = useRef(open)
+  const onOpenChangeRef = useRef(onOpenChange)
+  const lastPosKeyRef = useRef('')
   const [pos, setPos] = useState({ top: 0, left: 0, width: menuMinWidth })
+
+  onOpenChangeRef.current = onOpenChange
 
   const updatePosition = useCallback(() => {
     const el = triggerWrapRef.current
@@ -63,21 +114,58 @@ export function FloatingDropdown(props: FloatingDropdownProps) {
     }
     const rect = el.getBoundingClientRect()
     const w = matchTriggerWidth ? Math.max(rect.width, menuMinWidth) : menuMinWidth
-    const left = align === 'end' ? rect.right - w : rect.left
-    setPos({ top: rect.bottom + 4, left, width: w })
+    let left = align === 'end' ? rect.right - w : rect.left
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 0
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 0
+    const menuEl = menuRef.current
+    const menuH = menuEl ? menuEl.getBoundingClientRect().height : 0
+    const spaceBelow = vh - rect.bottom - MENU_GAP
+    const spaceAbove = rect.top - MENU_GAP
+    let top = rect.bottom + MENU_GAP
+    if (menuH > 0 && menuH > spaceBelow && spaceAbove > spaceBelow) {
+      top = rect.top - menuH - MENU_GAP
+    }
+    if (menuH > 0 && vh > 0) {
+      top = Math.max(VIEWPORT_MARGIN, Math.min(top, vh - menuH - VIEWPORT_MARGIN))
+    }
+    if (vw > 0) {
+      left = Math.max(VIEWPORT_MARGIN, Math.min(left, vw - w - VIEWPORT_MARGIN))
+    }
+    const key = `${top}|${left}|${w}`
+    if (lastPosKeyRef.current === key) {
+      return
+    }
+    lastPosKeyRef.current = key
+    setPos({ top, left, width: w })
   }, [align, menuMinWidth, matchTriggerWidth])
+
+  useLayoutEffect(() => {
+    const prev = openRef.current
+    openRef.current = open
+    if (!open) {
+      lastPosKeyRef.current = ''
+    }
+    if (prev && !open) {
+      restoreTriggerFocus(triggerWrapRef.current)
+    }
+  }, [open])
 
   useLayoutEffect(() => {
     if (!open) {
       return
     }
     updatePosition()
+    const raf = requestAnimationFrame(() => {
+      updatePosition()
+      focusMenuInitial(menuRef.current)
+    })
     function onReposition() {
       updatePosition()
     }
     window.addEventListener('scroll', onReposition, true)
     window.addEventListener('resize', onReposition)
     return () => {
+      cancelAnimationFrame(raf)
       window.removeEventListener('scroll', onReposition, true)
       window.removeEventListener('resize', onReposition)
     }
@@ -95,30 +183,33 @@ export function FloatingDropdown(props: FloatingDropdownProps) {
       if (menuRef.current?.contains(t)) {
         return
       }
-      onOpenChange(false)
-    }
-    document.addEventListener('mousedown', onDocMouseDown)
-    return () => document.removeEventListener('mousedown', onDocMouseDown)
-  }, [open, onOpenChange])
-
-  useEffect(() => {
-    if (!open) {
-      return
+      onOpenChangeRef.current(false)
     }
     function onKey(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        onOpenChange(false)
+        event.stopPropagation()
+        onOpenChangeRef.current(false)
       }
     }
+    document.addEventListener('mousedown', onDocMouseDown)
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onOpenChange])
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
 
   const portal =
     open &&
     typeof document !== 'undefined' &&
     createPortal(
-      <div ref={menuRef} style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }} className={classNames(zIndexClassName, menuClassName)} role="presentation">
+      <div
+        ref={menuRef}
+        tabIndex={-1}
+        style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+        className={classNames(zIndexClassName, menuClassName, 'outline-none focus:outline-none focus-visible:outline-none')}
+        role="presentation"
+      >
         {children}
       </div>,
       document.body
