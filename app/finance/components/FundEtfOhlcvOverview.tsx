@@ -232,11 +232,6 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
                       ) : null}
                     </div>
                   )}
-                  {latestIsNav ? (
-                    <p className="text-[11px] leading-snug text-gray-600">
-                      NAV history includes unit NAV and daily change only. Open, high, low, volume, and turnover are not provided by the upstream feed and are omitted here.
-                    </p>
-                  ) : null}
                 </>
               ) : (
                 <p className="text-sm text-gray-500">
