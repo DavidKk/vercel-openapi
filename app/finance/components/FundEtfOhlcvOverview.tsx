@@ -105,19 +105,14 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
 
   const load = useCallback(async (sym: string) => {
     const { startDate, endDate } = rollingLocalRange()
-    const q = new URLSearchParams({
-      symbols: sym,
-      startDate,
-      endDate,
-    })
     setLoading(true)
     setError(null)
     setOhlcvRows([])
     setNavRows([])
     const navMode = isFundNavCatalogSymbol(sym)
     try {
-      const path = navMode ? '/api/finance/fund/nav/daily' : '/api/finance/market/daily'
-      const baseUrl = `${path}?${q.toString()}`
+      const path = navMode ? `/api/finance/fund/${sym}/nav/daily` : `/api/finance/fund/${sym}/ohlcv/daily`
+      const baseUrl = `${path}?${new URLSearchParams({ startDate, endDate }).toString()}`
       const res = await fetch(baseUrl, { cache: 'no-store' })
       const body = (await res.json()) as MarketOhlcvEnvelope | FundNavEnvelope
       if (!res.ok || (typeof body.code === 'number' && body.code !== 0)) {

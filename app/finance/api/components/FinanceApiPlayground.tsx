@@ -63,29 +63,26 @@ export function FinanceApiPlayground() {
   const [examplesOpen, setExamplesOpen] = useState(false)
 
   function pathForEndpoint(endpoint: Endpoint): string {
-    if (endpoint === 'company') return '/api/finance/market/company/daily'
-    if (endpoint === 'summary') return '/api/finance/market/summary/daily'
-    if (endpoint === 'summaryHourly') return '/api/finance/market/summary/hourly'
-    if (endpoint === 'marketDaily') return '/api/finance/market/daily'
-    if (endpoint === 'fundNavDaily') return '/api/finance/fund/nav/daily'
+    if (endpoint === 'company') return '/api/finance/stock/tasi/company/daily'
+    if (endpoint === 'summary') return '/api/finance/stock/tasi/summary/daily'
+    if (endpoint === 'summaryHourly') return '/api/finance/stock/tasi/summary/hourly'
+    if (endpoint === 'marketDaily') return '/api/finance/fund/…/ohlcv/daily'
+    if (endpoint === 'fundNavDaily') return '/api/finance/fund/…/nav/daily'
     if (endpoint === 'overviewStockList') return '/api/finance/overview/stock-list'
     return '/api/finance/stock/summary'
   }
 
   async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const baseCompany = '/api/finance/market/company/daily'
-    const baseSummary = '/api/finance/market/summary/daily'
-    const baseSummaryHourly = '/api/finance/market/summary/hourly'
+    const baseCompany = '/api/finance/stock/tasi/company/daily'
+    const baseSummary = '/api/finance/stock/tasi/summary/daily'
+    const baseSummaryHourly = '/api/finance/stock/tasi/summary/hourly'
     const baseStock = '/api/finance/stock/summary'
-    const baseMarketDaily = '/api/finance/market/daily'
-    const baseFundNavDaily = '/api/finance/fund/nav/daily'
     const baseOverviewStockList = '/api/finance/overview/stock-list'
 
     let url: string
     if (state.endpoint === 'company') {
       const q = new URLSearchParams()
-      q.set('market', 'TASI')
       if (state.code && state.from && state.to) {
         q.set('code', state.code)
         q.set('from', state.from)
@@ -95,11 +92,10 @@ export function FinanceApiPlayground() {
         q.set('date', state.date)
         url = `${baseCompany}?${q.toString()}`
       } else {
-        url = `${baseCompany}?market=TASI`
+        url = baseCompany
       }
     } else if (state.endpoint === 'summary') {
       const q = new URLSearchParams()
-      q.set('market', 'TASI')
       if (state.from && state.to) {
         q.set('from', state.from)
         q.set('to', state.to)
@@ -108,29 +104,29 @@ export function FinanceApiPlayground() {
         q.set('date', state.date)
         url = `${baseSummary}?${q.toString()}`
       } else {
-        url = `${baseSummary}?market=TASI`
+        url = baseSummary
       }
     } else if (state.endpoint === 'summaryHourly') {
-      url = `${baseSummaryHourly}?market=TASI`
+      url = baseSummaryHourly
     } else if (state.endpoint === 'stockSummaryBatch') {
       const q = new URLSearchParams()
       q.set('markets', state.stockMarkets)
       url = `${baseStock}?${q.toString()}`
     } else if (state.endpoint === 'marketDaily') {
+      const sym = state.mdSymbols.split(',')[0]?.trim() || '518880'
       const q = new URLSearchParams()
-      q.set('symbols', state.mdSymbols)
       q.set('startDate', state.mdStart)
       q.set('endDate', state.mdEnd)
       if (state.mdWithIndicators) q.set('withIndicators', 'true')
       if (state.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `${baseMarketDaily}?${q.toString()}`
+      url = `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily?${q.toString()}`
     } else if (state.endpoint === 'fundNavDaily') {
+      const sym = state.mdSymbols.split(',')[0]?.trim() || '012922'
       const q = new URLSearchParams()
-      q.set('symbols', state.mdSymbols)
       q.set('startDate', state.mdStart)
       q.set('endDate', state.mdEnd)
       if (state.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `${baseFundNavDaily}?${q.toString()}`
+      url = `/api/finance/fund/${encodeURIComponent(sym)}/nav/daily?${q.toString()}`
     } else if (state.endpoint === 'overviewStockList') {
       const q = new URLSearchParams()
       q.set('symbols', state.ovSymbols)
@@ -201,7 +197,6 @@ export function FinanceApiPlayground() {
     let url: string
     if (endpoint === 'company') {
       const q = new URLSearchParams()
-      q.set('market', 'TASI')
       if (code && from && to) {
         q.set('code', code)
         q.set('from', from)
@@ -211,11 +206,10 @@ export function FinanceApiPlayground() {
         q.set('date', date)
         url = `${path}?${q.toString()}`
       } else {
-        url = `${path}?market=TASI`
+        url = path
       }
     } else if (endpoint === 'summary') {
       const q = new URLSearchParams()
-      q.set('market', 'TASI')
       if (from && to) {
         q.set('from', from)
         q.set('to', to)
@@ -224,29 +218,29 @@ export function FinanceApiPlayground() {
         q.set('date', date)
         url = `${path}?${q.toString()}`
       } else {
-        url = `${path}?market=TASI`
+        url = path
       }
     } else if (endpoint === 'summaryHourly') {
-      url = `${path}?market=TASI`
+      url = path
     } else if (endpoint === 'stockSummaryBatch') {
       const q = new URLSearchParams()
       q.set('markets', stockMarkets)
       url = `${path}?${q.toString()}`
     } else if (endpoint === 'marketDaily') {
+      const sym = mdSymbols.split(',')[0]?.trim() || '518880'
       const q = new URLSearchParams()
-      q.set('symbols', mdSymbols)
       q.set('startDate', mdStart)
       q.set('endDate', mdEnd)
       if (mdWithIndicators) q.set('withIndicators', 'true')
       if (mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `${path}?${q.toString()}`
+      url = `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily?${q.toString()}`
     } else if (endpoint === 'fundNavDaily') {
+      const sym = mdSymbols.split(',')[0]?.trim() || '012922'
       const q = new URLSearchParams()
-      q.set('symbols', mdSymbols)
       q.set('startDate', mdStart)
       q.set('endDate', mdEnd)
       if (mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `${path}?${q.toString()}`
+      url = `/api/finance/fund/${encodeURIComponent(sym)}/nav/daily?${q.toString()}`
     } else if (endpoint === 'overviewStockList') {
       const q = new URLSearchParams()
       q.set('symbols', ovSymbols)

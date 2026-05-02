@@ -127,8 +127,8 @@ export function TasiOverviewLoader(props?: { headerTitle?: string; headerAddon?:
       /** Cache miss or expired: fetch from API. */
       try {
         const [companyRes, summaryRes] = await Promise.all([
-          fetch('/api/finance/market/company/daily?market=TASI', { cache: 'default' }),
-          fetch('/api/finance/market/summary/daily?market=TASI', { cache: 'default' }),
+          fetch('/api/finance/stock/tasi/company/daily', { cache: 'default' }),
+          fetch('/api/finance/stock/tasi/summary/daily', { cache: 'default' }),
         ])
         if (cancelled) return
         if (!companyRes.ok || !summaryRes.ok) {

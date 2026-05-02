@@ -24,8 +24,58 @@ sidebarItems:
 
 apiPage:
   title: Finance REST API
-  subtitle: Stocks — multi-market index snapshot plus exchange-scoped index/company series (TASI-only feed today). Funds — six-digit exchange daily bars vs NAV disclosure daily. Precious metals — XAUUSD on GET /api/finance/market/daily (Turso source eastmoney-precious-spot).
+  subtitle: Stocks — canonical TASI feed under /api/finance/stock/tasi/… (mirrors /finance/stock/tasi); legacy /api/finance/market/… kept. Funds — per-symbol /api/finance/fund/:symbol/ohlcv|nav/… (mirrors /finance/fund/:symbol); batch symbols still on market/daily. Precious — XAUUSD via /api/finance/fund/XAUUSD/ohlcv/… (Turso eastmoney-precious-spot).
   endpoints:
+    - method: GET
+      path: /api/finance/stock/tasi/dailylatest
+      description: 'Latest TASI index summary + all companies in one response. Slug tasi matches /finance/stock/tasi. data: asOf, dataDate, summary, items.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","summary":{},"items":[]}}
+    - method: GET
+      path: /api/finance/stock/tasi/summary/daily
+      description: 'TASI index daily / K-line; same query as market/summary/daily without market= (slug in path). Legacy GET /api/finance/market/summary/daily?market=TASI.'
+      exampleResponse: |
+        {"date":"2025-03-14","open":12000,"high":12100,"low":11950,"close":12050,"volumeTraded":100000000}
+    - method: GET
+      path: /api/finance/stock/tasi/company/daily
+      description: 'TASI company daily / K-line; same query as market/company/daily without market=. Legacy GET /api/finance/market/company/daily?market=TASI.'
+      exampleResponse: |
+        [{"code":"1120","name":"SNB","date":"2025-03-14","open":42.5,"high":43,"low":42.2,"lastPrice":42.8,"volume":1000000}]
+    - method: GET
+      path: /api/finance/stock/tasi/summary/hourly
+      description: 'TASI SAHMK hourly alignment. Legacy GET /api/finance/market/summary/hourly?market=TASI.'
+      exampleResponse: |
+        {}
+    - method: GET
+      path: /api/finance/stock/tasi/summary/dailylatest
+      description: 'Latest TASI index session + asOf. Legacy GET /api/finance/market/summary/daily/latest?market=TASI.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","summary":{}}}
+    - method: GET
+      path: /api/finance/stock/tasi/company/dailylatest
+      description: 'Latest TASI company list + asOf. Legacy GET /api/finance/market/company/daily/latest?market=TASI.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","items":[]}}
+    - method: GET
+      path: /api/finance/fund/518880/ohlcv/daily
+      description: 'Single-symbol exchange OHLCV range (path symbol). Query startDate,endDate; optional withIndicators,syncIfEmpty. Legacy GET /api/finance/market/daily?symbols=518880&…'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"items":[],"synced":false}}
+    - method: GET
+      path: /api/finance/fund/518880/ohlcv/dailylatest
+      description: 'Single-symbol latest OHLCV bar. Optional withIndicators; syncIfEmpty defaults true. Legacy GET /api/finance/market/daily/latest?symbols=518880.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[],"synced":false}}
+    - method: GET
+      path: /api/finance/fund/012922/nav/daily
+      description: 'Single-symbol NAV range. Query startDate,endDate; optional syncIfEmpty. Legacy GET /api/finance/fund/nav/daily?symbols=012922&…'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"items":[],"synced":false}}
+    - method: GET
+      path: /api/finance/fund/012922/nav/dailylatest
+      description: 'Single-symbol latest NAV; syncIfEmpty defaults true. Legacy GET /api/finance/fund/nav/daily/latest?symbols=012922.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[],"synced":false}}
     - method: GET
       path: /api/finance/overview/stock-list
       description: 'Latest bar per six-digit symbol with macdUp/macdDown (stock.md EWM MACD). Query symbols,startDate,endDate; optional syncIfEmpty.'
@@ -57,10 +107,30 @@ apiPage:
       exampleResponse: |
         {"code":0,"message":"ok","data":{"items":[{"date":"2025-04-30","symbol":"518880","open":5.715,"close":5.739,"high":5.758,"low":5.715,"volume":2579209,"amount":1480522810,"amplitude":0,"changeRate":1.11,"changeAmount":0.063,"turnoverRate":5.97,"macdUp":3,"macdDown":0}],"synced":false}}
     - method: GET
+      path: /api/finance/market/daily/latest
+      description: 'Latest one OHLCV bar per symbol (no date range). Query: symbols; optional withIndicators; syncIfEmpty defaults true. data: asOf (ISO-8601), items (same row shape as market/daily), synced.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[{"date":"2026-05-01","symbol":"510300","open":4.1,"close":4.09,"high":4.12,"low":4.08,"volume":1,"amount":1,"amplitude":0,"changeRate":0,"changeAmount":0,"turnoverRate":0}],"synced":false}}
+    - method: GET
       path: /api/finance/fund/nav/daily
       description: 'Fund LSJZ NAV only (configured NAV six-digit codes). Query: symbols,startDate,endDate; optional syncIfEmpty for allowlisted NAV catalog. data.items: unitNav, dailyChangePercent.'
       exampleResponse: |
         {"code":0,"message":"ok","data":{"items":[{"date":"2024-12-31","symbol":"012922","unitNav":1.346,"dailyChangePercent":-1.15}],"synced":false}}
+    - method: GET
+      path: /api/finance/fund/nav/daily/latest
+      description: 'Latest one NAV row per symbol (no date range). Query: symbols; syncIfEmpty defaults true. data: asOf, items, synced.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[{"date":"2026-04-30","symbol":"012922","unitNav":1.2,"dailyChangePercent":0.1}],"synced":false}}
+    - method: GET
+      path: /api/finance/market/summary/daily/latest
+      description: 'TASI index summary for latest session. Query: market=TASI (default). data: asOf, dataDate (feed bar date), summary (same shape as summary/daily single-day).'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","summary":{"date":"2026-05-01","open":1,"high":1,"low":1,"close":1,"change":0,"changePercent":0,"companiesTraded":1,"volumeTraded":1,"valueTraded":1,"numberOfTrades":1,"marketCap":1}}}
+    - method: GET
+      path: /api/finance/market/company/daily/latest
+      description: 'TASI all companies for latest session. Query: market=TASI (default). data: asOf, dataDate, items (same rows as company/daily with no date).'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","items":[]}}
   playgroundComponentName: FinanceApiPlayground
   playgroundImportPath: '@/app/finance/api/components'
 
@@ -74,8 +144,16 @@ mcpPage:
       description: 'Params: symbols, startDate, endDate; optional syncIfEmpty. Returns stockList with MACD streak.'
     - name: get_market_daily
       description: 'Exchange OHLCV only: symbols, startDate, endDate; optional withIndicators; optional syncIfEmpty (default true). Fund NAV → get_fund_nav_daily.'
+    - name: get_market_daily_latest
+      description: 'Latest one OHLCV bar per symbol: symbols only; optional withIndicators; optional syncIfEmpty (default true). Returns { asOf, items, synced }.'
     - name: get_fund_nav_daily
       description: 'Fund NAV only: symbols, startDate, endDate; optional syncIfEmpty (default true for allowlisted NAV catalog). Returns items with unitNav and dailyChangePercent.'
+    - name: get_fund_nav_daily_latest
+      description: 'Latest one NAV row per symbol: symbols only; optional syncIfEmpty (default true). Returns { asOf, items, synced }.'
+    - name: get_market_summary_daily_latest
+      description: 'TASI index summary latest session; optional market (default TASI). Returns { asOf, dataDate, summary }.'
+    - name: get_market_company_daily_latest
+      description: 'TASI all companies latest session; optional market (default TASI). Returns { asOf, dataDate, items }.'
     - name: get_market_company_daily
       description: 'Params: optional market (TASI default), date, or code+from+to for K-line.'
     - name: get_market_summary_daily

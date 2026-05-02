@@ -9,10 +9,14 @@ import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 
 type FinanceMcpToolName =
   | 'get_market_company_daily'
+  | 'get_market_company_daily_latest'
   | 'get_market_summary_daily'
+  | 'get_market_summary_daily_latest'
   | 'get_market_summary_hourly'
   | 'get_market_daily'
+  | 'get_market_daily_latest'
   | 'get_fund_nav_daily'
+  | 'get_fund_nav_daily_latest'
   | 'get_overview_stock_list'
   | 'get_stock_summary'
 
@@ -31,10 +35,14 @@ const MCP_PATH = '/api/mcp/finance'
 
 const DEFAULT_PARAMS: Record<FinanceMcpToolName, string> = {
   get_market_company_daily: '{"market":"TASI"}',
+  get_market_company_daily_latest: '{"market":"TASI"}',
   get_market_summary_daily: '{"market":"TASI"}',
+  get_market_summary_daily_latest: '{"market":"TASI"}',
   get_market_summary_hourly: '{"market":"TASI"}',
   get_market_daily: '{"symbols":"518880","startDate":"2025-01-01","endDate":"2025-03-01"}',
+  get_market_daily_latest: '{"symbols":"510300"}',
   get_fund_nav_daily: '{"symbols":"012922","startDate":"2025-01-01","endDate":"2025-03-01"}',
+  get_fund_nav_daily_latest: '{"symbols":"012922"}',
   get_overview_stock_list: '{"symbols":"518880","startDate":"2025-01-01","endDate":"2025-03-01"}',
   get_stock_summary: '{"market":"TASI"}',
 }
@@ -110,10 +118,14 @@ export function TasiMcpPlayground() {
                 onChange={handleToolChange}
                 options={[
                   { value: 'get_market_company_daily', label: 'get_market_company_daily' },
+                  { value: 'get_market_company_daily_latest', label: 'get_market_company_daily_latest' },
                   { value: 'get_market_summary_daily', label: 'get_market_summary_daily' },
+                  { value: 'get_market_summary_daily_latest', label: 'get_market_summary_daily_latest' },
                   { value: 'get_market_summary_hourly', label: 'get_market_summary_hourly' },
                   { value: 'get_market_daily', label: 'get_market_daily' },
+                  { value: 'get_market_daily_latest', label: 'get_market_daily_latest' },
                   { value: 'get_fund_nav_daily', label: 'get_fund_nav_daily' },
+                  { value: 'get_fund_nav_daily_latest', label: 'get_fund_nav_daily_latest' },
                   { value: 'get_overview_stock_list', label: 'get_overview_stock_list' },
                   { value: 'get_stock_summary', label: 'get_stock_summary' },
                 ]}

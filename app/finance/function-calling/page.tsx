@@ -2,7 +2,8 @@ import { FunctionCallingPanel } from '@/components/FunctionCallingPanel'
 
 /**
  * Finance Function Calling page.
- * Exposes get_market_company_daily, get_market_summary_daily, get_market_summary_hourly, get_market_daily, get_fund_nav_daily,
+ * Exposes get_market_company_daily, get_market_company_daily_latest, get_market_summary_daily, get_market_summary_daily_latest,
+ * get_market_summary_hourly, get_market_daily, get_market_daily_latest, get_fund_nav_daily, get_fund_nav_daily_latest,
  * get_overview_stock_list, and get_stock_summary as OpenAI-compatible tools.
  */
 export default function FinanceFunctionCallingPage() {

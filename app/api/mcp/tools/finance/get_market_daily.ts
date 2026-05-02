@@ -14,7 +14,7 @@ import {
  */
 export const get_market_daily = tool(
   'get_market_daily',
-  'Get exchange daily OHLCV for six-digit symbols (e.g. 518880). Fund NAV codes must use get_fund_nav_daily. Requires symbols,startDate,endDate; optional withIndicators; optional syncIfEmpty (default true) re-fetches from Eastmoney when Turso is empty for allowlisted fund/ETF symbols only. Returns items plus synced when a backfill ingest ran.',
+  'Get exchange daily OHLCV for six-digit symbols (e.g. 518880). Canonical REST per symbol: GET /api/finance/fund/{symbol}/ohlcv/daily. Fund NAV codes must use get_fund_nav_daily. Requires symbols,startDate,endDate; optional withIndicators; optional syncIfEmpty (default true) re-fetches from Eastmoney when Turso is empty for allowlisted fund/ETF symbols only. Returns items plus synced when a backfill ingest ran.',
   z.object({
     symbols: z.string().describe('Comma-separated symbols: six-digit codes and/or XAUUSD, e.g. 518880,510300 or XAUUSD'),
     startDate: z.string().describe('Start date YYYY-MM-DD'),

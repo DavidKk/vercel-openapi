@@ -9,7 +9,7 @@ import { isFundNavSixDigitSymbol } from './fundNavSymbols'
 export function marketDailySymbolsRejectionMessage(symbols: string[]): string {
   const nav = symbols.filter(isFundNavSixDigitSymbol)
   if (nav.length === 0) return ''
-  return `Use GET /api/finance/fund/nav/daily for fund NAV codes (not exchange OHLCV). Remove: ${nav.join(', ')}`
+  return `Use GET /api/finance/fund/{code}/nav/daily (or GET /api/finance/fund/nav/daily?symbols=...) for fund NAV codes (not exchange OHLCV). Remove: ${nav.join(', ')}`
 }
 
 /**
@@ -21,5 +21,5 @@ export function marketDailySymbolsRejectionMessage(symbols: string[]): string {
 export function fundNavDailySymbolsRejectionMessage(symbols: string[]): string {
   const bad = symbols.filter((s) => !isFundNavSixDigitSymbol(s))
   if (bad.length === 0) return ''
-  return `Only configured fund NAV six-digit codes are allowed. Rejected: ${bad.join(', ')}`
+  return `Only configured fund NAV six-digit codes are allowed (use GET /api/finance/fund/{code}/nav/... or ?symbols=). Rejected: ${bad.join(', ')}`
 }

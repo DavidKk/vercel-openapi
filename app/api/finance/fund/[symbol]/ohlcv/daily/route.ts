@@ -1,3 +1,4 @@
+import { singleFundPathSymbol } from '@/app/api/finance/fund/fundSymbolPath'
 import { api } from '@/initializer/controller'
 import { cacheControlNoStoreHeaders, jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import {
@@ -11,21 +12,19 @@ import { createLogger } from '@/services/logger'
 
 export const runtime = 'nodejs'
 
-const logger = createLogger('api-finance-market-daily')
+const logger = createLogger('api-finance-fund-symbol-ohlcv-daily')
 
 /**
- * GET /api/finance/market/daily
- * Exchange-traded daily bars only (no fund NAV codes — use `GET /api/finance/fund/nav/daily` or per-symbol `GET /api/finance/fund/{symbol}/nav/daily`).
- * Query:
- * - symbols: comma-separated symbols (required): six-digit ETF/stock codes or **XAUUSD** (spot gold vs USD, Eastmoney `122.XAU`)
- * - startDate: YYYY-MM-DD (required)
- * - endDate: YYYY-MM-DD (required)
- * - withIndicators: true/false (optional, default false)
- * - syncIfEmpty: when `true` and the first read returns no rows, runs Eastmoney range ingest then re-reads
- *   (only if every symbol is allowlisted: `FUND_ETF_OHLCV_SYMBOLS` and/or `XAUUSD`; Turso must be configured for writes)
+ * GET /api/finance/fund/:symbol/ohlcv/daily
+ * Mirrors `/finance/fund/:symbol` — single-symbol exchange OHLCV range (same semantics as GET /api/finance/market/daily?symbols=:symbol).
  */
-export const GET = api(async (_req, ctx) => {
-  const symbolsRaw = ctx.searchParams.get('symbols') ?? ''
+export const GET = api<{ symbol: string }>(async (_req, ctx) => {
+  const params = await ctx.params
+  const sym = singleFundPathSymbol(params.symbol)
+  if (!sym) {
+    return jsonInvalidParameters('Path must be a single six-digit code or XAUUSD.', { headers: cacheControlNoStoreHeaders() })
+  }
+  const symbolsRaw = sym
   const startDate = ctx.searchParams.get('startDate') ?? ''
   const endDate = ctx.searchParams.get('endDate') ?? ''
   const withIndicators = (ctx.searchParams.get('withIndicators') ?? '').toLowerCase() === 'true'
@@ -47,20 +46,10 @@ export const GET = api(async (_req, ctx) => {
     syncIfEmpty,
     allowOnDemandIngest: allowIngest,
   })
-  if (syncIfEmpty && items.length === 0) {
-    logger.warn('syncIfEmpty produced no rows', { symbolsRaw, allowIngest, synced })
-  }
 
   const publicItems = items.map(toPublicOhlcvRecord).filter((row): row is NonNullable<typeof row> => row != null)
-  if (publicItems.length !== items.length) {
-    logger.warn('dropped non-OHLCV rows from market/daily response', { symbolsRaw, internal: items.length, public: publicItems.length })
-  }
-
   return jsonSuccess(
-    {
-      items: publicItems,
-      synced,
-    },
+    { items: publicItems, synced },
     {
       headers: new Headers({
         'Content-Type': 'application/json',

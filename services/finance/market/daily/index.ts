@@ -4,11 +4,13 @@ import { fetchDailyRangeFromEastmoney, fetchFundNavRangeFromEastmoney, fetchLate
 import { isFundNavSixDigitSymbol } from './fundNavSymbols'
 import { buildMacdHistogramFromClose, getMacdStreakUpDownFromHistogram } from './macd'
 import { readMarketDailyByRange, upsertMarketDailyRecords } from './turso'
-import type { FinanceMarketDailyRecord } from './types'
+import type { FinanceFundNavDailyRecord, FinanceMarketDailyRecord, FinanceMarketOhlcvDailyRecord } from './types'
 
 export type { FundNavSixDigitCode } from './fundNavSymbols'
 export { FUND_NAV_SIX_DIGIT_CODES, isFundNavSixDigitSymbol } from './fundNavSymbols'
-export { toPublicFundNavRecord, toPublicOhlcvRecord } from './publicRecords'
+import { toPublicFundNavRecord, toPublicOhlcvRecord } from './publicRecords'
+
+export { toPublicFundNavRecord, toPublicOhlcvRecord }
 export { fundNavDailySymbolsRejectionMessage, marketDailySymbolsRejectionMessage } from './symbolPolicy'
 export { isFundEtfOhlcvSymbolSetAllowedForSync, isFundNavSymbolSetAllowedForSync, isMarketDailyOhlcvSymbolSetAllowedForSync } from './syncAllowlist'
 export type { FinanceFundNavDailyRecord, FinanceMarketOhlcvDailyRecord } from './types'
@@ -110,6 +112,184 @@ export async function getMarketDailyWithOptionalSync(options: {
     }
   }
   return { items, synced }
+}
+
+/** UTC lookback for resolving latest OHLCV bar and optional MACD streaks. */
+const LATEST_OHLCV_LOOKBACK_DAYS = 140
+
+/**
+ * Format a Date as YYYY-MM-DD in UTC.
+ *
+ * @param d Instant
+ * @returns Calendar date string
+ */
+function formatUtcYmd(d: Date): string {
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/**
+ * Add calendar days to a YYYY-MM-DD string in UTC.
+ *
+ * @param ymd Start date
+ * @param delta Day delta (may be negative)
+ * @returns Resulting YYYY-MM-DD
+ */
+function addUtcCalendarDays(ymd: string, delta: number): string {
+  const [y, mo, d] = ymd.split('-').map((x) => Number(x))
+  const dt = new Date(Date.UTC(y, mo - 1, d + delta))
+  return formatUtcYmd(dt)
+}
+
+/**
+ * Keep the newest calendar row per symbol (lexicographic YYYY-MM-DD compare).
+ *
+ * @param rows Daily rows
+ * @returns One row per symbol, sorted by symbol
+ */
+function pickLatestPerSymbol(rows: FinanceMarketDailyRecord[]): FinanceMarketDailyRecord[] {
+  const map = new Map<string, FinanceMarketDailyRecord>()
+  for (const row of rows) {
+    const cur = map.get(row.symbol)
+    if (!cur || row.date > cur.date) map.set(row.symbol, row)
+  }
+  return [...map.values()].sort((a, b) => a.symbol.localeCompare(b.symbol))
+}
+
+/**
+ * Exclude fund NAV rows from a mixed Turso read.
+ *
+ * @param rows Raw rows
+ * @returns Exchange OHLCV / precious rows only
+ */
+function filterOhlcvRows(rows: FinanceMarketDailyRecord[]): FinanceMarketDailyRecord[] {
+  return rows.filter((r) => r.source !== 'eastmoney-fund-nav')
+}
+
+/**
+ * Keep LSJZ-backed NAV rows only.
+ *
+ * @param rows Raw rows
+ * @returns Fund NAV rows only
+ */
+function filterNavRows(rows: FinanceMarketDailyRecord[]): FinanceMarketDailyRecord[] {
+  return rows.filter((r) => r.source === 'eastmoney-fund-nav')
+}
+
+/**
+ * Latest exchange-traded daily bar per symbol (most recent session in Turso or from Eastmoney tail when syncing).
+ *
+ * @param options symbolsRaw, optional withIndicators, syncIfEmpty (defaults true), allowOnDemandIngest
+ * @returns Response time, one public OHLCV row per symbol, and whether a fetch+upsert ran
+ */
+export async function getMarketOhlcvLatestDaily(options: {
+  symbolsRaw: string
+  withIndicators?: boolean
+  syncIfEmpty?: boolean
+  allowOnDemandIngest?: boolean
+}): Promise<{ asOf: string; items: FinanceMarketOhlcvDailyRecord[]; synced: boolean }> {
+  const asOf = new Date().toISOString()
+  const symbols = parseSymbols(options.symbolsRaw)
+  if (symbols.length === 0) {
+    return { asOf, items: [], synced: false }
+  }
+  const syncIfEmpty = options.syncIfEmpty !== false
+  const withIndicators = options.withIndicators ?? false
+  const endDate = formatUtcYmd(new Date())
+  const startDate = addUtcCalendarDays(endDate, -LATEST_OHLCV_LOOKBACK_DAYS)
+
+  let internal = filterOhlcvRows(
+    await getMarketDaily({
+      symbolsRaw: options.symbolsRaw,
+      startDate,
+      endDate,
+      withIndicators,
+    })
+  )
+  let picks = pickLatestPerSymbol(internal)
+  let synced = false
+
+  if (syncIfEmpty && options.allowOnDemandIngest) {
+    const missing = symbols.filter((s) => !picks.some((p) => p.symbol === s))
+    if (missing.length > 0) {
+      const fetched = await Promise.all(missing.map((symbol) => fetchLatestDailyFromEastmoney(symbol)))
+      const toWrite = fetched.filter((row): row is FinanceMarketDailyRecord => row != null)
+      if (toWrite.length > 0) {
+        await upsertMarketDailyRecords(toWrite)
+        synced = true
+        internal = filterOhlcvRows(
+          await getMarketDaily({
+            symbolsRaw: options.symbolsRaw,
+            startDate,
+            endDate,
+            withIndicators,
+          })
+        )
+        picks = pickLatestPerSymbol(internal)
+      }
+    }
+  }
+
+  const publicItems = picks.map(toPublicOhlcvRecord).filter((row): row is FinanceMarketOhlcvDailyRecord => row != null)
+  return { asOf, items: publicItems, synced }
+}
+
+/**
+ * Latest fund NAV disclosure row per symbol (newest LSJZ page head when syncing).
+ *
+ * @param options symbolsRaw, syncIfEmpty (defaults true), allowOnDemandIngest
+ * @returns Response time, one public NAV row per symbol, and whether a fetch+upsert ran
+ */
+export async function getFundNavLatestDaily(options: {
+  symbolsRaw: string
+  syncIfEmpty?: boolean
+  allowOnDemandIngest?: boolean
+}): Promise<{ asOf: string; items: FinanceFundNavDailyRecord[]; synced: boolean }> {
+  const asOf = new Date().toISOString()
+  const symbols = parseSymbols(options.symbolsRaw)
+  if (symbols.length === 0) {
+    return { asOf, items: [], synced: false }
+  }
+  const syncIfEmpty = options.syncIfEmpty !== false
+  const endDate = formatUtcYmd(new Date())
+  const startDate = addUtcCalendarDays(endDate, -LATEST_OHLCV_LOOKBACK_DAYS)
+
+  let internal = filterNavRows(
+    await getMarketDaily({
+      symbolsRaw: options.symbolsRaw,
+      startDate,
+      endDate,
+      withIndicators: false,
+    })
+  )
+  let picks = pickLatestPerSymbol(internal)
+  let synced = false
+
+  if (syncIfEmpty && options.allowOnDemandIngest) {
+    const missing = symbols.filter((s) => !picks.some((p) => p.symbol === s))
+    if (missing.length > 0) {
+      const fetched = await Promise.all(missing.map((symbol) => fetchLatestFundNavFromEastmoney(symbol)))
+      const toWrite = fetched.filter((row): row is FinanceMarketDailyRecord => row != null)
+      if (toWrite.length > 0) {
+        await upsertMarketDailyRecords(toWrite)
+        synced = true
+        internal = filterNavRows(
+          await getMarketDaily({
+            symbolsRaw: options.symbolsRaw,
+            startDate,
+            endDate,
+            withIndicators: false,
+          })
+        )
+        picks = pickLatestPerSymbol(internal)
+      }
+    }
+  }
+
+  const publicItems = picks.map(toPublicFundNavRecord).filter((row): row is FinanceFundNavDailyRecord => row != null)
+  return { asOf, items: publicItems, synced }
 }
 
 /**

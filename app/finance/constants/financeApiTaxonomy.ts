@@ -54,4 +54,4 @@ export const PRECIOUS_METALS_API_SECTION_SUBTITLE = 'Spot bullion (reserved)'
 
 /** Precious metals: same OHLCV route as funds/ETF daily bars, separate Turso `source`. */
 export const PRECIOUS_METALS_API_PLACEHOLDER =
-  'Use GET /api/finance/market/daily with symbols=XAUUSD (allowlisted for sync). Rows persist in Turso with source eastmoney-precious-spot (vs eastmoney for six-digit A-share/ETF kline, eastmoney-fund-nav for LSJZ NAV). Only XAUUSD in scope today.'
+  'Use GET /api/finance/fund/XAUUSD/ohlcv/daily (canonical; allowlisted for sync) or legacy GET /api/finance/market/daily?symbols=XAUUSD. Rows persist in Turso with source eastmoney-precious-spot (vs eastmoney for six-digit A-share/ETF kline, eastmoney-fund-nav for LSJZ NAV). Only XAUUSD in scope today.'

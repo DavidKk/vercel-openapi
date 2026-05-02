@@ -62,7 +62,7 @@ const thDate = `sticky left-0 z-20 bg-gray-100 ${thBase} whitespace-nowrap text-
 const tdDate = 'sticky left-0 z-10 bg-white px-2 py-1.5 font-mono font-semibold whitespace-nowrap text-gray-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-gray-50'
 
 /**
- * Precious metals spot overview: loads `/api/finance/market/daily` for **XAUUSD** with
+ * Precious metals spot overview: loads `/api/finance/fund/XAUUSD/ohlcv/daily` with
  * **`syncIfEmpty=true`** so an empty Turso window triggers one server-side Eastmoney range
  * ingest (cold start), then the same summary + table shell as fund OHLCV.
  *
@@ -76,7 +76,6 @@ export function QuoteLiteOverview() {
   const load = useCallback(async () => {
     const { startDate, endDate } = rollingLocalRange()
     const q = new URLSearchParams({
-      symbols: PRECIOUS_SYMBOL,
       startDate,
       endDate,
     })
@@ -86,7 +85,7 @@ export function QuoteLiteOverview() {
     setError(null)
     setRows([])
     try {
-      const baseUrl = `/api/finance/market/daily?${q.toString()}`
+      const baseUrl = `/api/finance/fund/${PRECIOUS_SYMBOL}/ohlcv/daily?${q.toString()}`
       const res = await fetch(baseUrl, { cache: 'no-store' })
       const body = (await res.json()) as MarketDailyEnvelope
       if (!res.ok || (typeof body.code === 'number' && body.code !== 0)) {

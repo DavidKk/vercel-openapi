@@ -53,6 +53,22 @@ export default function FinanceMcpPage() {
               <code className="rounded bg-gray-100 px-0.5">dailyChangePercent</code> per row.
             </li>
             <li>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_daily_latest</code> — Latest one OHLCV bar per symbol:{' '}
+              <code className="rounded bg-gray-100 px-0.5">symbols</code> only; optional <code className="rounded bg-gray-100 px-0.5">withIndicators</code>; optional{' '}
+              <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code> (default true). Returns <code className="rounded bg-gray-100 px-0.5">asOf</code> +{' '}
+              <code className="rounded bg-gray-100 px-0.5">items</code> + <code className="rounded bg-gray-100 px-0.5">synced</code>.
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_fund_nav_daily_latest</code> — Latest one NAV row per code:{' '}
+              <code className="rounded bg-gray-100 px-0.5">symbols</code> only; optional <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code> (default true). Returns{' '}
+              <code className="rounded bg-gray-100 px-0.5">asOf</code> + rows.
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_summary_daily_latest</code> /{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_company_daily_latest</code> — TASI latest session with{' '}
+              <code className="rounded bg-gray-100 px-0.5">asOf</code> + <code className="rounded bg-gray-100 px-0.5">dataDate</code>.
+            </li>
+            <li>
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_overview_stock_list</code> — Latest per symbol with MACD streak (stock.md):{' '}
               <code className="rounded bg-gray-100 px-0.5">symbols</code>, <code className="rounded bg-gray-100 px-0.5">startDate</code>,{' '}
               <code className="rounded bg-gray-100 px-0.5">endDate</code>; optional <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code>.
