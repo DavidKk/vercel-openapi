@@ -2,11 +2,13 @@ import { createLogger } from '@/services/logger'
 
 import { fetchDailyRangeFromEastmoney, fetchFundNavRangeFromEastmoney, fetchLatestDailyFromEastmoney, fetchLatestFundNavFromEastmoney } from './fetch'
 import { isFundNavSixDigitSymbol } from './fundNavSymbols'
+import { buildMacdHistogramFromClose, getMacdStreakUpDownFromHistogram } from './macd'
 import { readMarketDailyByRange, upsertMarketDailyRecords } from './turso'
 import type { FinanceMarketDailyRecord } from './types'
 
 export type { FundNavSixDigitCode } from './fundNavSymbols'
 export { FUND_NAV_SIX_DIGIT_CODES, isFundNavSixDigitSymbol } from './fundNavSymbols'
+export { isFundEtfOhlcvSymbolSetAllowedForSync } from './syncAllowlist'
 
 const logger = createLogger('finance-market-daily')
 
@@ -56,6 +58,47 @@ export async function getMarketDaily(options: { symbolsRaw: string; startDate: s
   const items = await readMarketDailyByRange(symbols, startDate, endDate)
   if (!options.withIndicators) return items
   return attachMacdIndicators(items)
+}
+
+/**
+ * Read market daily rows; optionally run range ingest when the first read is empty (caller must vet symbols).
+ *
+ * @param options Query + optional sync
+ * @returns Rows and whether an on-demand ingest ran before the final read
+ */
+export async function getMarketDailyWithOptionalSync(options: {
+  symbolsRaw: string
+  startDate: string
+  endDate: string
+  withIndicators?: boolean
+  syncIfEmpty?: boolean
+  /** When false, `syncIfEmpty` is ignored (prevents arbitrary symbol backfill). */
+  allowOnDemandIngest?: boolean
+}): Promise<{ items: FinanceMarketDailyRecord[]; synced: boolean }> {
+  const withIndicators = options.withIndicators ?? false
+  let items = await getMarketDaily({
+    symbolsRaw: options.symbolsRaw,
+    startDate: options.startDate,
+    endDate: options.endDate,
+    withIndicators,
+  })
+  let synced = false
+  if (options.syncIfEmpty && items.length === 0 && options.allowOnDemandIngest) {
+    const symbols = parseSymbols(options.symbolsRaw)
+    const sd = parseDate(options.startDate)
+    const ed = parseDate(options.endDate)
+    if (symbols.length > 0 && sd && ed && sd <= ed) {
+      await runMarketDailyIngestRange({ symbols, startDate: sd, endDate: ed })
+      items = await getMarketDaily({
+        symbolsRaw: options.symbolsRaw,
+        startDate: options.startDate,
+        endDate: options.endDate,
+        withIndicators,
+      })
+      synced = true
+    }
+  }
+  return { items, synced }
 }
 
 /**
@@ -123,12 +166,12 @@ export async function runMarketDailyIngestRange(options: { symbols: string[]; st
 
 /**
  * Attach MACD up/down counts to the latest record of each symbol in result set.
- * Calculation follows the stock.md logic (EMA12/EMA26 -> DIF/DEA -> MACD).
+ * Uses pandas-equivalent EWM (`stock.md` calculate_macd / get_macd) via {@link buildMacdHistogramFromClose}.
  *
  * @param items Daily records
  * @returns Records with optional indicator fields
  */
-function attachMacdIndicators(items: FinanceMarketDailyRecord[]): FinanceMarketDailyRecord[] {
+export function attachMacdIndicators(items: FinanceMarketDailyRecord[]): FinanceMarketDailyRecord[] {
   const bySymbol = new Map<string, FinanceMarketDailyRecord[]>()
   for (const item of items) {
     const group = bySymbol.get(item.symbol) ?? []
@@ -143,13 +186,13 @@ function attachMacdIndicators(items: FinanceMarketDailyRecord[]): FinanceMarketD
   }))
   const latestKeyToIndicator = new Map<string, { up: number; down: number }>()
 
-  for (const [symbol, group] of bySymbol.entries()) {
+  for (const [, group] of bySymbol.entries()) {
     const sorted = [...group].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
     if (sorted.length < 2) continue
-    const macdSeries = buildMacdSeries(sorted.map((row) => row.close))
-    const counts = getMacdUpDownCounts(macdSeries)
+    const macdSeries = buildMacdHistogramFromClose(sorted.map((row) => row.close))
+    const counts = getMacdStreakUpDownFromHistogram(macdSeries)
     const latest = sorted[sorted.length - 1]
-    latestKeyToIndicator.set(`${symbol}:${latest.date}`, counts)
+    latestKeyToIndicator.set(`${latest.symbol}:${latest.date}`, counts)
   }
 
   for (const row of enriched) {
@@ -160,55 +203,4 @@ function attachMacdIndicators(items: FinanceMarketDailyRecord[]): FinanceMarketD
     }
   }
   return enriched
-}
-
-/**
- * Build MACD series from close prices.
- *
- * @param closes Close price sequence
- * @returns MACD value sequence
- */
-function buildMacdSeries(closes: number[]): number[] {
-  let ema12 = closes[0]
-  let ema26 = closes[0]
-  let dea = 0
-  const alpha12 = 2 / (12 + 1)
-  const alpha26 = 2 / (26 + 1)
-  const alpha9 = 2 / (9 + 1)
-  const out: number[] = []
-  for (const close of closes) {
-    ema12 = ema12 + alpha12 * (close - ema12)
-    ema26 = ema26 + alpha26 * (close - ema26)
-    const dif = ema12 - ema26
-    dea = dea + alpha9 * (dif - dea)
-    out.push((dif - dea) * 2)
-  }
-  return out
-}
-
-/**
- * Count latest MACD up/down streak lengths.
- *
- * @param macdSeries MACD sequence
- * @returns Up/down streak counts
- */
-function getMacdUpDownCounts(macdSeries: number[]): { up: number; down: number } {
-  let isRise = true
-  let up = 0
-  let down = 0
-  for (let i = macdSeries.length - 1; i >= 1; i -= 1) {
-    if (isRise) {
-      if (macdSeries[i] > macdSeries[i - 1]) {
-        up += 1
-      } else {
-        isRise = false
-        down += 1
-      }
-    } else if (macdSeries[i] < macdSeries[i - 1]) {
-      down += 1
-    } else {
-      break
-    }
-  }
-  return { up, down }
 }

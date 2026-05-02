@@ -249,13 +249,13 @@ export async function getStockSummary(market: StockMarket): Promise<StockMarketS
 
 /**
  * Batch get stock summary for API usage.
- * Returns latest available data per market from storage.
+ * Runs the same path as {@link getStockSummary} per market (Turso cache, else cold-start fetch and upsert).
  *
  * @param markets Market list
- * @returns Summary list
+ * @returns Non-null summaries only (markets with no upstream data are omitted)
  */
 export async function getStockSummaryBatch(markets: StockMarket[]): Promise<StockMarketSummary[]> {
-  const list = await Promise.all(markets.map((market) => readLatestStockSummary(market)))
+  const list = await Promise.all(markets.map((market) => getStockSummary(market)))
   return list.filter((item): item is StockMarketSummary => item != null)
 }
 

@@ -7,7 +7,13 @@ import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 
-type FinanceMcpToolName = 'get_market_company_daily' | 'get_market_summary_daily' | 'get_market_summary_hourly' | 'get_market_daily' | 'get_stock_summary'
+type FinanceMcpToolName =
+  | 'get_market_company_daily'
+  | 'get_market_summary_daily'
+  | 'get_market_summary_hourly'
+  | 'get_market_daily'
+  | 'get_overview_stock_list'
+  | 'get_stock_summary'
 
 interface FinanceMcpPlaygroundState {
   loading: boolean
@@ -27,6 +33,7 @@ const DEFAULT_PARAMS: Record<FinanceMcpToolName, string> = {
   get_market_summary_daily: '{"market":"TASI"}',
   get_market_summary_hourly: '{"market":"TASI"}',
   get_market_daily: '{"symbols":"518880","startDate":"2025-01-01","endDate":"2025-03-01"}',
+  get_overview_stock_list: '{"symbols":"518880","startDate":"2025-01-01","endDate":"2025-03-01"}',
   get_stock_summary: '{"market":"TASI"}',
 }
 
@@ -104,6 +111,7 @@ export function TasiMcpPlayground() {
                   { value: 'get_market_summary_daily', label: 'get_market_summary_daily' },
                   { value: 'get_market_summary_hourly', label: 'get_market_summary_hourly' },
                   { value: 'get_market_daily', label: 'get_market_daily' },
+                  { value: 'get_overview_stock_list', label: 'get_overview_stock_list' },
                   { value: 'get_stock_summary', label: 'get_stock_summary' },
                 ]}
               />

@@ -10,9 +10,9 @@ import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
 import type { RequestExampleInput } from '@/utils/requestExamples'
 
-type Endpoint = 'company' | 'summary' | 'summaryHourly' | 'stockSummaryTasi'
+type Endpoint = 'company' | 'summary' | 'summaryHourly' | 'stockSummary' | 'stockSummaryBatch' | 'marketDaily' | 'overviewStockList'
 
-interface TasiApiState {
+interface FinanceApiState {
   loading: boolean
   status?: number
   durationMs?: number
@@ -23,29 +23,62 @@ interface TasiApiState {
   code: string
   from: string
   to: string
+  stockMarket: string
+  stockMarkets: string
+  mdSymbols: string
+  mdStart: string
+  mdEnd: string
+  mdWithIndicators: boolean
+  mdSyncIfEmpty: boolean
+  ovSymbols: string
+  ovStart: string
+  ovEnd: string
+  ovSyncIfEmpty: boolean
 }
 
 /**
- * TASI-only demo playground for Finance market and stock GET APIs (no multi-market picker).
+ * Interactive GET playground for Finance REST routes (TASI market scopes, stock summary, six-digit daily).
  */
-export function TasiApiPlayground() {
-  const [state, setState] = useState<TasiApiState>({
+export function FinanceApiPlayground() {
+  const [state, setState] = useState<FinanceApiState>({
     loading: false,
     endpoint: 'company',
     date: '',
     code: '',
     from: '',
     to: '',
+    stockMarket: 'TASI',
+    stockMarkets: 'TASI,S&P 500,Dow Jones',
+    mdSymbols: '518880',
+    mdStart: '',
+    mdEnd: '',
+    mdWithIndicators: false,
+    mdSyncIfEmpty: true,
+    ovSymbols: '518880',
+    ovStart: '',
+    ovEnd: '',
+    ovSyncIfEmpty: true,
   })
 
   const [examplesOpen, setExamplesOpen] = useState(false)
+
+  function pathForEndpoint(endpoint: Endpoint): string {
+    if (endpoint === 'company') return '/api/finance/market/company/daily'
+    if (endpoint === 'summary') return '/api/finance/market/summary/daily'
+    if (endpoint === 'summaryHourly') return '/api/finance/market/summary/hourly'
+    if (endpoint === 'marketDaily') return '/api/finance/market/daily'
+    if (endpoint === 'overviewStockList') return '/api/finance/overview/stock-list'
+    return '/api/finance/stock/summary'
+  }
 
   async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const baseCompany = '/api/finance/market/company/daily'
     const baseSummary = '/api/finance/market/summary/daily'
     const baseSummaryHourly = '/api/finance/market/summary/hourly'
-    const baseStockSummaryTasi = '/api/finance/stock/summary'
+    const baseStock = '/api/finance/stock/summary'
+    const baseMarketDaily = '/api/finance/market/daily'
+    const baseOverviewStockList = '/api/finance/overview/stock-list'
 
     let url: string
     if (state.endpoint === 'company') {
@@ -77,8 +110,29 @@ export function TasiApiPlayground() {
       }
     } else if (state.endpoint === 'summaryHourly') {
       url = `${baseSummaryHourly}?market=TASI`
+    } else if (state.endpoint === 'stockSummaryBatch') {
+      const q = new URLSearchParams()
+      q.set('markets', state.stockMarkets)
+      url = `${baseStock}?${q.toString()}`
+    } else if (state.endpoint === 'marketDaily') {
+      const q = new URLSearchParams()
+      q.set('symbols', state.mdSymbols)
+      q.set('startDate', state.mdStart)
+      q.set('endDate', state.mdEnd)
+      if (state.mdWithIndicators) q.set('withIndicators', 'true')
+      if (state.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      url = `${baseMarketDaily}?${q.toString()}`
+    } else if (state.endpoint === 'overviewStockList') {
+      const q = new URLSearchParams()
+      q.set('symbols', state.ovSymbols)
+      q.set('startDate', state.ovStart)
+      q.set('endDate', state.ovEnd)
+      if (state.ovSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      url = `${baseOverviewStockList}?${q.toString()}`
     } else {
-      url = `${baseStockSummaryTasi}?market=TASI`
+      const q = new URLSearchParams()
+      q.set('market', state.stockMarket)
+      url = `${baseStock}?${q.toString()}`
     }
 
     try {
@@ -108,15 +162,30 @@ export function TasiApiPlayground() {
     }
   }
 
-  const { loading, status, durationMs, error, responseBody, endpoint, date, code, from, to } = state
-  const path =
-    endpoint === 'company'
-      ? '/api/finance/market/company/daily'
-      : endpoint === 'summary'
-        ? '/api/finance/market/summary/daily'
-        : endpoint === 'summaryHourly'
-          ? '/api/finance/market/summary/hourly'
-          : '/api/finance/stock/summary'
+  const {
+    loading,
+    status,
+    durationMs,
+    error,
+    responseBody,
+    endpoint,
+    date,
+    code,
+    from,
+    to,
+    stockMarket,
+    stockMarkets,
+    mdSymbols,
+    mdStart,
+    mdEnd,
+    mdWithIndicators,
+    mdSyncIfEmpty,
+    ovSymbols,
+    ovStart,
+    ovEnd,
+    ovSyncIfEmpty,
+  } = state
+  const path = pathForEndpoint(endpoint)
 
   const requestExamples: RequestExampleInput = (() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -150,8 +219,29 @@ export function TasiApiPlayground() {
       }
     } else if (endpoint === 'summaryHourly') {
       url = `${path}?market=TASI`
+    } else if (endpoint === 'stockSummaryBatch') {
+      const q = new URLSearchParams()
+      q.set('markets', stockMarkets)
+      url = `${path}?${q.toString()}`
+    } else if (endpoint === 'marketDaily') {
+      const q = new URLSearchParams()
+      q.set('symbols', mdSymbols)
+      q.set('startDate', mdStart)
+      q.set('endDate', mdEnd)
+      if (mdWithIndicators) q.set('withIndicators', 'true')
+      if (mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      url = `${path}?${q.toString()}`
+    } else if (endpoint === 'overviewStockList') {
+      const q = new URLSearchParams()
+      q.set('symbols', ovSymbols)
+      q.set('startDate', ovStart)
+      q.set('endDate', ovEnd)
+      if (ovSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      url = `${path}?${q.toString()}`
     } else {
-      url = `${path}?market=TASI`
+      const q = new URLSearchParams()
+      q.set('market', stockMarket)
+      url = `${path}?${q.toString()}`
     }
 
     return {
@@ -171,7 +261,7 @@ export function TasiApiPlayground() {
               <span className="font-medium text-gray-800">Request</span>
               <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET {path}</span>
             </div>
-            <p className="text-[10px] text-gray-500">TASI-only demo — no multi-market picker.</p>
+            <p className="text-[10px] text-gray-500">Finance REST demo — same paths as documented on the left.</p>
           </div>
           <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">
@@ -182,12 +272,15 @@ export function TasiApiPlayground() {
                 options={[
                   { value: 'company', label: 'TASI — Company daily' },
                   { value: 'summary', label: 'TASI — Summary daily' },
-                  { value: 'summaryHourly', label: 'TASI — Summary hourly (alignment)' },
-                  { value: 'stockSummaryTasi', label: 'TASI — Stock summary' },
+                  { value: 'summaryHourly', label: 'TASI — Summary hourly' },
+                  { value: 'stockSummary', label: 'Stock summary — single market' },
+                  { value: 'stockSummaryBatch', label: 'Stock summary — batch (markets=)' },
+                  { value: 'marketDaily', label: 'Six-digit — Market daily OHLCV' },
+                  { value: 'overviewStockList', label: 'Overview — stockList + MACD (latest per symbol)' },
                 ]}
               />
             </label>
-            {endpoint !== 'summaryHourly' && endpoint !== 'stockSummaryTasi' && (
+            {endpoint !== 'summaryHourly' && endpoint !== 'stockSummary' && endpoint !== 'stockSummaryBatch' && endpoint !== 'marketDaily' && endpoint !== 'overviewStockList' && (
               <label className="flex flex-col gap-1">
                 <span>date (optional, YYYY-MM-DD)</span>
                 <input
@@ -257,8 +350,111 @@ export function TasiApiPlayground() {
                 </label>
               </>
             )}
-            {endpoint === 'summaryHourly' && <p className="text-[10px] text-gray-500">Hourly TASI buckets for alignment checks against daily summary fields.</p>}
-            {endpoint === 'stockSummaryTasi' && <p className="text-[10px] text-gray-500">Fixed GET with market=TASI (no batch or extra params).</p>}
+            {endpoint === 'summaryHourly' && <p className="text-[10px] text-gray-500">Hourly TASI buckets for alignment checks.</p>}
+            {endpoint === 'stockSummary' && (
+              <label className="flex flex-col gap-1">
+                <span>market</span>
+                <input
+                  type="text"
+                  className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                  value={stockMarket}
+                  onChange={(e) => setState((prev) => ({ ...prev, stockMarket: e.target.value }))}
+                  placeholder="e.g. TASI, Nasdaq, S&P 500"
+                />
+              </label>
+            )}
+            {endpoint === 'stockSummaryBatch' && (
+              <label className="flex flex-col gap-1">
+                <span>markets (comma-separated)</span>
+                <input
+                  type="text"
+                  className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                  value={stockMarkets}
+                  onChange={(e) => setState((prev) => ({ ...prev, stockMarkets: e.target.value }))}
+                  placeholder="TASI,S&P 500,Dow Jones"
+                />
+              </label>
+            )}
+            {endpoint === 'overviewStockList' && (
+              <>
+                <label className="flex flex-col gap-1">
+                  <span>symbols</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={ovSymbols}
+                    onChange={(e) => setState((prev) => ({ ...prev, ovSymbols: e.target.value }))}
+                    placeholder="518880 or 518880,510300"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>startDate</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={ovStart}
+                    onChange={(e) => setState((prev) => ({ ...prev, ovStart: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>endDate</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={ovEnd}
+                    onChange={(e) => setState((prev) => ({ ...prev, ovEnd: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={ovSyncIfEmpty} onChange={(e) => setState((prev) => ({ ...prev, ovSyncIfEmpty: e.target.checked }))} />
+                  <span>syncIfEmpty</span>
+                </label>
+              </>
+            )}
+            {endpoint === 'marketDaily' && (
+              <>
+                <label className="flex flex-col gap-1">
+                  <span>symbols (comma-separated six-digit)</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={mdSymbols}
+                    onChange={(e) => setState((prev) => ({ ...prev, mdSymbols: e.target.value }))}
+                    placeholder="518880,510300"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>startDate</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={mdStart}
+                    onChange={(e) => setState((prev) => ({ ...prev, mdStart: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>endDate</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={mdEnd}
+                    onChange={(e) => setState((prev) => ({ ...prev, mdEnd: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={mdWithIndicators} onChange={(e) => setState((prev) => ({ ...prev, mdWithIndicators: e.target.checked }))} />
+                  <span>withIndicators</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={mdSyncIfEmpty} onChange={(e) => setState((prev) => ({ ...prev, mdSyncIfEmpty: e.target.checked }))} />
+                  <span>syncIfEmpty (allowlisted fund/ETF symbols only)</span>
+                </label>
+              </>
+            )}
             <div className="flex items-center gap-2">
               <button
                 type="submit"

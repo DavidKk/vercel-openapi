@@ -3,15 +3,13 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
+import { FMP_UNSUPPORTED_STOCK_MARKETS } from '@/app/finance/stock/fmpUnsupportedMarkets'
 import { useDebugPanel } from '@/components/DebugPanel'
 import type { StockMarket } from '@/services/finance/stock/types'
 import type { TasiMarketSummary } from '@/services/finance/tasi'
 
 import { TasiOverview } from './TasiOverview'
 import { TasiOverviewSkeleton } from './TasiOverviewLoader'
-
-/** Markets without FMP summary wiring (same set as Stock overview switcher). */
-const FMP_UNSUPPORTED_MARKETS = new Set<StockMarket>(['DAX 30', 'CAC 40', 'KOSPI', 'CSI 300', 'VN Index'])
 
 interface StockMarketOverviewLoaderProps {
   /** Non-TASI stock market (parent only mounts this when not TASI). */
@@ -39,7 +37,7 @@ export function StockMarketOverviewLoader({ market, headerTitle = '', headerAddo
     setError(null)
     setSummary(null)
 
-    if (FMP_UNSUPPORTED_MARKETS.has(market)) {
+    if (FMP_UNSUPPORTED_STOCK_MARKETS.has(market)) {
       setLoading(false)
       return () => {
         cancelled = true
@@ -56,28 +54,30 @@ export function StockMarketOverviewLoader({ market, headerTitle = '', headerAddo
           setError(await res.text().catch(() => 'Failed to load data'))
           return
         }
-        const body = (await res.json()) as {
-          ok?: boolean
-          error?: string
-          summary?: {
-            date: string
-            open: number | null
-            high: number | null
-            low: number | null
-            close: number | null
-            change: number | null
-            changePercent: number | null
-            volumeTraded: number | null
-            valueTraded: number | null
-          } | null
+        const envelope = (await res.json()) as {
+          code?: number
+          message?: string
+          data?: {
+            summary?: {
+              date: string
+              open: number | null
+              high: number | null
+              low: number | null
+              close: number | null
+              change: number | null
+              changePercent: number | null
+              volumeTraded: number | null
+              valueTraded: number | null
+            } | null
+          }
         }
         if (cancelled) return
-        if (!body.ok) {
-          setError(body.error ?? 'Failed to load data')
+        if (envelope.code !== 0) {
+          setError(envelope.message ?? 'Failed to load data')
           setSummary(null)
           return
         }
-        const marketSummary = body.summary
+        const marketSummary = envelope.data?.summary
         if (!marketSummary) {
           setSummary(null)
           setError(null)

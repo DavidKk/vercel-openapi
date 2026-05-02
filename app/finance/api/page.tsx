@@ -2,7 +2,7 @@ import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLAS
 import { DocEndpointRow } from '@/components/DocEndpointRow'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 
-import { TasiApiPlayground } from './components'
+import { FinanceApiPlayground } from './components'
 
 /**
  * Finance REST API page. Left: docs; Right: playground.
@@ -16,14 +16,33 @@ export default function FinanceApiPage() {
           subtitle="Stock overview markets (FMP + TASI), Saudi company/index daily (TASI feed + Turso), six-digit OHLCV, and hourly alignment. Prefer market query on canonical paths below."
         />
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
-          <h2 className={DOC_SECTION_TITLE_CLASS}>Stock summary (all overview markets)</h2>
+          <h2 className={DOC_SECTION_TITLE_CLASS}>Overview stockList (MACD on latest bar)</h2>
+          <p className="mb-2 text-[10px] leading-relaxed text-gray-600">
+            Unlike <code className="rounded bg-gray-100 px-1 py-0.5">GET /api/finance/market/daily</code> (full OHLCV rows for the range), this endpoint returns one summarized row
+            per symbol plus MACD streak fields on that latest bar.
+          </p>
+          <div className={DOC_ENDPOINT_BOX_CLASS}>
+            <DocEndpointRow method="GET" path="/api/finance/overview/stock-list" enableCopy />
+            <p className={DOC_ENDPOINT_DESC_CLASS}>
+              Required: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">symbols</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>
+              , <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>. Returns envelope{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.stockList</code> (fields: date, stockCode, stockName, price, macdUp, macdDown) using the same MACD
+              math as <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">stock.md</code> (pandas EWM 12/26/9, histogram 2×(DIF−DEA), streak from latest). Optional{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code> for allowlisted fund/ETF symbols.
+            </p>
+          </div>
+
+          <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Stock summary (all overview markets)</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/finance/stock/summary" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
+              Envelope <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{`{ code, message, data }`}</code>: single →{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.market</code> + <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.summary</code>;
+              batch → <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.items</code>.{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=TASI</code> (default) or{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">S&amp;P 500</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">Dow Jones</code>,{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">Nasdaq</code>, … — latest index snapshot (TASI from feed path; others from FMP where supported). Batch:{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">markets=TASI,S&amp;P 500,Dow Jones</code>.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">Nasdaq</code>, … — latest snapshot (TASI from feed path; others from FMP where supported). Batch:{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">markets=TASI,S&amp;P 500,Dow Jones</code> (same cold-start as single per market).
             </p>
           </div>
 
@@ -62,13 +81,18 @@ export default function FinanceApiPage() {
             </p>
           </div>
 
-          <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Six-digit market OHLCV</h2>
+          <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Six-digit market OHLCV (full daily series)</h2>
+          <p className="mb-2 text-[10px] leading-relaxed text-gray-600">
+            Raw (or indicator-enriched) daily rows for each symbol in the date window — not the single-row-per-symbol overview used by stock-list above.
+          </p>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/finance/market/daily" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Required: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">symbols</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>
               , <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>. Optional{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators=true</code>.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators=true</code>,{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty=true</code> (on-demand ingest only when every symbol is on the configured fund/ETF
+              allowlist). Response <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.synced</code> is true when that ingest ran.
             </p>
           </div>
 
@@ -81,7 +105,7 @@ export default function FinanceApiPage() {
 
       <section className="flex h-full min-h-0 flex-shrink-0 w-[85vw] min-w-[280px] flex-col bg-gray-50 md:w-1/2 md:min-w-[320px] md:flex-1">
         <div className="flex min-h-0 flex-1 flex-col">
-          <TasiApiPlayground />
+          <FinanceApiPlayground />
         </div>
       </section>
     </div>

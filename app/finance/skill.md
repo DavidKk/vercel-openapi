@@ -10,7 +10,8 @@ description: When a user asks for Saudi TASI company/index daily (feed/Turso) or
 - **Any overview market latest snapshot** (TASI, S&P 500, Dow Jones, Nasdaq, …): `GET /api/finance/stock/summary?market=...` or batch `markets=...`.
 - **Saudi TASI only** — full **company daily** list, **index** history / K-line from feed + Turso: canonical `GET /api/finance/market/company/daily` and `GET /api/finance/market/summary/daily` with **`market=TASI`** (default). Legacy `/api/finance/tasi/...` URLs still work for existing integrations.
 - **Hourly alignment (REST)**: `GET /api/finance/market/summary/hourly?market=TASI` (generic `market`; **TASI only** today). Legacy `GET /api/finance/tasi/summary/hourly` is the same handler.
-- **Six-digit OHLCV** (e.g. 518880): `GET /api/finance/market/daily?symbols=...&startDate=...&endDate=...`.
+- **Six-digit full OHLCV table** (Turso date range, optional `withIndicators` / `syncIfEmpty`): `GET /api/finance/market/daily?symbols=...&startDate=...&endDate=...`.
+- **Overview `stockList` + MACD on latest bar only** (aggregated one row per symbol, not the full daily series): `GET /api/finance/overview/stock-list?symbols=...&startDate=...&endDate=...` (optional `syncIfEmpty`).
 - **Do not** use TASI feed paths for non-TASI company lists — they return **400**; use **stock summary** instead for other indices.
 
 ## Multi-turn / Missing parameters
@@ -25,10 +26,12 @@ description: When a user asks for Saudi TASI company/index daily (feed/Turso) or
 
 `GET /api/finance/stock/summary`
 
-| Mode   | Query                                                                       |
-| ------ | --------------------------------------------------------------------------- |
-| Single | `market=TASI` (default) or `market=S%26P%20500`, `Dow%20Jones`, `Nasdaq`, … |
-| Batch  | `markets=TASI,S%26P%20500,Dow%20Jones` (comma-separated)                    |
+| Mode   | Query                                                                                          |
+| ------ | ---------------------------------------------------------------------------------------------- |
+| Single | `market=TASI` (default) or `market=S%26P%20500`, `Dow%20Jones`, `Nasdaq`, …                    |
+| Batch  | `markets=TASI,S%26P%20500,Dow%20Jones` (comma-separated; same per-market cold-start as single) |
+
+**HTTP 200 body:** `{ "code": 0, "message": "ok", "data": … }` — single: `data: { "market", "summary" }`; batch: `data: { "items": [...] }`.
 
 ### Company daily (TASI feed / Turso)
 
@@ -86,17 +89,21 @@ GET /api/finance/tasi/summary/hourly
 
 ## MCP / function calling (same `tool` names as POST `/api/mcp/finance`)
 
-| Tool                        | Role                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| `get_stock_summary`         | Latest snapshot: `market` or `markets` (comma-separated).                          |
-| `get_market_company_daily`  | TASI company rows; optional `market` (default TASI); `date` or `code`+`from`+`to`. |
-| `get_market_summary_daily`  | TASI index daily / K-line; optional `market` (default TASI).                       |
-| `get_market_summary_hourly` | TASI SAHMK alignment; optional `market` (default TASI).                            |
-| `get_market_daily`          | `symbols`, `startDate`, `endDate`; optional `withIndicators`.                      |
+| Tool                        | Role                                                                                                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_stock_summary`         | Latest snapshot: `market` or `markets` (comma-separated).                                                                                                                                 |
+| `get_market_company_daily`  | TASI company rows; optional `market` (default TASI); `date` or `code`+`from`+`to`.                                                                                                        |
+| `get_market_summary_daily`  | TASI index daily / K-line; optional `market` (default TASI).                                                                                                                              |
+| `get_market_summary_hourly` | TASI SAHMK alignment; optional `market` (default TASI).                                                                                                                                   |
+| `get_market_daily`          | `symbols`, `startDate`, `endDate`; optional `withIndicators`; optional `syncIfEmpty` (default **true** for allowlisted fund/ETF symbols). Returns `synced` when ingest ran.               |
+| `get_overview_stock_list`   | Same date range + `symbols`; optional `syncIfEmpty`. Returns `{ stockList, synced }` — **one row per symbol** (latest bar + MACD streak), not the full daily series (`get_market_daily`). |
 
 ## Response
 
 Same envelope: **`{ code: 0, message: "ok", data: … }`**. **`data`** may be `[]` or `null` on **200** — treat as no rows, not a transport error.
+
+- **`/api/finance/stock/summary`:** `data` is `{ market, summary }` (single) or `{ items }` (batch), not a bare `ok` flag.
+- **`/api/finance/market/daily`:** `data` includes `{ items, synced }`; `synced: true` means an allowlisted on-demand ingest ran before the final read.
 
 ## Examples
 

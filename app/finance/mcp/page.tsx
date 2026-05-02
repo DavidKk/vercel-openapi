@@ -44,7 +44,14 @@ export default function FinanceMcpPage() {
             <li>
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_daily</code> — Six-digit symbols OHLCV:{' '}
               <code className="rounded bg-gray-100 px-0.5">symbols</code>, <code className="rounded bg-gray-100 px-0.5">startDate</code>,{' '}
-              <code className="rounded bg-gray-100 px-0.5">endDate</code>; optional <code className="rounded bg-gray-100 px-0.5">withIndicators</code>.
+              <code className="rounded bg-gray-100 px-0.5">endDate</code>; optional <code className="rounded bg-gray-100 px-0.5">withIndicators</code>; optional{' '}
+              <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code> (default true for allowlisted fund/ETF). Returns{' '}
+              <code className="rounded bg-gray-100 px-0.5">synced</code>.
+            </li>
+            <li>
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_overview_stock_list</code> — Latest per symbol with MACD streak (stock.md):{' '}
+              <code className="rounded bg-gray-100 px-0.5">symbols</code>, <code className="rounded bg-gray-100 px-0.5">startDate</code>,{' '}
+              <code className="rounded bg-gray-100 px-0.5">endDate</code>; optional <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code>.
             </li>
             <li>
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_stock_summary</code> — Latest snapshot: <code className="rounded bg-gray-100 px-0.5">market</code>{' '}

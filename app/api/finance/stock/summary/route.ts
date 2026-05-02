@@ -1,17 +1,21 @@
-import { type NextRequest, NextResponse } from 'next/server'
-
+import { api } from '@/initializer/controller'
+import { cacheControlNoStoreHeaders, jsonInvalidParameters, jsonSuccess, standardResponseError } from '@/initializer/response'
 import { getStockSummary, getStockSummaryBatch, parseStockMarket, type StockMarket } from '@/services/finance/stock'
 
 export const runtime = 'nodejs'
 
+const summaryCacheHeaders = new Headers({
+  'Content-Type': 'application/json',
+  'Cache-Control': 's-maxage=60, stale-while-revalidate=300',
+})
+
 /**
- * Return one market summary for Stock overview.
- *
- * @param req Next request
- * @returns JSON summary payload
+ * GET /api/finance/stock/summary
+ * Standard envelope: `{ code, message, data }` with HTTP 200 on success.
+ * Single: `data: { market, summary }`. Batch (`markets=`): `data: { items }`.
  */
-export async function GET(req: NextRequest): Promise<NextResponse> {
-  const marketsRaw = req.nextUrl.searchParams.get('markets')?.trim() ?? ''
+export const GET = api(async (_req, ctx) => {
+  const marketsRaw = ctx.searchParams.get('markets')?.trim() ?? ''
   if (marketsRaw) {
     const markets = marketsRaw
       .split(',')
@@ -19,50 +23,28 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       .map((value) => parseStockMarket(value))
       .filter((value): value is StockMarket => value != null)
     if (markets.length === 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: 'Invalid markets',
-        },
-        { status: 400 }
-      )
+      return jsonInvalidParameters('Invalid markets query (no recognized market names).', { headers: cacheControlNoStoreHeaders() })
     }
     try {
       const items = await getStockSummaryBatch(markets)
-      return NextResponse.json({ ok: true, items })
+      return jsonSuccess({ items }, { headers: summaryCacheHeaders })
     } catch (error) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        { status: 500 }
-      )
+      const message = error instanceof Error ? error.message : String(error)
+      return standardResponseError(message).toJsonResponse(500, { headers: cacheControlNoStoreHeaders() })
     }
   }
 
-  const marketRaw = req.nextUrl.searchParams.get('market')?.trim() ?? 'TASI'
+  const marketRaw = ctx.searchParams.get('market')?.trim() ?? 'TASI'
   const market = parseStockMarket(marketRaw)
   if (!market) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: 'Invalid market',
-      },
-      { status: 400 }
-    )
+    return jsonInvalidParameters('Invalid market query.', { headers: cacheControlNoStoreHeaders() })
   }
 
   try {
     const summary = await getStockSummary(market)
-    return NextResponse.json({ ok: true, market, summary })
+    return jsonSuccess({ market, summary }, { headers: summaryCacheHeaders })
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    )
+    const message = error instanceof Error ? error.message : String(error)
+    return standardResponseError(message).toJsonResponse(500, { headers: cacheControlNoStoreHeaders() })
   }
-}
+})

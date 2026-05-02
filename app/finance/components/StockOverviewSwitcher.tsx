@@ -2,7 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
+import { TbChevronDown } from 'react-icons/tb'
 
+import { FMP_UNSUPPORTED_STOCK_MARKETS } from '@/app/finance/stock/fmpUnsupportedMarkets'
 import { getSlugByMarket, STOCK_MARKET_ROUTE_OPTIONS } from '@/app/finance/stock/marketRoute'
 import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
 import { FloatingDropdown } from '@/components/FloatingDropdown'
@@ -14,8 +16,6 @@ import { TasiOverviewLoader } from './TasiOverviewLoader'
 interface StockOverviewSwitcherProps {
   market: StockMarket
 }
-
-const FMP_UNSUPPORTED_MARKETS = new Set<StockMarket>(['DAX 30', 'CAC 40', 'KOSPI', 'CSI 300', 'VN Index'])
 
 /**
  * Stock overview switcher with dropdown-based market selection.
@@ -43,16 +43,17 @@ export function StockOverviewSwitcher({ market }: StockOverviewSwitcherProps) {
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={() => setOpen((v) => !v)}
-          className="m-0 cursor-pointer select-none border-0 bg-transparent p-0 text-left text-base font-semibold text-gray-700 outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2"
+          className="m-0 inline-flex cursor-pointer select-none items-center gap-1 border-0 bg-transparent p-0 text-left text-base font-semibold text-gray-700 outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2"
         >
-          {market}
+          <span>{market}</span>
+          <TbChevronDown className={`h-4 w-4 shrink-0 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} aria-hidden />
         </button>
       }
     >
       <DropdownMenuScrollArea scrollClassName="max-h-64 py-0.5" scrollProps={{ role: 'menu', 'aria-label': 'Stock market options' }}>
         {STOCK_MARKET_ROUTE_OPTIONS.map((option) => {
           const active = market === option.market
-          const disabled = FMP_UNSUPPORTED_MARKETS.has(option.market)
+          const disabled = FMP_UNSUPPORTED_STOCK_MARKETS.has(option.market)
           return (
             <button
               key={option.slug}

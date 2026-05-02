@@ -16,7 +16,7 @@ const RANGE_DAYS = 90
 
 interface MarketDailyEnvelope {
   code?: number
-  data?: { items?: FinanceMarketDailyRecord[] }
+  data?: { items?: FinanceMarketDailyRecord[]; synced?: boolean }
   message?: string
 }
 
@@ -93,9 +93,11 @@ function chgPercentClass(value: number): string {
 }
 
 /**
- * Fund/ETF overview: loads `/api/finance/market/daily` for the given symbol.
+ * Fund/ETF overview: loads `/api/finance/market/daily` for the summary strip and history table.
+ * MACD fields stay on `GET /api/finance/overview/stock-list` for API consumers only (not shown here).
  * UI copy is English; product titles in the header come from {@link formatFundEtfTitle} (may include Chinese names).
- * In development, registers the global debug panel (`useDebugPanel`): force loading shows a skeleton; force error shows a full-page message (same pattern as stock loaders).
+ * In development, registers the global debug panel (`useDebugPanel`): force loading shows a skeleton; force error shows a
+ * full-page message (same pattern as stock loaders).
  *
  * @param props Symbol and optional header slot
  * @returns Overview section with latest summary and history table
@@ -132,6 +134,7 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
           list = bodySync.data?.items ?? []
         }
       }
+
       const sorted = [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
       setItems(sorted)
       setError(null)

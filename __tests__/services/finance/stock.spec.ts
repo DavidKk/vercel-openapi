@@ -1,4 +1,4 @@
-import { getStockSummary, runStockSummaryIngest } from '@/services/finance/stock'
+import { getStockSummary, getStockSummaryBatch, runStockSummaryIngest } from '@/services/finance/stock'
 import { readLatestStockSummary, upsertStockSummaryDaily } from '@/services/finance/stock/turso'
 
 jest.mock('@/services/finance/tasi', () => ({
@@ -81,6 +81,32 @@ describe('services/finance/stock', () => {
     })
     expect(fetch).toHaveBeenCalledTimes(1)
     expect(upsertStockSummaryDaily).toHaveBeenCalledTimes(1)
+  })
+
+  it('should cold-start each market in batch like single getStockSummary', async () => {
+    ;(readLatestStockSummary as jest.Mock).mockResolvedValue(null)
+    ;(fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          open: 5600,
+          dayHigh: 5650,
+          dayLow: 5588,
+          price: 5637,
+          change: 25,
+          changesPercentage: '0.45%',
+          volume: 12345,
+          timestamp: 1714521600,
+        },
+      ],
+    })
+
+    const items = await getStockSummaryBatch(['S&P 500', 'Dow Jones'])
+    expect(items).toHaveLength(2)
+    expect(items[0]?.market).toBe('S&P 500')
+    expect(items[1]?.market).toBe('Dow Jones')
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(upsertStockSummaryDaily).toHaveBeenCalledTimes(2)
   })
 
   it('should dedupe concurrent cold-start refresh per market', async () => {

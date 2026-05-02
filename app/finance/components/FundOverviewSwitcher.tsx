@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { TbChevronDown } from 'react-icons/tb'
 
 import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
 import { FloatingDropdown } from '@/components/FloatingDropdown'
@@ -42,9 +43,10 @@ export function FundOverviewSwitcher({ symbol }: FundOverviewSwitcherProps) {
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={() => setOpen((v) => !v)}
-          className="m-0 max-w-full cursor-pointer select-none border-0 bg-transparent p-0 text-left text-base font-semibold text-gray-700 outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2"
+          className="m-0 inline-flex max-w-full min-w-0 cursor-pointer select-none items-center gap-1 border-0 bg-transparent p-0 text-left text-base font-semibold text-gray-700 outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2"
         >
-          {title}
+          <span className="min-w-0 truncate">{title}</span>
+          <TbChevronDown className={`h-4 w-4 shrink-0 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} aria-hidden />
         </button>
       }
     >
