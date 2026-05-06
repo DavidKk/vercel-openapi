@@ -21,7 +21,7 @@ description: Stocks (index snapshot + exchange index/company daily & hourly; TAS
 - **Stocks — constituents daily (exchange feed; TASI only today)** — **`GET /api/finance/stock/tasi/company/daily`**. Legacy: `GET /api/finance/market/company/daily?market=TASI`.
 - **Stocks — one-call latest snapshot (TASI)** — **`GET /api/finance/stock/tasi/dailylatest`** returns `{ asOf, dataDate, summary, items }` (index + all companies).
 - **Funds / precious spot — exchange-style daily OHLCV (canonical)** — **`GET /api/finance/fund/{symbol}/ohlcv/daily?startDate=...&endDate=...`** (`{symbol}` six-digit or `XAUUSD`). Multi-symbol batch legacy: `GET /api/finance/market/daily?symbols=...`.
-- **Funds / precious — latest one OHLCV bar** — **`GET /api/finance/fund/{symbol}/ohlcv/dailylatest`**. Legacy: `GET /api/finance/market/daily/latest?symbols=...`.
+- **Funds / precious — latest one OHLCV bar** — **`GET /api/finance/fund/{symbol}/ohlcv/daily/latest`** (same path shape as `market/daily/latest`). Legacy: `GET /api/finance/market/daily/latest?symbols=...`.
 - **Funds — NAV disclosure daily series (canonical)** — **`GET /api/finance/fund/{symbol}/nav/daily?startDate=...&endDate=...`**. Legacy: `GET /api/finance/fund/nav/daily?symbols=...`.
 - **Funds — latest one NAV row** — **`GET /api/finance/fund/{symbol}/nav/dailylatest`**. Legacy: `GET /api/finance/fund/nav/daily/latest?symbols=...`.
 - **Stocks — TASI latest (split)** — **`GET /api/finance/stock/tasi/summary/dailylatest`**, **`GET /api/finance/stock/tasi/company/dailylatest`**. Legacy: `GET /api/finance/market/.../latest?market=TASI`.
@@ -124,7 +124,7 @@ Same envelope: **`{ code: 0, message: "ok", data: … }`**. **`data`** may be `[
 
 - **`/api/finance/stock/summary`:** `data` is `{ market, summary }` (single) or `{ items }` (batch), not a bare `ok` flag.
 - **`/api/finance/fund/{symbol}/ohlcv/daily`** and legacy **`/api/finance/market/daily`:** `data` is `{ items, synced }` with **exchange OHLCV** rows only (`items[].open` … `turnoverRate`, optional `macdUp`/`macdDown`).
-- **`/api/finance/fund/{symbol}/ohlcv/dailylatest`** and legacy **`/api/finance/market/daily/latest`:** `data` is `{ asOf, items, synced }` — one latest bar; **`asOf`** is ISO-8601; **`items[].date`** is the bar’s calendar trade date.
+- **`/api/finance/fund/{symbol}/ohlcv/daily/latest`** and legacy **`/api/finance/market/daily/latest`:** `data` is `{ asOf, items, synced }` — one latest bar; **`asOf`** is ISO-8601; **`items[].date`** is the bar’s calendar trade date.
 - **`/api/finance/fund/{symbol}/nav/daily`** and legacy **`/api/finance/fund/nav/daily`:** `data` is `{ items, synced }` with **fund NAV** rows (`items[].unitNav`, `items[].dailyChangePercent` only).
 - **`/api/finance/fund/{symbol}/nav/dailylatest`** and legacy **`/api/finance/fund/nav/daily/latest`:** `data` is `{ asOf, items, synced }`.
 - **`/api/finance/stock/tasi/summary/dailylatest`** (legacy **`/api/finance/market/summary/daily/latest`**): `data` is `{ asOf, dataDate, summary }`.

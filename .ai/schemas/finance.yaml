@@ -62,7 +62,7 @@ apiPage:
       exampleResponse: |
         {"code":0,"message":"ok","data":{"items":[],"synced":false}}
     - method: GET
-      path: /api/finance/fund/518880/ohlcv/dailylatest
+      path: /api/finance/fund/518880/ohlcv/daily/latest
       description: 'Single-symbol latest OHLCV bar. withIndicators defaults true (pass false, 0, no, or off to skip MACD streak); syncIfEmpty defaults true. Legacy GET /api/finance/market/daily/latest?symbols=518880.'
       exampleResponse: |
         {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[],"synced":false}}

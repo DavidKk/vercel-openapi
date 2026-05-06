@@ -2,7 +2,7 @@ import { createLogger } from '@/services/logger'
 
 import { fetchDailyRangeFromEastmoney, fetchFundNavRangeFromEastmoney, fetchLatestDailyFromEastmoney, fetchLatestFundNavFromEastmoney } from './fetch'
 import { isFundNavSixDigitSymbol } from './fundNavSymbols'
-import { buildMacdHistogramFromClose, getMacdStreakUpDownFromHistogram } from './macd'
+import { computeMacdSeriesFromClose, getMacdStreakUpDownFromHistogram } from './macd'
 import { readMarketDailyByRange, upsertMarketDailyRecords } from './turso'
 import type { FinanceFundNavDailyRecord, FinanceMarketDailyRecord, FinanceMarketOhlcvDailyRecord } from './types'
 
@@ -182,7 +182,7 @@ function filterNavRows(rows: FinanceMarketDailyRecord[]): FinanceMarketDailyReco
 /**
  * Latest exchange-traded daily bar per symbol (most recent session in Turso or from Eastmoney tail when syncing).
  *
- * @param options symbolsRaw, optional withIndicators, syncIfEmpty (defaults true), allowOnDemandIngest
+ * @param options symbolsRaw, optional withIndicators (**defaults true** when omitted), syncIfEmpty (defaults true), allowOnDemandIngest
  * @returns Response time, one public OHLCV row per symbol, and whether a fetch+upsert ran
  */
 export async function getMarketOhlcvLatestDaily(options: {
@@ -197,7 +197,8 @@ export async function getMarketOhlcvLatestDaily(options: {
     return { asOf, items: [], synced: false }
   }
   const syncIfEmpty = options.syncIfEmpty !== false
-  const withIndicators = options.withIndicators ?? false
+  /** Default **true** when omitted — matches latest-route docs and `parseWithIndicatorsLatestDefaultTrue`. */
+  const withIndicators = options.withIndicators !== false
   const endDate = formatUtcYmd(new Date())
   const startDate = addUtcCalendarDays(endDate, -LATEST_OHLCV_LOOKBACK_DAYS)
 
@@ -364,8 +365,18 @@ export async function runMarketDailyIngestRange(options: { symbols: string[]; st
 }
 
 /**
+ * Stable key for attaching MACD rows (trim Turso / JSON quirks).
+ *
+ * @param row Daily row
+ * @returns symbol:date key
+ */
+function macdAttachRowKey(row: FinanceMarketDailyRecord): string {
+  return `${String(row.symbol).trim()}:${String(row.date).trim()}`
+}
+
+/**
  * Attach MACD up/down counts to every record of each symbol in the result set.
- * Uses pandas-equivalent EWM (`stock.md` calculate_macd / get_macd) via {@link buildMacdHistogramFromClose}.
+ * Uses pandas `ewm(span, adjust=False)` MACD (`stock.md` `calculate_macd`) via {@link computeMacdSeriesFromClose}.
  *
  * @param items Daily records
  * @returns Records with indicator fields per trading day
@@ -373,30 +384,48 @@ export async function runMarketDailyIngestRange(options: { symbols: string[]; st
 export function attachMacdIndicators(items: FinanceMarketDailyRecord[]): FinanceMarketDailyRecord[] {
   const bySymbol = new Map<string, FinanceMarketDailyRecord[]>()
   for (const item of items) {
-    const group = bySymbol.get(item.symbol) ?? []
+    const sym = String(item.symbol).trim()
+    const group = bySymbol.get(sym) ?? []
     group.push(item)
-    bySymbol.set(item.symbol, group)
+    bySymbol.set(sym, group)
   }
 
   const indicatorByKey = new Map<string, { up: number; down: number }>()
+  const componentsByKey = new Map<string, { macdEma12: number | null; macdEma26: number | null; macdDif: number | null; macdDea: number | null; macdHistogram: number | null }>()
 
   for (const [, group] of bySymbol.entries()) {
     const sorted = [...group].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
     const closes: number[] = []
     for (const row of sorted) {
-      closes.push(row.close)
-      const macdSeries = buildMacdHistogramFromClose(closes)
-      const counts = getMacdStreakUpDownFromHistogram(macdSeries)
-      indicatorByKey.set(`${row.symbol}:${row.date}`, counts)
+      closes.push(Number(row.close))
+      const series = computeMacdSeriesFromClose(closes)
+      const i = closes.length - 1
+      const counts = getMacdStreakUpDownFromHistogram(series.macd)
+      const key = macdAttachRowKey(row)
+      indicatorByKey.set(key, counts)
+      componentsByKey.set(key, {
+        macdEma12: Number.isFinite(series.ema12[i]) ? series.ema12[i] : null,
+        macdEma26: Number.isFinite(series.ema26[i]) ? series.ema26[i] : null,
+        macdDif: Number.isFinite(series.dif[i]) ? series.dif[i] : null,
+        macdDea: Number.isFinite(series.dea[i]) ? series.dea[i] : null,
+        macdHistogram: Number.isFinite(series.macd[i]) ? series.macd[i] : null,
+      })
     }
   }
 
   return items.map((row) => {
-    const indicator = indicatorByKey.get(`${row.symbol}:${row.date}`)
+    const key = macdAttachRowKey(row)
+    const indicator = indicatorByKey.get(key)
+    const comp = componentsByKey.get(key)
     return {
       ...row,
       macdUp: indicator?.up ?? 0,
       macdDown: indicator?.down ?? 0,
+      macdEma12: comp?.macdEma12 ?? null,
+      macdEma26: comp?.macdEma26 ?? null,
+      macdDif: comp?.macdDif ?? null,
+      macdDea: comp?.macdDea ?? null,
+      macdHistogram: comp?.macdHistogram ?? null,
     }
   })
 }

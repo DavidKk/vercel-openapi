@@ -16,7 +16,8 @@ const logger = createLogger('api-finance-market-daily-latest')
 /**
  * GET /api/finance/market/daily/latest
  * One latest exchange OHLCV bar per symbol (six-digit or XAUUSD). Rejects fund NAV codes.
- * Query: symbols (required). Optional withIndicators (defaults **true**; `false`, `0`, `no`, or `off` to skip MACD streak); syncIfEmpty defaults true when omitted.
+ * Query: symbols (required). Optional withIndicators (defaults **true**; `false`, `0`, `no`, or `off` to skip MACD fields); syncIfEmpty defaults true when omitted.
+ * With indicators: `macdUp`/`macdDown` and `ema12`/`ema26`/`dif`/`dea`/`macd` per item (pandas `ewm(..., adjust=False)` per `stock.md`); `null` when skipped.
  * Response data: { asOf, items, synced } — asOf is ISO-8601 response time; items[].date is the bar calendar date.
  */
 export const GET = api(async (_req, ctx) => {

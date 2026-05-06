@@ -122,7 +122,7 @@ export default function FinanceApiPage() {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>.
               Legacy: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/daily?symbols=…</code>.
             </p>
-            <DocEndpointRow method="GET" path="/api/finance/fund/518880/ohlcv/dailylatest" enableCopy />
+            <DocEndpointRow method="GET" path="/api/finance/fund/518880/ohlcv/daily/latest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Latest one OHLCV bar for that path symbol. Response <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{`{ asOf, items, synced }`}</code>.{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators</code> defaults <strong className="font-medium">true</strong> (pass{' '}

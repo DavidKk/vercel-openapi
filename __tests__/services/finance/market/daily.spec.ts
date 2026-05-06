@@ -43,13 +43,32 @@ describe('services/finance/market/daily', () => {
       expect.objectContaining({
         macdUp: null,
         macdDown: null,
+        ema12: null,
+        ema26: null,
+        dif: null,
+        dea: null,
+        macd: null,
       })
     )
-    const withMacd = toPublicOhlcvRecord({ ...base, macdUp: 2, macdDown: 1 })
+    const withMacd = toPublicOhlcvRecord({
+      ...base,
+      macdUp: 2,
+      macdDown: 1,
+      macdEma12: 4,
+      macdEma26: 3.9,
+      macdDif: 0.1,
+      macdDea: 0.08,
+      macdHistogram: 0.04,
+    })
     expect(withMacd).toEqual(
       expect.objectContaining({
         macdUp: 2,
         macdDown: 1,
+        ema12: 4,
+        ema26: 3.9,
+        dif: 0.1,
+        dea: 0.08,
+        macd: 0.04,
       })
     )
   })

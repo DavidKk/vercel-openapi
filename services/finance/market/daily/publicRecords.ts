@@ -1,6 +1,19 @@
 import type { FinanceFundNavDailyRecord, FinanceMarketDailyRecord, FinanceMarketOhlcvDailyRecord } from './types'
 
 /**
+ * Map a numeric indicator to JSON-safe `number | null`.
+ *
+ * @param value Internal optional finite number
+ * @returns Finite number or null
+ */
+function finiteIndicator(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null
+  }
+  return value
+}
+
+/**
  * Map an internal persisted row to the exchange OHLCV public shape; skip fund NAV rows.
  * Every OHLCV object includes `macdUp` and `macdDown` (number or `null`), matching stock.md `stockList` MACD streak fields.
  *
@@ -24,6 +37,11 @@ export function toPublicOhlcvRecord(row: FinanceMarketDailyRecord): FinanceMarke
     turnoverRate: row.turnoverRate,
     macdUp: row.macdUp ?? null,
     macdDown: row.macdDown ?? null,
+    ema12: finiteIndicator(row.macdEma12),
+    ema26: finiteIndicator(row.macdEma26),
+    dif: finiteIndicator(row.macdDif),
+    dea: finiteIndicator(row.macdDea),
+    macd: finiteIndicator(row.macdHistogram),
   }
 }
 

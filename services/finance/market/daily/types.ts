@@ -22,6 +22,16 @@ export interface FinanceMarketDailyRecord {
   isPlaceholder: boolean
   macdUp?: number | null
   macdDown?: number | null
+  /** Fast EMA(12) of close when `withIndicators` enriched (pandas `ewm(12, adjust=False)`, `stock.md`) */
+  macdEma12?: number | null
+  /** Slow EMA(26) of close when enriched */
+  macdEma26?: number | null
+  /** DIF when enriched */
+  macdDif?: number | null
+  /** DEA (signal) when enriched */
+  macdDea?: number | null
+  /** MACD histogram (DIF - DEA) * 2 when enriched */
+  macdHistogram?: number | null
 }
 
 /**
@@ -49,6 +59,16 @@ export interface FinanceMarketOhlcvDailyRecord {
    * MACD histogram streak down phase after the up phase; same presence rules as `macdUp`.
    */
   macdDown: number | null
+  /** EMA(12) of close; `null` when `withIndicators` was false or value is not finite */
+  ema12: number | null
+  /** EMA(26) of close; `null` when not computable */
+  ema26: number | null
+  /** MACD DIF; `null` when not computable */
+  dif: number | null
+  /** MACD DEA (signal); `null` when not computable */
+  dea: number | null
+  /** MACD histogram (DIF - DEA) * 2; `null` when not computable */
+  macd: number | null
 }
 
 /**

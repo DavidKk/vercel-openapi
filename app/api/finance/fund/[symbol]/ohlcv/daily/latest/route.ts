@@ -12,12 +12,13 @@ import { createLogger } from '@/services/logger'
 
 export const runtime = 'nodejs'
 
-const logger = createLogger('api-finance-fund-symbol-ohlcv-dailylatest')
+const logger = createLogger('api-finance-fund-symbol-ohlcv-daily-latest')
 
 /**
- * GET /api/finance/fund/:symbol/ohlcv/dailylatest
+ * GET /api/finance/fund/:symbol/ohlcv/daily/latest
  * Single-symbol latest OHLCV bar (same semantics as GET /api/finance/market/daily/latest?symbols=:symbol).
- * Query: optional withIndicators (defaults **true**; `false`, `0`, `no`, or `off` to skip MACD streak); syncIfEmpty defaults true when omitted.
+ * Query: optional withIndicators (defaults **true**; `false`, `0`, `no`, or `off` to skip MACD fields); syncIfEmpty defaults true when omitted.
+ * When indicators are on, each item includes `macdUp`/`macdDown` plus `ema12`/`ema26`/`dif`/`dea`/`macd` (pandas `ewm(..., adjust=False)` per `stock.md`).
  */
 export const GET = api<{ symbol: string }>(async (_req, ctx) => {
   const params = await ctx.params

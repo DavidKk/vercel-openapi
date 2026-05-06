@@ -17,6 +17,7 @@ const logger = createLogger('api-finance-fund-symbol-ohlcv-daily')
 /**
  * GET /api/finance/fund/:symbol/ohlcv/daily
  * Mirrors `/finance/fund/:symbol` — single-symbol exchange OHLCV range (same semantics as GET /api/finance/market/daily?symbols=:symbol).
+ * With `withIndicators=true`, each row adds `macdUp`/`macdDown` and `ema12`/`ema26`/`dif`/`dea`/`macd` (pandas `ewm(..., adjust=False)` per `stock.md`).
  */
 export const GET = api<{ symbol: string }>(async (_req, ctx) => {
   const params = await ctx.params
