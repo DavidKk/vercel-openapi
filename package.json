@@ -48,6 +48,7 @@
     "classnames": "^2.5.1",
     "cookie": "^1.0.2",
     "date-fns": "^4.1.0",
+    "decimal.js": "^10.6.0",
     "fuzzball": "2.2.3",
     "jose": "^6.2.1",
     "jszip": "^3.10.1",
