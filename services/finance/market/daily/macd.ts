@@ -1,8 +1,15 @@
 /**
- * MACD helpers aligned with `stock.md` Python: `Series.ewm(span, adjust=False).mean()` for EMA12, EMA26, and DEA;
- * MACD histogram = (DIF - DEA) * 2; streak counts match Python `get_macd` (compare consecutive finite histogram bars).
+ * MACD helpers aligned with `stock.md` (`calculate_macd`, pandas):
  *
- * Core recurrence uses **decimal.js** (base-10) so long EWM chains do not accumulate IEEE-754 binary drift.
+ * 1. **EMA12** — close series (stock.md close column) with `ewm(span=12, adjust=False).mean()`
+ * 2. **EMA26** — close series with `ewm(span=26, adjust=False).mean()`
+ * 3. **DIF** — `EMA12 - EMA26`
+ * 4. **DEA** — `DIF` with `ewm(span=9, adjust=False).mean()` (signal line)
+ * 5. **MACD** (histogram) — `(DIF - DEA) * 2`
+ *
+ * `get_macd` streak counts compare consecutive **MACD** bars (same rule as `stock.md`).
+ *
+ * Core recurrence uses **decimal.js** (base-10) so long EWM chains avoid IEEE-754 drift vs repeated native float ops.
  *
  * Used by fund routes (`/api/finance/fund/.../ohlcv/...`) and market batch/legacy routes (`/api/finance/market/daily...`) via {@link attachMacdIndicators}.
  */
@@ -67,23 +74,24 @@ export function ewmAdjustFalse(values: number[], span: number): number[] {
  * Full MACD component series from closes (pandas `calculate_macd` in `stock.md`).
  */
 export interface MacdIndicatorSeries {
-  /** Fast EMA of close */
+  /** **EMA12** — `stock.md` / `df["EMA12"]`; fast EWM of close (span 12, adjust=False) */
   ema12: number[]
-  /** Slow EMA of close */
+  /** **EMA26** — `stock.md` / `df["EMA26"]`; slow EWM of close (span 26, adjust=False) */
   ema26: number[]
-  /** DIF = ema12 - ema26 */
+  /** **DIF** — `stock.md` / `df["DIF"]` (= EMA12 minus EMA26) */
   dif: number[]
-  /** Signal line (DEA), EWM of DIF */
+  /** **DEA** — `stock.md` / `df["DEA"]`; EWM of DIF (span 9, adjust=False) */
   dea: number[]
-  /** MACD histogram = (DIF - DEA) * 2 */
+  /** **MACD** histogram — `stock.md` / `df["MACD"]` (= (DIF minus DEA) times 2) */
   macd: number[]
 }
 
 /**
- * Compute EMA12/26, DIF, DEA, and MACD histogram per bar (pandas `ewm(..., adjust=False)`).
+ * Compute **EMA12**, **EMA26**, **DIF**, **DEA**, and **MACD** per bar — same pipeline as `stock.md` `calculate_macd`
+ * (close column then EMA12/EMA26 then DIF then DEA then MACD), pandas `ewm(span, adjust=False).mean()` semantics.
  *
- * @param closes Close prices in chronological order (oldest → newest)
- * @returns Five aligned series (same length as closes)
+ * @param closes Close prices (same meaning as stock.md close column), chronological (oldest → newest)
+ * @returns Five aligned series (same length as `closes`)
  */
 export function computeMacdSeriesFromClose(closes: number[]): MacdIndicatorSeries {
   const n = closes.length
@@ -91,10 +99,15 @@ export function computeMacdSeriesFromClose(closes: number[]): MacdIndicatorSerie
     return { ema12: [], ema26: [], dif: [], dea: [], macd: [] }
   }
   const decCloses = closes.map(toDecimal)
+  /** stock.md `df["EMA12"]`, span 12 */
   const ema12d = ewmAdjustFalseDecimals(decCloses, 12)
+  /** stock.md `df["EMA26"]`, span 26 */
   const ema26d = ewmAdjustFalseDecimals(decCloses, 26)
+  /** stock.md `df["DIF"]` */
   const difd = ema12d.map((a, i) => a.minus(ema26d[i]))
+  /** stock.md `df["DEA"]`, EWM of DIF span 9 */
   const deaDecimals = ewmAdjustFalseDecimals(difd, 9)
+  /** stock.md `df["MACD"]`, (DIF minus DEA) times 2 */
   const macdd = difd.map((d, i) => d.minus(deaDecimals[i]).times(2))
   return {
     ema12: ema12d.map((d) => d.toNumber()),
