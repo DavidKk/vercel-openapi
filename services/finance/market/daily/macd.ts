@@ -133,10 +133,11 @@ export function buildMacdHistogramFromClose(closes: number[]): number[] {
  * Skips non-finite histogram values and stops when a compared pair is not both finite.
  *
  * @param macdSeries MACD histogram values, oldest → newest
+ * @param endIndex Inclusive index to evaluate, defaults to the latest bar
  * @returns Streak counts (macdUp, macdDown) for the latest regime
  */
-export function getMacdStreakUpDownFromHistogram(macdSeries: number[]): { up: number; down: number } {
-  let i = macdSeries.length - 1
+export function getMacdStreakUpDownFromHistogram(macdSeries: number[], endIndex = macdSeries.length - 1): { up: number; down: number } {
+  let i = Math.min(endIndex, macdSeries.length - 1)
   while (i >= 1 && (!Number.isFinite(macdSeries[i]) || !Number.isFinite(macdSeries[i - 1]))) {
     i -= 1
   }

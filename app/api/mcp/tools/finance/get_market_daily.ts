@@ -14,7 +14,7 @@ import {
  */
 export const get_market_daily = tool(
   'get_market_daily',
-  'Get exchange daily OHLCV for six-digit symbols (e.g. 518880). Canonical REST per symbol: GET /api/finance/fund/{symbol}/ohlcv/daily. Fund NAV codes must use get_fund_nav_daily. Requires symbols,startDate,endDate; optional withIndicators; optional syncIfEmpty (default true) re-fetches from Eastmoney when Turso is empty for allowlisted fund/ETF symbols only. Each item always includes macdUp and macdDown (null unless withIndicators and enriched). Returns items plus synced when a backfill ingest ran.',
+  'Get exchange daily OHLCV for six-digit symbols (e.g. 518880) or XAUUSD. Canonical REST per symbol: GET /api/finance/fund/{symbol}/ohlcv/daily. Fund NAV codes must use get_fund_nav_daily. Requires symbols,startDate,endDate; optional withIndicators; optional syncIfEmpty (default true) re-fetches from Eastmoney when Turso is empty or has a large internal gap for allowlisted fund/ETF symbols; optional forceSync refreshes the requested range. Each item always includes macdUp and macdDown (null unless withIndicators and enriched). Returns items plus synced when a backfill ingest ran.',
   z.object({
     symbols: z.string().describe('Comma-separated symbols: six-digit codes and/or XAUUSD, e.g. 518880,510300 or XAUUSD'),
     startDate: z.string().describe('Start date YYYY-MM-DD'),
@@ -24,6 +24,7 @@ export const get_market_daily = tool(
       .optional()
       .describe('When true, computes MACD streak counts on the latest bar per symbol; items always include macdUp and macdDown keys (null when false or insufficient history)'),
     syncIfEmpty: z.boolean().optional().describe('When true (default), attempt allowlisted on-demand ingest if first read is empty'),
+    forceSync: z.boolean().optional().describe('When true, refresh the requested range before reading cached rows (allowlisted symbols only)'),
   }),
   async (params) => {
     const syncIfEmpty = params.syncIfEmpty !== false
@@ -39,6 +40,7 @@ export const get_market_daily = tool(
       endDate: params.endDate,
       withIndicators: params.withIndicators ?? false,
       syncIfEmpty,
+      forceSync: params.forceSync ?? false,
       allowOnDemandIngest,
     })
     const publicItems = items.map(toPublicOhlcvRecord).filter((row): row is NonNullable<typeof row> => row != null)

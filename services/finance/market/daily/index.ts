@@ -17,6 +17,10 @@ export type { FinanceFundNavDailyRecord, FinanceMarketOhlcvDailyRecord } from '.
 export { parseWithIndicatorsLatestDefaultTrue } from './withIndicatorsQuery'
 
 const logger = createLogger('finance-market-daily')
+/** Indicator warmup lookback in calendar days for range queries. */
+const INDICATOR_WARMUP_LOOKBACK_DAYS = 120
+/** Calendar-day gap that strongly suggests a cached range is incomplete for daily market data. */
+const MARKET_DAILY_PARTIAL_CACHE_GAP_DAYS = 14
 
 /**
  * Validate YYYY-MM-DD date format.
@@ -69,9 +73,11 @@ export async function getMarketDaily(options: { symbolsRaw: string; startDate: s
   const startDate = parseDate(options.startDate)
   const endDate = parseDate(options.endDate)
   if (symbols.length === 0 || !startDate || !endDate || startDate > endDate) return []
-  const items = await readMarketDailyByRange(symbols, startDate, endDate)
+  const readStartDate = options.withIndicators ? addUtcCalendarDays(startDate, -INDICATOR_WARMUP_LOOKBACK_DAYS) : startDate
+  const items = await readMarketDailyByRange(symbols, readStartDate, endDate)
   if (!options.withIndicators) return items
-  return attachMacdIndicators(items)
+  const enriched = attachMacdIndicators(items)
+  return enriched.filter((row) => row.date >= startDate && row.date <= endDate)
 }
 
 /**
@@ -86,31 +92,39 @@ export async function getMarketDailyWithOptionalSync(options: {
   endDate: string
   withIndicators?: boolean
   syncIfEmpty?: boolean
+  /** Force a fresh range ingest before reading cached rows (allowlisted symbols only). */
+  forceSync?: boolean
   /** When false, `syncIfEmpty` is ignored (prevents arbitrary symbol backfill). */
   allowOnDemandIngest?: boolean
 }): Promise<{ items: FinanceMarketDailyRecord[]; synced: boolean }> {
   const withIndicators = options.withIndicators ?? false
+  const symbols = parseSymbols(options.symbolsRaw)
+  const sd = parseDate(options.startDate)
+  const ed = parseDate(options.endDate)
+  const canIngest = Boolean(options.allowOnDemandIngest && symbols.length > 0 && sd && ed && sd <= ed)
+  let synced = false
+
+  if (options.forceSync && canIngest) {
+    await runMarketDailyIngestRange({ symbols, startDate: sd!, endDate: ed! })
+    synced = true
+  }
+
   let items = await getMarketDaily({
     symbolsRaw: options.symbolsRaw,
     startDate: options.startDate,
     endDate: options.endDate,
     withIndicators,
   })
-  let synced = false
-  if (options.syncIfEmpty && items.length === 0 && options.allowOnDemandIngest) {
-    const symbols = parseSymbols(options.symbolsRaw)
-    const sd = parseDate(options.startDate)
-    const ed = parseDate(options.endDate)
-    if (symbols.length > 0 && sd && ed && sd <= ed) {
-      await runMarketDailyIngestRange({ symbols, startDate: sd, endDate: ed })
-      items = await getMarketDaily({
-        symbolsRaw: options.symbolsRaw,
-        startDate: options.startDate,
-        endDate: options.endDate,
-        withIndicators,
-      })
-      synced = true
-    }
+
+  if (!options.forceSync && options.syncIfEmpty && canIngest && shouldRefreshPartialMarketDailyCache(items, sd!, ed!)) {
+    await runMarketDailyIngestRange({ symbols, startDate: sd!, endDate: ed! })
+    items = await getMarketDaily({
+      symbolsRaw: options.symbolsRaw,
+      startDate: options.startDate,
+      endDate: options.endDate,
+      withIndicators,
+    })
+    synced = true
   }
   return { items, synced }
 }
@@ -142,6 +156,35 @@ function addUtcCalendarDays(ymd: string, delta: number): string {
   const [y, mo, d] = ymd.split('-').map((x) => Number(x))
   const dt = new Date(Date.UTC(y, mo - 1, d + delta))
   return formatUtcYmd(dt)
+}
+
+/**
+ * Difference between two YYYY-MM-DD dates in UTC calendar days.
+ */
+function utcCalendarDayDiff(a: string, b: string): number {
+  const [ay, am, ad] = a.split('-').map((x) => Number(x))
+  const [by, bm, bd] = b.split('-').map((x) => Number(x))
+  return (Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86_400_000
+}
+
+/**
+ * Detect a cached daily range that is empty or has an implausibly large internal date gap.
+ */
+function shouldRefreshPartialMarketDailyCache(items: FinanceMarketDailyRecord[], startDate: string, endDate: string): boolean {
+  const inWindow = items
+    .filter((row) => row.date >= startDate && row.date <= endDate)
+    .sort((a, b) => (a.symbol === b.symbol ? a.date.localeCompare(b.date) : a.symbol.localeCompare(b.symbol)))
+  if (inWindow.length === 0) return true
+
+  const previousBySymbol = new Map<string, string>()
+  for (const row of inWindow) {
+    const prev = previousBySymbol.get(row.symbol)
+    if (prev && utcCalendarDayDiff(prev, row.date) > MARKET_DAILY_PARTIAL_CACHE_GAP_DAYS) {
+      return true
+    }
+    previousBySymbol.set(row.symbol, row.date)
+  }
+  return false
 }
 
 /**
@@ -395,12 +438,11 @@ export function attachMacdIndicators(items: FinanceMarketDailyRecord[]): Finance
 
   for (const [, group] of bySymbol.entries()) {
     const sorted = [...group].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-    const closes: number[] = []
-    for (const row of sorted) {
-      closes.push(Number(row.close))
-      const series = computeMacdSeriesFromClose(closes)
-      const i = closes.length - 1
-      const counts = getMacdStreakUpDownFromHistogram(series.macd)
+    const closes = sorted.map((row) => Number(row.close))
+    const series = computeMacdSeriesFromClose(closes)
+    for (let i = 0; i < sorted.length; i += 1) {
+      const row = sorted[i]
+      const counts = getMacdStreakUpDownFromHistogram(series.macd, i)
       const key = macdAttachRowKey(row)
       indicatorByKey.set(key, counts)
       componentsByKey.set(key, {

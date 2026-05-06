@@ -18,6 +18,7 @@ const logger = createLogger('api-finance-fund-symbol-ohlcv-daily')
  * GET /api/finance/fund/:symbol/ohlcv/daily
  * Mirrors `/finance/fund/:symbol` — single-symbol exchange OHLCV range (same semantics as GET /api/finance/market/daily?symbols=:symbol).
  * With `withIndicators=true`, each row adds `macdUp`/`macdDown` and `ema12`/`ema26`/`dif`/`dea`/`macd` (pandas `ewm(..., adjust=False)` per `stock.md`).
+ * `forceSync=true` refreshes the requested range for allowlisted symbols before reading cached rows.
  */
 export const GET = api<{ symbol: string }>(async (_req, ctx) => {
   const params = await ctx.params
@@ -30,7 +31,8 @@ export const GET = api<{ symbol: string }>(async (_req, ctx) => {
   const endDate = ctx.searchParams.get('endDate') ?? ''
   const withIndicators = (ctx.searchParams.get('withIndicators') ?? '').toLowerCase() === 'true'
   const syncIfEmpty = (ctx.searchParams.get('syncIfEmpty') ?? '').toLowerCase() === 'true'
-  logger.info('request', { symbolsRaw, startDate, endDate, withIndicators, syncIfEmpty })
+  const forceSync = (ctx.searchParams.get('forceSync') ?? '').toLowerCase() === 'true'
+  logger.info('request', { symbolsRaw, startDate, endDate, withIndicators, syncIfEmpty, forceSync })
 
   const symbols = parseSymbols(symbolsRaw)
   const navReject = marketDailySymbolsRejectionMessage(symbols)
@@ -45,6 +47,7 @@ export const GET = api<{ symbol: string }>(async (_req, ctx) => {
     endDate,
     withIndicators,
     syncIfEmpty,
+    forceSync,
     allowOnDemandIngest: allowIngest,
   })
 

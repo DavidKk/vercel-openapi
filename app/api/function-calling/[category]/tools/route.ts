@@ -16,8 +16,8 @@ const PROTECTED_PRICES_TOOL_NAMES = ['create_product', 'update_product', 'delete
 /**
  * GET /api/function-calling/[category]/tools
  * Returns only the tools for the given category in OpenAI-compatible format.
- * Categories: holiday, fuel-price, exchange-rate.
- * Use when the caller only needs a subset of tools (e.g. holiday-only or exchange-rate-only).
+ * Categories come from TOOL_CATEGORIES (finance, prices, weather, movies, DNS, etc.).
+ * Use when the caller only needs a subset of tools (e.g. finance-only or exchange-rate-only).
  * Responds with { tools } or 404 if category is unknown.
  */
 export async function GET(_request: Request, context: { params: Promise<{ category: string }> }) {

@@ -12,7 +12,7 @@ export default function FinanceFunctionCallingPage() {
       title="Function Calling"
       subtitle={
         'Finance tools match the sidebar taxonomy: stocks (multi-market snapshot + TASI exchange index/company/hourly), ' +
-        'funds (six-digit OHLCV vs NAV daily + overview stock-list); precious metals have no MCP tools yet — same tool names as POST /api/mcp/finance.'
+        'funds (six-digit OHLCV vs NAV daily + overview stock-list); precious metals use XAUUSD on the market daily tools — same tool names as POST /api/mcp/finance.'
       }
       defaultToolsCategory="finance"
     />
