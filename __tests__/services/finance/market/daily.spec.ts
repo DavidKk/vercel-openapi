@@ -84,7 +84,7 @@ describe('services/finance/market/daily', () => {
     expect(row?.changeRate).toBe(0)
   })
 
-  it('should add macdUp/macdDown only on latest row per symbol when withIndicators=true', async () => {
+  it('should add macdUp/macdDown on every row when withIndicators=true', async () => {
     ;(readMarketDailyByRange as jest.Mock).mockResolvedValue([
       {
         date: '2025-04-01',
@@ -144,8 +144,8 @@ describe('services/finance/market/daily', () => {
     })
 
     expect(rows).toHaveLength(3)
-    expect(rows[0].macdUp).toBeNull()
-    expect(rows[0].macdDown).toBeNull()
+    expect(typeof rows[0].macdUp).toBe('number')
+    expect(typeof rows[0].macdDown).toBe('number')
     expect(typeof rows[2].macdUp).toBe('number')
     expect(typeof rows[2].macdDown).toBe('number')
   })

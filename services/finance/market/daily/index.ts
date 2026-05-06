@@ -364,11 +364,11 @@ export async function runMarketDailyIngestRange(options: { symbols: string[]; st
 }
 
 /**
- * Attach MACD up/down counts to the latest record of each symbol in result set.
+ * Attach MACD up/down counts to every record of each symbol in the result set.
  * Uses pandas-equivalent EWM (`stock.md` calculate_macd / get_macd) via {@link buildMacdHistogramFromClose}.
  *
  * @param items Daily records
- * @returns Records with optional indicator fields
+ * @returns Records with indicator fields per trading day
  */
 export function attachMacdIndicators(items: FinanceMarketDailyRecord[]): FinanceMarketDailyRecord[] {
   const bySymbol = new Map<string, FinanceMarketDailyRecord[]>()
@@ -378,28 +378,25 @@ export function attachMacdIndicators(items: FinanceMarketDailyRecord[]): Finance
     bySymbol.set(item.symbol, group)
   }
 
-  const enriched: FinanceMarketDailyRecord[] = items.map((item) => ({
-    ...item,
-    macdUp: null as number | null,
-    macdDown: null as number | null,
-  }))
-  const latestKeyToIndicator = new Map<string, { up: number; down: number }>()
+  const indicatorByKey = new Map<string, { up: number; down: number }>()
 
   for (const [, group] of bySymbol.entries()) {
     const sorted = [...group].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-    if (sorted.length < 2) continue
-    const macdSeries = buildMacdHistogramFromClose(sorted.map((row) => row.close))
-    const counts = getMacdStreakUpDownFromHistogram(macdSeries)
-    const latest = sorted[sorted.length - 1]
-    latestKeyToIndicator.set(`${latest.symbol}:${latest.date}`, counts)
-  }
-
-  for (const row of enriched) {
-    const indicator = latestKeyToIndicator.get(`${row.symbol}:${row.date}`)
-    if (indicator) {
-      row.macdUp = indicator.up
-      row.macdDown = indicator.down
+    const closes: number[] = []
+    for (const row of sorted) {
+      closes.push(row.close)
+      const macdSeries = buildMacdHistogramFromClose(closes)
+      const counts = getMacdStreakUpDownFromHistogram(macdSeries)
+      indicatorByKey.set(`${row.symbol}:${row.date}`, counts)
     }
   }
-  return enriched
+
+  return items.map((row) => {
+    const indicator = indicatorByKey.get(`${row.symbol}:${row.date}`)
+    return {
+      ...row,
+      macdUp: indicator?.up ?? 0,
+      macdDown: indicator?.down ?? 0,
+    }
+  })
 }
