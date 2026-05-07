@@ -39,7 +39,7 @@ const DEFAULT_PARAMS: Record<FinanceMcpToolName, string> = {
   get_market_summary_daily: '{"market":"TASI"}',
   get_market_summary_daily_latest: '{"market":"TASI"}',
   get_market_summary_hourly: '{"market":"TASI"}',
-  get_market_daily: '{"symbols":"518880","startDate":"2025-01-01","endDate":"2025-03-01"}',
+  get_market_daily: '{"symbols":"518880","startDate":"2025-01-01","endDate":"2025-03-01","withIndicators":true,"indicatorWarmupDays":120}',
   get_market_daily_latest: '{"symbols":"510300"}',
   get_fund_nav_daily: '{"symbols":"012922","startDate":"2025-01-01","endDate":"2025-03-01"}',
   get_fund_nav_daily_latest: '{"symbols":"012922"}',
@@ -137,7 +137,8 @@ export function TasiMcpPlayground() {
                 <code className="rounded bg-gray-100 px-0.5">{'{}'}</code> latest, <code className="rounded bg-gray-100 px-0.5">{`{"date":"YYYY-MM-DD"}`}</code>, or K-line fields.{' '}
                 <code className="rounded bg-gray-100 px-0.5">get_stock_summary</code>: <code className="rounded bg-gray-100 px-0.5">market</code> or{' '}
                 <code className="rounded bg-gray-100 px-0.5">markets</code> (comma-separated). <code className="rounded bg-gray-100 px-0.5">get_market_daily</code>: exchange OHLCV
-                — symbols, startDate, endDate; optional <code className="rounded bg-gray-100 px-0.5">withIndicators</code>.{' '}
+                — symbols, startDate, endDate; optional <code className="rounded bg-gray-100 px-0.5">withIndicators</code>,{' '}
+                <code className="rounded bg-gray-100 px-0.5">indicatorWarmup</code> (120 days), <code className="rounded bg-gray-100 px-0.5">indicatorWarmupDays</code> (35-250).{' '}
                 <code className="rounded bg-gray-100 px-0.5">get_fund_nav_daily</code>: fund NAV only — same date fields, no withIndicators.
               </span>
               <textarea

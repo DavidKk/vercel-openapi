@@ -45,8 +45,9 @@ export default function FinanceMcpPage() {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_market_daily</code> — OHLCV for six-digit symbols or{' '}
               <code className="rounded bg-gray-100 px-0.5">XAUUSD</code> (rejects fund NAV codes): <code className="rounded bg-gray-100 px-0.5">symbols</code>,{' '}
               <code className="rounded bg-gray-100 px-0.5">startDate</code>, <code className="rounded bg-gray-100 px-0.5">endDate</code>; optional{' '}
-              <code className="rounded bg-gray-100 px-0.5">withIndicators</code>; optional <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code> /{' '}
-              <code className="rounded bg-gray-100 px-0.5">forceSync</code>.
+              <code className="rounded bg-gray-100 px-0.5">withIndicators</code> (legacy cold-start by default), <code className="rounded bg-gray-100 px-0.5">indicatorWarmup</code>{' '}
+              (120 days), <code className="rounded bg-gray-100 px-0.5">indicatorWarmupDays</code> (35-250); optional <code className="rounded bg-gray-100 px-0.5">syncIfEmpty</code>{' '}
+              / <code className="rounded bg-gray-100 px-0.5">forceSync</code>.
             </li>
             <li>
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">get_fund_nav_daily</code> — Fund NAV only (LSJZ): same date params; optional{' '}

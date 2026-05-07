@@ -33,6 +33,10 @@ const PRESET_PROMPTS_BY_CATEGORY: Record<string, { label: string; value: string 
     { label: '搜索可乐', value: '帮我搜索可乐相关的商品。' },
     { label: '按总价总量计算', value: '可乐总价12.5元，总量1.5L，帮我算每个品牌单价对比。' },
   ],
+  finance: [
+    { label: '510300 MACD（旧口径）', value: '查 510300 从 2025-07-23 到 2025-08-14 的日线 MACD，不预热。' },
+    { label: '510300 MACD（120天预热）', value: '查 510300 从 2025-07-23 到 2025-08-14 的日线 MACD，预热120天。' },
+  ],
   'proxy-rule': [{ label: '导出 Proxy 规则集', value: '帮我列出 Clash 里 action 为 Proxy 的合并 RULE-SET 行。' }],
   '': [],
 }
@@ -46,6 +50,19 @@ const TOOL_NAMES_BY_CATEGORY: Record<string, string[]> = {
   'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'calc_fuel_recharge_promo'],
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
+  finance: [
+    'get_market_company_daily',
+    'get_market_company_daily_latest',
+    'get_market_summary_daily',
+    'get_market_summary_daily_latest',
+    'get_market_summary_hourly',
+    'get_market_daily',
+    'get_market_daily_latest',
+    'get_fund_nav_daily',
+    'get_fund_nav_daily_latest',
+    'get_overview_stock_list',
+    'get_stock_summary',
+  ],
   prices: ['list_price_lists', 'search_prices', 'calc_prices', 'create_product', 'update_product', 'delete_product'],
   'proxy-rule': ['get_clash_rule_config'],
 }
@@ -76,6 +93,7 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
   const isHoliday = !isModuleScoped || category === 'holiday'
   const isExchange = !isModuleScoped || category === 'exchange-rate'
   const isFuel = !isModuleScoped || category === 'fuel-price'
+  const isFinance = !isModuleScoped || category === 'finance'
   const isPrices = !isModuleScoped || category === 'prices'
   const isProxyRule = !isModuleScoped || category === 'proxy-rule'
 
@@ -105,6 +123,30 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
     const amount = amountMatch ? parseInt(amountMatch[1] ?? amountMatch[2] ?? '200', 10) : 200
     const province = m.match(PROVINCE_PATTERN)?.at(0) ?? '北京'
     calls.push({ name: 'calc_fuel_recharge_promo', params: { province, amount, bonus: 10 } })
+  }
+
+  if (isFinance && /(日线|K线|OHLCV|MACD|指标|510300|518880|XAUUSD)/i.test(m)) {
+    const symbol = m.match(/\b(?:\d{6}|XAUUSD)\b/i)?.[0]?.toUpperCase() ?? '510300'
+    const dates = m.match(/\d{4}-\d{2}-\d{2}/g) ?? []
+    if (/最新|latest/i.test(m)) {
+      calls.push({ name: 'get_market_daily_latest', params: { symbols: symbol, withIndicators: /MACD|指标/i.test(m) || undefined } })
+    } else {
+      const params: Record<string, unknown> = {
+        symbols: symbol,
+        startDate: dates[0] ?? '2025-07-23',
+        endDate: dates[1] ?? '2025-08-14',
+      }
+      if (/MACD|指标/i.test(m)) {
+        params.withIndicators = true
+      }
+      const warmupDaysMatch = m.match(/(?:预热|warmup)\D*(\d{2,3})/i)
+      if (warmupDaysMatch) {
+        params.indicatorWarmupDays = Number(warmupDaysMatch[1])
+      } else if (/(预热|warmup)/i.test(m) && !/不预热|无预热|no warmup/i.test(m)) {
+        params.indicatorWarmup = true
+      }
+      calls.push({ name: 'get_market_daily', params })
+    }
   }
 
   if (isPrices) {
@@ -175,6 +217,12 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
   }
   if (calls.length === 0 && isFuel) {
     calls.push({ name: 'get_fuel_price', params: {} })
+  }
+  if (calls.length === 0 && isFinance) {
+    calls.push({
+      name: 'get_market_daily',
+      params: { symbols: '510300', startDate: '2025-07-23', endDate: '2025-08-14', withIndicators: true },
+    })
   }
   if (calls.length === 0 && isPrices) {
     calls.push({ name: 'list_price_lists', params: {} })

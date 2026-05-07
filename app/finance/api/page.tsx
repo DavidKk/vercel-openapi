@@ -119,9 +119,11 @@ export default function FinanceApiPage() {
               Replace <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">518880</code> with a six-digit code or{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">XAUUSD</code>. Query: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>,{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>; optional{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>,{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">forceSync</code>. Legacy:{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/daily?symbols=…</code>.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators</code> (legacy cold-start by default),{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">indicatorWarmup</code> (120 days),{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">indicatorWarmupDays</code> (35-250),{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">forceSync</code>.
+              Legacy: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/daily?symbols=…</code>.
             </p>
             <DocEndpointRow method="GET" path="/api/finance/fund/518880/ohlcv/daily/latest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>

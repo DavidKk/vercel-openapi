@@ -29,6 +29,8 @@ interface FinanceApiState {
   mdStart: string
   mdEnd: string
   mdWithIndicators: boolean
+  mdIndicatorWarmup: boolean
+  mdIndicatorWarmupDays: string
   mdSyncIfEmpty: boolean
   ovSymbols: string
   ovStart: string
@@ -53,6 +55,8 @@ export function FinanceApiPlayground() {
     mdStart: '',
     mdEnd: '',
     mdWithIndicators: false,
+    mdIndicatorWarmup: false,
+    mdIndicatorWarmupDays: '',
     mdSyncIfEmpty: true,
     ovSymbols: '518880',
     ovStart: '',
@@ -118,6 +122,8 @@ export function FinanceApiPlayground() {
       q.set('startDate', state.mdStart)
       q.set('endDate', state.mdEnd)
       if (state.mdWithIndicators) q.set('withIndicators', 'true')
+      if (state.mdIndicatorWarmup) q.set('indicatorWarmup', 'true')
+      if (state.mdIndicatorWarmupDays.trim()) q.set('indicatorWarmupDays', state.mdIndicatorWarmupDays.trim())
       if (state.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
       url = `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily?${q.toString()}`
     } else if (state.endpoint === 'fundNavDaily') {
@@ -184,6 +190,8 @@ export function FinanceApiPlayground() {
     mdStart,
     mdEnd,
     mdWithIndicators,
+    mdIndicatorWarmup,
+    mdIndicatorWarmupDays,
     mdSyncIfEmpty,
     ovSymbols,
     ovStart,
@@ -232,6 +240,8 @@ export function FinanceApiPlayground() {
       q.set('startDate', mdStart)
       q.set('endDate', mdEnd)
       if (mdWithIndicators) q.set('withIndicators', 'true')
+      if (mdIndicatorWarmup) q.set('indicatorWarmup', 'true')
+      if (mdIndicatorWarmupDays.trim()) q.set('indicatorWarmupDays', mdIndicatorWarmupDays.trim())
       if (mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
       url = `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily?${q.toString()}`
     } else if (endpoint === 'fundNavDaily') {
@@ -462,10 +472,26 @@ export function FinanceApiPlayground() {
                   />
                 </label>
                 {endpoint === 'marketDaily' ? (
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={mdWithIndicators} onChange={(e) => setState((prev) => ({ ...prev, mdWithIndicators: e.target.checked }))} />
-                    <span>withIndicators</span>
-                  </label>
+                  <>
+                    <label className="flex items-center gap-2">
+                      <input type="checkbox" checked={mdWithIndicators} onChange={(e) => setState((prev) => ({ ...prev, mdWithIndicators: e.target.checked }))} />
+                      <span>withIndicators</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input type="checkbox" checked={mdIndicatorWarmup} onChange={(e) => setState((prev) => ({ ...prev, mdIndicatorWarmup: e.target.checked }))} />
+                      <span>indicatorWarmup (120 days)</span>
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span>indicatorWarmupDays (35-250)</span>
+                      <input
+                        type="text"
+                        className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                        value={mdIndicatorWarmupDays}
+                        onChange={(e) => setState((prev) => ({ ...prev, mdIndicatorWarmupDays: e.target.value }))}
+                        placeholder="e.g. 120"
+                      />
+                    </label>
+                  </>
                 ) : null}
                 <label className="flex items-center gap-2">
                   <input type="checkbox" checked={mdSyncIfEmpty} onChange={(e) => setState((prev) => ({ ...prev, mdSyncIfEmpty: e.target.checked }))} />
