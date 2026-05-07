@@ -61,13 +61,13 @@ export default function FinanceApiPage() {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">to</code> = index K-line. Legacy:{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/summary/daily?market=TASI</code>.
             </p>
-            <DocEndpointRow method="GET" path="/api/finance/stock/tasi/summary/dailylatest" enableCopy />
+            <DocEndpointRow method="GET" path="/api/finance/stock/tasi/summary/daily/latest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Latest index session + <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">asOf</code> /{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">dataDate</code>. Legacy:{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/summary/daily/latest</code>.
             </p>
-            <DocEndpointRow method="GET" path="/api/finance/stock/tasi/dailylatest" enableCopy />
+            <DocEndpointRow method="GET" path="/api/finance/stock/tasi/daily/latest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               One call: latest <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">summary</code> + full{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">items</code> (companies) with shared{' '}
@@ -94,7 +94,7 @@ export default function FinanceApiPage() {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">to</code> = company K-line. Legacy:{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/company/daily?market=TASI</code>.
             </p>
-            <DocEndpointRow method="GET" path="/api/finance/stock/tasi/company/dailylatest" enableCopy />
+            <DocEndpointRow method="GET" path="/api/finance/stock/tasi/company/daily/latest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Latest company list + <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">asOf</code> /{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">dataDate</code>. Legacy:{' '}
@@ -145,7 +145,7 @@ export default function FinanceApiPage() {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>. Legacy:{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/fund/nav/daily?symbols=…</code>.
             </p>
-            <DocEndpointRow method="GET" path="/api/finance/fund/012922/nav/dailylatest" enableCopy />
+            <DocEndpointRow method="GET" path="/api/finance/fund/012922/nav/daily/latest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Latest one NAV row for that path symbol. <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code> defaults{' '}
               <strong className="font-medium">true</strong> when omitted. Legacy:{' '}
