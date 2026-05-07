@@ -5,7 +5,7 @@ import path from 'path'
 const FIXTURE_DIR = path.join(__dirname, '../../../fixtures/finance/market')
 
 /**
- * One row of expected MACD columns from `macd-data-expected.csv` (pandas / offline export).
+ * One row of expected MACD columns from `macd-data-expected.csv` (legacy service export).
  */
 export interface MacdExpectedCsvRow {
   /** Trading date `YYYY-MM-DD` */

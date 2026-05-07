@@ -169,7 +169,57 @@ describe('services/finance/market/daily', () => {
     expect(typeof rows[2].macdDown).toBe('number')
   })
 
-  it('should use 120-day warmup for indicators but return only requested window', async () => {
+  it('should not use warmup by default for range indicators to preserve legacy service parity', async () => {
+    ;(readMarketDailyByRange as jest.Mock).mockResolvedValue([
+      {
+        date: '2025-04-01',
+        symbol: '518880',
+        open: 5.1,
+        close: 5.2,
+        high: 5.3,
+        low: 5.0,
+        volume: 100,
+        amount: 1000,
+        amplitude: 1,
+        changeRate: 0.1,
+        changeAmount: 0.01,
+        turnoverRate: 1,
+        source: 'eastmoney',
+        isPlaceholder: false,
+      },
+      {
+        date: '2025-04-02',
+        symbol: '518880',
+        open: 5.2,
+        close: 5.25,
+        high: 5.35,
+        low: 5.1,
+        volume: 120,
+        amount: 1200,
+        amplitude: 1,
+        changeRate: 0.2,
+        changeAmount: 0.02,
+        turnoverRate: 1,
+        source: 'eastmoney',
+        isPlaceholder: false,
+      },
+    ])
+
+    const rows = await getMarketDaily({
+      symbolsRaw: '518880',
+      startDate: '2025-04-01',
+      endDate: '2025-04-02',
+      withIndicators: true,
+    })
+
+    expect(readMarketDailyByRange).toHaveBeenCalledWith(['518880'], '2025-04-01', '2025-04-02')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].macdEma12).toBe(5.2)
+    expect(rows[0].macdEma26).toBe(5.2)
+    expect(rows[0].macdHistogram).toBe(0)
+  })
+
+  it('should use 120-day warmup for indicators when indicatorWarmup=true but return only requested window', async () => {
     ;(readMarketDailyByRange as jest.Mock).mockResolvedValue([
       {
         date: '2024-12-02',
@@ -226,6 +276,7 @@ describe('services/finance/market/daily', () => {
       startDate: '2025-04-01',
       endDate: '2025-04-02',
       withIndicators: true,
+      indicatorWarmup: true,
     })
 
     expect(readMarketDailyByRange).toHaveBeenCalledWith(['518880'], '2024-12-02', '2025-04-02')
@@ -234,6 +285,55 @@ describe('services/finance/market/daily', () => {
     expect(rows[1].date).toBe('2025-04-02')
     expect(typeof rows[0].macdUp).toBe('number')
     expect(typeof rows[1].macdDown).toBe('number')
+  })
+
+  it('should use explicit indicatorWarmupDays when provided', async () => {
+    ;(readMarketDailyByRange as jest.Mock).mockResolvedValue([
+      {
+        date: '2025-02-10',
+        symbol: '518880',
+        open: 5.0,
+        close: 5.1,
+        high: 5.2,
+        low: 4.9,
+        volume: 90,
+        amount: 900,
+        amplitude: 1,
+        changeRate: 0.1,
+        changeAmount: 0.01,
+        turnoverRate: 1,
+        source: 'eastmoney',
+        isPlaceholder: false,
+      },
+      {
+        date: '2025-04-01',
+        symbol: '518880',
+        open: 5.1,
+        close: 5.2,
+        high: 5.3,
+        low: 5.0,
+        volume: 100,
+        amount: 1000,
+        amplitude: 1,
+        changeRate: 0.1,
+        changeAmount: 0.01,
+        turnoverRate: 1,
+        source: 'eastmoney',
+        isPlaceholder: false,
+      },
+    ])
+
+    const rows = await getMarketDaily({
+      symbolsRaw: '518880',
+      startDate: '2025-04-01',
+      endDate: '2025-04-02',
+      withIndicators: true,
+      indicatorWarmupDays: 50,
+    })
+
+    expect(readMarketDailyByRange).toHaveBeenCalledWith(['518880'], '2025-02-10', '2025-04-02')
+    expect(rows).toHaveLength(1)
+    expect(rows[0].date).toBe('2025-04-01')
   })
 
   it('should refresh allowlisted cached rows when the requested window has a large gap', async () => {

@@ -1,15 +1,19 @@
-import { buildMacdHistogramFromClose, computeMacdSeriesFromClose, ewmAdjustFalse, getMacdStreakUpDownFromHistogram } from '@/services/finance/market/daily/macd'
+import { buildMacdHistogramFromClose, computeMacdSeriesFromClose, emaColdStart, getMacdStreakUpDownFromHistogram } from '@/services/finance/market/daily/macd'
 
 import { buildClosesFrom510300ForMacdExpected, load510300OhlcvFixture, loadMacdExpectedFixture, parse510300CloseByDate, parseMacdExpectedRows } from './macdCsvFixtures'
 
 describe('services/finance/market/daily/macd', () => {
+  it('should seed EMA with the first close, matching the legacy CSV export', () => {
+    expect(emaColdStart([10, 12, 11], 3)[0]).toBe(10)
+  })
+
   /**
    * Integration-style regression:
-   * - **Input closes**: `__tests__/fixtures/finance/market/510300-ohlcv.csv` (`收盘` per date).
-   * - **Expected EMA / MACD**: `__tests__/fixtures/finance/market/macd-data-expected.csv` (pandas `stock.md` export).
+   * - Input closes: `__tests__/fixtures/finance/market/510300-ohlcv.csv` (`收盘` per date).
+   * - Expected EMA / MACD: `__tests__/fixtures/finance/market/macd-data-expected.csv` (legacy service export).
    *
-   * Rows are aligned by `日期`. The offline MACD file is a **window** whose first row cold-starts EWM;
-   * we therefore compute MACD only on that ordered close sequence from 510300 (not on the full listing history).
+   * Rows are aligned by `日期`. The legacy MACD file is a requested-window calculation whose first row cold-starts EMA;
+   * we therefore compute MACD only on that ordered close sequence from 510300, without historical warmup.
    */
   it('should match macd-data-expected.csv using closes from 510300-ohlcv.csv', () => {
     const closeByDate = parse510300CloseByDate(load510300OhlcvFixture())
@@ -36,11 +40,7 @@ describe('services/finance/market/daily/macd', () => {
     }
   })
 
-  it('should keep ewmAdjustFalse first output equal to first input (pandas adjust=False)', () => {
-    expect(ewmAdjustFalse([10, 12, 11], 3)[0]).toBe(10)
-  })
-
-  it('should expose finite MACD histogram from first bar (pandas EWM)', () => {
+  it('should expose finite MACD histogram from first bar', () => {
     const closes = Array.from({ length: 40 }, (_, i) => 100 + i * 0.05)
     const hist = buildMacdHistogramFromClose(closes)
     expect(hist).toHaveLength(closes.length)

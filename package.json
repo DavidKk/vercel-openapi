@@ -28,6 +28,7 @@
     "test:e2e": "playwright test --reporter=list",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:auto": "playwright test",
+    "finance:ingest-ohlcv-csv": "node scripts/ingest-fund-ohlcv-csv.cjs",
     "ok": "pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e",
     "dev:e2e": "next dev --hostname 127.0.0.1 --port 3000",
     "prepare": "husky"

@@ -1,22 +1,21 @@
 /**
- * MACD helpers aligned with `stock.md` (`calculate_macd`, pandas):
+ * MACD helpers aligned with the legacy service CSV export:
  *
- * 1. **EMA12** — close series (stock.md close column) with `ewm(span=12, adjust=False).mean()`
- * 2. **EMA26** — close series with `ewm(span=26, adjust=False).mean()`
+ * 1. **EMA12** — close series with the first output seeded by the first close
+ * 2. **EMA26** — close series with the first output seeded by the first close
  * 3. **DIF** — `EMA12 - EMA26`
- * 4. **DEA** — `DIF` with `ewm(span=9, adjust=False).mean()` (signal line)
+ * 4. **DEA** — EMA(9) of DIF, seeded by the first DIF
  * 5. **MACD** (histogram) — `(DIF - DEA) * 2`
  *
- * `get_macd` streak counts compare consecutive **MACD** bars (same rule as `stock.md`).
+ * Range routes compute this over the returned window by default, so the first row in a requested
+ * window has `EMA12 = EMA26 = close` and `DIF = DEA = MACD = 0`, matching `macd_data.csv`.
  *
- * Core recurrence uses **decimal.js** (base-10) so long EWM chains avoid IEEE-754 drift vs repeated native float ops.
- *
- * Used by fund routes (`/api/finance/fund/.../ohlcv/...`) and market batch/legacy routes (`/api/finance/market/daily...`) via {@link attachMacdIndicators}.
+ * Core recurrence uses **decimal.js** (base-10) so long EMA chains avoid IEEE-754 drift vs repeated native float ops.
  */
 
 import Decimal from 'decimal.js'
 
-/** Decimal precision for EWM / MACD intermediates (pandas parity is numeric; this avoids float drift). */
+/** Decimal precision for EMA / MACD intermediates. */
 const DECIMAL_PRECISION = 40
 
 Decimal.set({
@@ -35,93 +34,84 @@ function toDecimal(value: number): Decimal {
 }
 
 /**
- * Exponential weighted mean with pandas `Series.ewm(span, adjust=False).mean()` semantics on Decimal values:
- * y[0]=x[0], then y[t] = alpha * x[t] + (1 - alpha) * y[t-1], alpha = 2 / (span + 1).
+ * Exponential moving average with legacy cold-start semantics:
+ * `ema[0] = values[0]`, then `ema[i] = (values[i] - ema[i - 1]) * 2/(period + 1) + ema[i - 1]`.
  *
- * @param values Input series as Decimals (e.g. closes or DIF)
- * @param span EWM span (12, 26, or 9 for signal)
+ * @param values Input series as Decimals
+ * @param period EMA period
  * @returns Smoothed series of same length
  */
-function ewmAdjustFalseDecimals(values: Decimal[], span: number): Decimal[] {
+function emaColdStartDecimals(values: Decimal[], period: number): Decimal[] {
   if (values.length === 0) return []
-  const alpha = new Decimal(2).dividedBy(span + 1)
-  const oneMinusAlpha = new Decimal(1).minus(alpha)
+  const multiplier = new Decimal(2).dividedBy(period + 1)
   const out: Decimal[] = []
-  let y = values[0]
-  out.push(y)
+  let current = values[0]
+  out.push(current)
   for (let i = 1; i < values.length; i += 1) {
-    y = alpha.times(values[i]).plus(oneMinusAlpha.times(y))
-    out.push(y)
+    current = values[i].minus(current).times(multiplier).plus(current)
+    out.push(current)
   }
   return out
 }
 
 /**
- * Exponential weighted mean with pandas `Series.ewm(span, adjust=False).mean()` semantics: y[0]=x[0], then
- * y[t] = alpha * x[t] + (1 - alpha) * y[t-1], alpha = 2 / (span + 1).
+ * EMA with first value seeded by the first input, matching the legacy MACD CSV export.
  *
- * @param values Input series (e.g. close prices or DIF)
- * @param span EWM span (12, 26, or 9 for signal)
- * @returns Smoothed series of same length
+ * @param values Input values
+ * @param period EMA period
+ * @returns Same-length EMA series
  */
-export function ewmAdjustFalse(values: number[], span: number): number[] {
-  if (values.length === 0) return []
-  const decimals = values.map(toDecimal)
-  return ewmAdjustFalseDecimals(decimals, span).map((d) => d.toNumber())
+export function emaColdStart(values: number[], period: number): number[] {
+  return emaColdStartDecimals(values.map(toDecimal), period).map((value) => value.toNumber())
 }
 
 /**
- * Full MACD component series from closes (pandas `calculate_macd` in `stock.md`).
+ * Full MACD component series from closes.
  */
 export interface MacdIndicatorSeries {
-  /** **EMA12** — `stock.md` / `df["EMA12"]`; fast EWM of close (span 12, adjust=False) */
+  /** **EMA12** — fast EMA of close, cold-started from first close */
   ema12: number[]
-  /** **EMA26** — `stock.md` / `df["EMA26"]`; slow EWM of close (span 26, adjust=False) */
+  /** **EMA26** — slow EMA of close, cold-started from first close */
   ema26: number[]
-  /** **DIF** — `stock.md` / `df["DIF"]` (= EMA12 minus EMA26) */
+  /** **DIF** — EMA12 minus EMA26 */
   dif: number[]
-  /** **DEA** — `stock.md` / `df["DEA"]`; EWM of DIF (span 9, adjust=False) */
+  /** **DEA** — signal EMA of DIF, cold-started from first DIF */
   dea: number[]
-  /** **MACD** histogram — `stock.md` / `df["MACD"]` (= (DIF minus DEA) times 2) */
+  /** **MACD** histogram — (DIF minus DEA) times 2 */
   macd: number[]
 }
 
 /**
- * Compute **EMA12**, **EMA26**, **DIF**, **DEA**, and **MACD** per bar — same pipeline as `stock.md` `calculate_macd`
- * (close column then EMA12/EMA26 then DIF then DEA then MACD), pandas `ewm(span, adjust=False).mean()` semantics.
+ * Compute **EMA12**, **EMA26**, **DIF**, **DEA**, and **MACD** per bar using legacy cold-start semantics.
  *
- * @param closes Close prices (same meaning as stock.md close column), chronological (oldest → newest)
+ * @param closes Close prices, chronological (oldest -> newest)
  * @returns Five aligned series (same length as `closes`)
  */
 export function computeMacdSeriesFromClose(closes: number[]): MacdIndicatorSeries {
-  const n = closes.length
-  if (n === 0) {
+  if (closes.length === 0) {
     return { ema12: [], ema26: [], dif: [], dea: [], macd: [] }
   }
+
   const decCloses = closes.map(toDecimal)
-  /** stock.md `df["EMA12"]`, span 12 */
-  const ema12d = ewmAdjustFalseDecimals(decCloses, 12)
-  /** stock.md `df["EMA26"]`, span 26 */
-  const ema26d = ewmAdjustFalseDecimals(decCloses, 26)
-  /** stock.md `df["DIF"]` */
-  const difd = ema12d.map((a, i) => a.minus(ema26d[i]))
-  /** stock.md `df["DEA"]`, EWM of DIF span 9 */
-  const deaDecimals = ewmAdjustFalseDecimals(difd, 9)
-  /** stock.md `df["MACD"]`, (DIF minus DEA) times 2 */
-  const macdd = difd.map((d, i) => d.minus(deaDecimals[i]).times(2))
+  const ema12d = emaColdStartDecimals(decCloses, 12)
+  const ema26d = emaColdStartDecimals(decCloses, 26)
+  const difd = ema12d.map((ema12, i) => ema12.minus(ema26d[i]))
+  const dead = emaColdStartDecimals(difd, 9)
+  const macdd = difd.map((dif, i) => dif.minus(dead[i]).times(2))
+
   return {
-    ema12: ema12d.map((d) => d.toNumber()),
-    ema26: ema26d.map((d) => d.toNumber()),
-    dif: difd.map((d) => d.toNumber()),
-    dea: deaDecimals.map((d) => d.toNumber()),
-    macd: macdd.map((d) => d.toNumber()),
+    ema12: ema12d.map((value) => value.toNumber()),
+    ema26: ema26d.map((value) => value.toNumber()),
+    dif: difd.map((value) => value.toNumber()),
+    dea: dead.map((value) => value.toNumber()),
+    macd: macdd.map((value) => value.toNumber()),
   }
 }
 
 /**
- * Build MACD histogram (bar) series from closes (pandas / `stock.md`).
+ * Build MACD histogram (bar) series from closes.
  *
- * @param closes Close prices in chronological order (oldest → newest)
+ * @param closes Close prices in chronological order (oldest -> newest)
  * @returns MACD bar per bar (same length as closes)
  */
 export function buildMacdHistogramFromClose(closes: number[]): number[] {
@@ -129,10 +119,9 @@ export function buildMacdHistogramFromClose(closes: number[]): number[] {
 }
 
 /**
- * Count consecutive MACD bar increases from the end, then consecutive decreases (Python `get_macd` logic).
- * Skips non-finite histogram values and stops when a compared pair is not both finite.
+ * Count consecutive MACD bar increases from the end, then consecutive decreases.
  *
- * @param macdSeries MACD histogram values, oldest → newest
+ * @param macdSeries MACD histogram values, oldest -> newest
  * @param endIndex Inclusive index to evaluate, defaults to the latest bar
  * @returns Streak counts (macdUp, macdDown) for the latest regime
  */

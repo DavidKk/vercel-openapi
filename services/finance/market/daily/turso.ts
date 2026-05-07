@@ -71,6 +71,48 @@ export async function upsertMarketDailyRecords(records: FinanceMarketDailyRecord
 }
 
 /**
+ * Insert daily OHLCV/NAV rows only when the primary key `(symbol, date, source)` is absent.
+ * Existing rows are left unchanged (no overwrite).
+ *
+ * @param records Candidate rows to insert
+ * @returns Counts for attempted rows, newly inserted rows, and skipped (already present or DB unavailable)
+ */
+export async function insertMarketDailyRecordsIfNotExists(records: FinanceMarketDailyRecord[]): Promise<{
+  attempted: number
+  inserted: number
+  skipped: number
+}> {
+  const attempted = records.length
+  if (attempted === 0) {
+    return { attempted: 0, inserted: 0, skipped: 0 }
+  }
+  const db = getTursoClient()
+  if (!db) {
+    logger.warn('insertMarketDailyRecordsIfNotExists skipped — Turso not configured')
+    return { attempted, inserted: 0, skipped: attempted }
+  }
+  await ensureTable()
+  let inserted = 0
+  const chunks = chunkArray(records, WRITE_CHUNK_SIZE)
+  for (const chunk of chunks) {
+    const valuesSql = chunk.map(() => '(?, ?, ?, ?)').join(', ')
+    const args: (string | number | bigint | ArrayBuffer | null)[] = []
+    for (const rec of chunk) {
+      args.push(rec.symbol, rec.date, rec.source, JSON.stringify(rec))
+    }
+    const rs = await db.execute({
+      sql: `INSERT OR IGNORE INTO ${TABLE_NAME} (symbol, date, source, payload) VALUES ${valuesSql}`,
+      args,
+    })
+    const affected = typeof (rs as { rowsAffected?: number }).rowsAffected === 'number' ? (rs as { rowsAffected: number }).rowsAffected : 0
+    inserted += affected
+  }
+  const skipped = attempted - inserted
+  logger.info('insertMarketDailyRecordsIfNotExists', { attempted, inserted, skipped })
+  return { attempted, inserted, skipped }
+}
+
+/**
  * Read records by symbols and date range.
  *
  * @param symbols Symbol list

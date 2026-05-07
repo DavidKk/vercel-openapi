@@ -8,7 +8,7 @@ import { getMarketOhlcvLatestDaily, isMarketDailyOhlcvSymbolSetAllowedForSync, m
  */
 export const get_market_daily_latest = tool(
   'get_market_daily_latest',
-  'Latest one exchange OHLCV row per symbol (no start/end dates). withIndicators defaults true (pass false to skip); syncIfEmpty defaults true. Returns { asOf, items, synced }; items include macdUp/macdDown and ema12/ema26/dif/dea/macd (pandas ewm adjust=False MACD per stock.md), null when skipped.',
+  'Latest one exchange OHLCV row per symbol (no start/end dates). withIndicators defaults true (pass false to skip); syncIfEmpty defaults true. Returns { asOf, items, synced }; items include macdUp/macdDown and ema12/ema26/dif/dea/macd (legacy cold-start MACD on the latest lookback window), null when skipped.',
   z.object({
     symbols: z.string().describe('Comma-separated symbols: six-digit codes and/or XAUUSD'),
     withIndicators: z.boolean().optional().describe('Defaults true (MACD streak + ema12/ema26/dif/dea/macd on latest bar). Set false to skip; those fields are then null'),

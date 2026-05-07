@@ -22,7 +22,7 @@ export interface FinanceMarketDailyRecord {
   isPlaceholder: boolean
   macdUp?: number | null
   macdDown?: number | null
-  /** Fast EMA(12) of close when `withIndicators` enriched (pandas `ewm(12, adjust=False)`, `stock.md`) */
+  /** Fast EMA(12) of close when `withIndicators` enriched (legacy cold-start) */
   macdEma12?: number | null
   /** Slow EMA(26) of close when enriched */
   macdEma26?: number | null
@@ -52,7 +52,7 @@ export interface FinanceMarketOhlcvDailyRecord {
   changeAmount: number
   turnoverRate: number
   /**
-   * MACD histogram streak (Python `get_macd` / stock.md). Always on OHLCV rows; `null` when `withIndicators` was false.
+   * MACD histogram streak. Always on OHLCV rows; `null` when `withIndicators` was false.
    */
   macdUp: number | null
   /**

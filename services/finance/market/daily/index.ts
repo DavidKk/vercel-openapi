@@ -19,6 +19,9 @@ export { parseWithIndicatorsLatestDefaultTrue } from './withIndicatorsQuery'
 const logger = createLogger('finance-market-daily')
 /** Indicator warmup lookback in calendar days for range queries. */
 const INDICATOR_WARMUP_LOOKBACK_DAYS = 120
+/** Supported indicator warmup bounds in calendar days for range queries. */
+export const INDICATOR_WARMUP_DAYS_MIN = 35
+export const INDICATOR_WARMUP_DAYS_MAX = 250
 /** Calendar-day gap that strongly suggests a cached range is incomplete for daily market data. */
 const MARKET_DAILY_PARTIAL_CACHE_GAP_DAYS = 14
 
@@ -68,12 +71,20 @@ export function parseSymbols(symbolsRaw: string): string[] {
  * @param options Query options
  * @returns Ordered daily records
  */
-export async function getMarketDaily(options: { symbolsRaw: string; startDate: string; endDate: string; withIndicators?: boolean }): Promise<FinanceMarketDailyRecord[]> {
+export async function getMarketDaily(options: {
+  symbolsRaw: string
+  startDate: string
+  endDate: string
+  withIndicators?: boolean
+  indicatorWarmup?: boolean
+  indicatorWarmupDays?: number
+}): Promise<FinanceMarketDailyRecord[]> {
   const symbols = parseSymbols(options.symbolsRaw)
   const startDate = parseDate(options.startDate)
   const endDate = parseDate(options.endDate)
   if (symbols.length === 0 || !startDate || !endDate || startDate > endDate) return []
-  const readStartDate = options.withIndicators ? addUtcCalendarDays(startDate, -INDICATOR_WARMUP_LOOKBACK_DAYS) : startDate
+  const warmupDays = options.indicatorWarmupDays ?? (options.indicatorWarmup ? INDICATOR_WARMUP_LOOKBACK_DAYS : 0)
+  const readStartDate = options.withIndicators && warmupDays > 0 ? addUtcCalendarDays(startDate, -warmupDays) : startDate
   const items = await readMarketDailyByRange(symbols, readStartDate, endDate)
   if (!options.withIndicators) return items
   const enriched = attachMacdIndicators(items)
@@ -91,6 +102,10 @@ export async function getMarketDailyWithOptionalSync(options: {
   startDate: string
   endDate: string
   withIndicators?: boolean
+  /** When true, compute range indicators with the default 120-calendar-day lookback before filtering back to the requested window. Defaults false for legacy-service parity. */
+  indicatorWarmup?: boolean
+  /** Explicit indicator warmup in calendar days. Validated by route/tool callers; supported range is 35-250. */
+  indicatorWarmupDays?: number
   syncIfEmpty?: boolean
   /** Force a fresh range ingest before reading cached rows (allowlisted symbols only). */
   forceSync?: boolean
@@ -98,6 +113,8 @@ export async function getMarketDailyWithOptionalSync(options: {
   allowOnDemandIngest?: boolean
 }): Promise<{ items: FinanceMarketDailyRecord[]; synced: boolean }> {
   const withIndicators = options.withIndicators ?? false
+  const indicatorWarmup = options.indicatorWarmup ?? false
+  const indicatorWarmupDays = options.indicatorWarmupDays
   const symbols = parseSymbols(options.symbolsRaw)
   const sd = parseDate(options.startDate)
   const ed = parseDate(options.endDate)
@@ -114,6 +131,8 @@ export async function getMarketDailyWithOptionalSync(options: {
     startDate: options.startDate,
     endDate: options.endDate,
     withIndicators,
+    indicatorWarmup,
+    indicatorWarmupDays,
   })
 
   if (!options.forceSync && options.syncIfEmpty && canIngest && shouldRefreshPartialMarketDailyCache(items, sd!, ed!)) {
@@ -123,6 +142,8 @@ export async function getMarketDailyWithOptionalSync(options: {
       startDate: options.startDate,
       endDate: options.endDate,
       withIndicators,
+      indicatorWarmup,
+      indicatorWarmupDays,
     })
     synced = true
   }
@@ -419,7 +440,7 @@ function macdAttachRowKey(row: FinanceMarketDailyRecord): string {
 
 /**
  * Attach MACD up/down counts to every record of each symbol in the result set.
- * Uses pandas `ewm(span, adjust=False)` MACD (`stock.md` `calculate_macd`) via {@link computeMacdSeriesFromClose}.
+ * Uses the legacy cold-start MACD semantics via {@link computeMacdSeriesFromClose}.
  *
  * @param items Daily records
  * @returns Records with indicator fields per trading day
