@@ -1,8 +1,8 @@
 # China Fuel Price module schema
 
 id: fuel-price
-name: China Fuel Price
-routePrefix: /fuel-price
+name: china-fuel-price
+routePrefix: /china-fuel-price
 
 sidebarItems:
   - key: overview
@@ -51,7 +51,7 @@ apiPage:
       path: /fuel-price/:province/promo
       description: Query fuelType (b92|b95|b98|b0), amount, bonus. Returns recharge promo result.
   playgroundComponentName: FuelPriceApiPlayground
-  playgroundImportPath: '@/app/fuel-price/api/components'
+  playgroundImportPath: '@/app/china-fuel-price/api/components'
 
 mcpPage:
   title: China Fuel Price MCP tools
@@ -64,4 +64,4 @@ mcpPage:
     - name: calc_fuel_recharge_promo
       description: Calculate recharge promotion suggestions.
   playgroundComponentName: FuelPriceMcpPlayground
-  playgroundImportPath: '@/app/fuel-price/mcp/components'
+  playgroundImportPath: '@/app/china-fuel-price/mcp/components'

@@ -65,11 +65,11 @@ const NAV_ITEMS = [
   { href: '/dns', title: 'DNS Query', icon: <TbWorld className="h-5 w-5" /> },
   { href: '/finance', title: 'Finance', icon: <TbChartLine className="h-5 w-5" /> },
   { href: '/proxy-rule', title: 'Proxy Rule', icon: <TbFilter className="h-5 w-5" /> },
-  { href: '/holiday', title: 'China Holiday', icon: <TbCalendarSearch className="h-5 w-5" /> },
-  { href: '/prices', title: 'China Prices', icon: <MdPriceCheck className="h-5 w-5" /> },
-  { href: '/fuel-price', title: 'China Fuel Price', icon: <TbGasStation className="h-5 w-5" /> },
-  { href: '/geo', title: 'China GEO', icon: <TbMapPin className="h-5 w-5" /> },
-  { href: '/weather', title: 'China Weather', icon: <TbCloudRain className="h-5 w-5" /> },
+  { href: '/china-holiday', title: 'china-holiday', icon: <TbCalendarSearch className="h-5 w-5" /> },
+  { href: '/china-prices', title: 'china-prices', icon: <MdPriceCheck className="h-5 w-5" /> },
+  { href: '/china-fuel-price', title: 'china-fuel-price', icon: <TbGasStation className="h-5 w-5" /> },
+  { href: '/china-geo', title: 'china-geo', icon: <TbMapPin className="h-5 w-5" /> },
+  { href: '/china-weather', title: 'china-weather', icon: <TbCloudRain className="h-5 w-5" /> },
 ]
 
 export function Nav() {

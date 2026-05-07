@@ -1,7 +1,7 @@
 /**
  * Module path segments that appear in the nav. Must stay in sync with NAV_ITEMS in index.tsx.
  */
-const MODULE_SLUGS = new Set(['holiday', 'fuel-price', 'exchange-rate', 'geo', 'weather', 'movies', 'dns', 'finance', 'prices', 'proxy-rule'])
+const MODULE_SLUGS = new Set(['china-holiday', 'china-prices', 'china-fuel-price', 'china-geo', 'china-weather', 'exchange-rate', 'movies', 'dns', 'finance', 'proxy-rule'])
 
 /**
  * Modules that should show a "manager" page in the global UI.
@@ -9,7 +9,7 @@ const MODULE_SLUGS = new Set(['holiday', 'fuel-price', 'exchange-rate', 'geo', '
  * When you are on `/{module}/manage` and click a different module icon,
  * we only keep the `/manage` suffix for modules included here.
  */
-export const MODULES_WITH_MANAGER_PAGES = new Set(['prices', 'proxy-rule'])
+export const MODULES_WITH_MANAGER_PAGES = new Set(['china-prices', 'proxy-rule'])
 
 /**
  * Sub-path first segment that is shared across modules (e.g. mcp, api, skill, function-calling).

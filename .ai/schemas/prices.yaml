@@ -1,8 +1,8 @@
 # Prices module schema
 
 id: prices
-name: Prices
-routePrefix: /prices
+name: china-prices
+routePrefix: /china-prices
 
 sidebarItems:
   - key: overview
@@ -33,11 +33,11 @@ apiPage:
       path: /prices/manage
       description: Authenticated product manager page.
   playgroundComponentName: PricesApiPlayground
-  playgroundImportPath: '@/app/prices/api/components'
+  playgroundImportPath: '@/app/china-prices/api/components'
 
 mcpPage:
   title: Prices MCP tools
   subtitle: Prices MCP tools are not exposed yet.
   tools: []
   playgroundComponentName: PricesMcpPlayground
-  playgroundImportPath: '@/app/prices/mcp/components'
+  playgroundImportPath: '@/app/china-prices/mcp/components'

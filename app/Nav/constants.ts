@@ -1,5 +1,5 @@
 /** Route prefixes that hide global Nav (e.g. full-screen calendar/pages) */
-export const HIDDEN_ROUTES: string[] = ['/holiday', '/fuel-price', '/geo', '/exchange-rate', '/dns']
+export const HIDDEN_ROUTES: string[] = ['/china-holiday', '/china-fuel-price', '/china-geo', '/exchange-rate', '/dns']
 
 /** Same height for all content section headers (Calendar toolbar, FuelPrice bar). No wrap; horizontal scroll when long. */
 export const CONTENT_HEADER_CLASS = 'flex shrink-0 min-w-0 flex-nowrap items-center gap-2 overflow-x-auto border-b border-gray-200 px-4 py-3'
@@ -48,8 +48,8 @@ export const FILTER_BUTTON_CLASS = 'flex items-center gap-1 rounded-lg border bo
 
 export const DEFAULT_NAV = {
   $private: [
-    { name: 'China Holiday', href: '/holiday' },
-    { name: 'China Fuel Price', href: '/fuel-price' },
-    { name: 'Geolocation', href: '/geo' },
+    { name: 'china-holiday', href: '/china-holiday' },
+    { name: 'china-fuel-price', href: '/china-fuel-price' },
+    { name: 'china-geo', href: '/china-geo' },
   ],
 }

@@ -1,8 +1,8 @@
 # Holiday module schema
 
 id: holiday
-name: Holiday
-routePrefix: /holiday
+name: china-holiday
+routePrefix: /china-holiday
 
 sidebarItems:
   - key: overview
@@ -34,7 +34,7 @@ apiPage:
           "name": "National Day"
         }
   playgroundComponentName: HolidayApiPlayground
-  playgroundImportPath: '@/app/holiday/api/components'
+  playgroundImportPath: '@/app/china-holiday/api/components'
 
 mcpPage:
   title: Holiday MCP tools
@@ -52,4 +52,4 @@ mcpPage:
       description: Check if a date is a holiday.
       paramsDescription: 'date: string (YYYY-MM-DD).'
   playgroundComponentName: HolidayMcpPlayground
-  playgroundImportPath: '@/app/holiday/mcp/components'
+  playgroundImportPath: '@/app/china-holiday/mcp/components'

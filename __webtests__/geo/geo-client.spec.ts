@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('GeoClient Component', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/geo')
+    await page.goto('/china-geo')
   })
 
   test('should auto-request location and show map or placeholder or error', async ({ page }) => {
@@ -31,7 +31,7 @@ test.describe('GeoClient Component', () => {
       })
     })
 
-    await page.goto('/geo')
+    await page.goto('/china-geo')
 
     await expect(page.getByText('Tianhe').first()).toBeVisible({ timeout: 15000 })
     await expect(page.getByText('Guangdong').first()).toBeVisible({ timeout: 5000 })
@@ -49,7 +49,7 @@ test.describe('GeoClient Component', () => {
       })
     })
 
-    await page.goto('/geo')
+    await page.goto('/china-geo')
 
     const errorContainer = page.getByTestId('geocode-api-error').or(page.getByTestId('geocode-error'))
     await expect(errorContainer.first()).toBeVisible({ timeout: 10000 })

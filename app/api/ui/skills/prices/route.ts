@@ -1,4 +1,4 @@
-import { PRICES_API_SKILL_PROTECTED, PRICES_API_SKILL_PUBLIC } from '@/app/prices/skill-content'
+import { PRICES_API_SKILL_PROTECTED, PRICES_API_SKILL_PUBLIC } from '@/app/china-prices/skill-content'
 import { api } from '@/initializer/controller'
 import { CACHE_CONTROL_NO_STORE, jsonSuccess } from '@/initializer/response'
 import { getAuthSession } from '@/services/auth/session'

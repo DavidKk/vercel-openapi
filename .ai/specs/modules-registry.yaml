@@ -38,17 +38,17 @@ modules:
     notes: Per-module spec file not added yet; see schema and app/api/finance/.
 
   - id: fuel-price
-    title: China Fuel Price
+    title: china-fuel-price
     spec: modules/fuel-price.md
     schema: schemas/fuel-price.yaml
 
   - id: geo
-    title: Geo (China)
+    title: china-geo
     spec: modules/geo.md
     schema: schemas/geo.yaml
 
   - id: holiday
-    title: Holiday
+    title: china-holiday
     spec: modules/holiday.md
     schema: schemas/holiday.yaml
 
@@ -58,7 +58,7 @@ modules:
     schema: schemas/movies.yaml
 
   - id: prices
-    title: Prices
+    title: china-prices
     spec: modules/prices.md
     schema: schemas/prices.yaml
 
@@ -68,6 +68,6 @@ modules:
     schema: schemas/proxy-rule.yaml
 
   - id: weather
-    title: China Weather
+    title: china-weather
     spec: modules/weather.md
     schema: schemas/weather.yaml

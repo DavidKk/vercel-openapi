@@ -2,34 +2,34 @@ import { getModuleSubPath } from '@/app/Nav/utils'
 
 describe('getModuleSubPath', () => {
   describe('shared sub-paths (preserved when switching modules)', () => {
-    it('should return /mcp when path is /fuel-price/mcp', () => {
-      expect(getModuleSubPath('/fuel-price/mcp')).toBe('/mcp')
+    it('should return /mcp when path is /china-fuel-price/mcp', () => {
+      expect(getModuleSubPath('/china-fuel-price/mcp')).toBe('/mcp')
     })
 
     it('should return /function-calling when path is /dns/function-calling', () => {
       expect(getModuleSubPath('/dns/function-calling')).toBe('/function-calling')
     })
 
-    it('should return /api when path is /holiday/api', () => {
-      expect(getModuleSubPath('/holiday/api')).toBe('/api')
+    it('should return /api when path is /china-holiday/api', () => {
+      expect(getModuleSubPath('/china-holiday/api')).toBe('/api')
     })
 
-    it('should return /skill when path is /weather/skill', () => {
-      expect(getModuleSubPath('/weather/skill')).toBe('/skill')
+    it('should return /skill when path is /china-weather/skill', () => {
+      expect(getModuleSubPath('/china-weather/skill')).toBe('/skill')
     })
 
-    it('should return full sub-path when path has more segments (e.g. /geo/mcp/extra)', () => {
-      expect(getModuleSubPath('/geo/mcp/extra')).toBe('/mcp/extra')
+    it('should return full sub-path when path has more segments (e.g. /china-geo/mcp/extra)', () => {
+      expect(getModuleSubPath('/china-geo/mcp/extra')).toBe('/mcp/extra')
     })
   })
 
   describe('module root (no sub-path)', () => {
-    it('should return empty string when path is module root /holiday', () => {
-      expect(getModuleSubPath('/holiday')).toBe('')
+    it('should return empty string when path is module root /china-holiday', () => {
+      expect(getModuleSubPath('/china-holiday')).toBe('')
     })
 
-    it('should return empty string when path is module root /geo', () => {
-      expect(getModuleSubPath('/geo')).toBe('')
+    it('should return empty string when path is module root /china-geo', () => {
+      expect(getModuleSubPath('/china-geo')).toBe('')
     })
 
     it('should return empty string when path is /', () => {

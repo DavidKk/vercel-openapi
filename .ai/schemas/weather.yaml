@@ -1,8 +1,8 @@
 # Weather module schema
 
 id: weather
-name: China Weather
-routePrefix: /weather
+name: china-weather
+routePrefix: /china-weather
 
 sidebarItems:
   - key: overview
@@ -81,7 +81,7 @@ apiPage:
           }
         }
   playgroundComponentName: WeatherApiPlayground
-  playgroundImportPath: '@/app/weather/api/components'
+  playgroundImportPath: '@/app/china-weather/api/components'
 
 mcpPage:
   title: China Weather MCP tools
@@ -92,4 +92,4 @@ mcpPage:
     - name: get_point_forecast
       description: 'Get short-term forecast for a point (params: latitude, longitude, granularity, hours, days).'
   playgroundComponentName: WeatherMcpPlayground
-  playgroundImportPath: '@/app/weather/mcp/components'
+  playgroundImportPath: '@/app/china-weather/mcp/components'

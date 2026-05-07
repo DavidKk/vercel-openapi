@@ -20,14 +20,14 @@ const TABS: { id: HomeTab; label: string; icon: ReactNode }[] = [
 
 /** Module options for ?includes= (same slugs as /api/mcp and function-calling). */
 const TOOL_CATEGORY_LABELS: Record<string, string> = {
-  holiday: 'China Holiday',
-  'fuel-price': 'China Fuel Price',
+  holiday: 'china-holiday',
+  'fuel-price': 'china-fuel-price',
   'exchange-rate': 'Exchange Rate',
-  weather: 'China Weather',
+  weather: 'china-weather',
   movies: 'Movies',
   dns: 'DNS',
   finance: 'Finance',
-  prices: 'China Prices',
+  prices: 'china-prices',
 }
 
 const MODULE_OPTIONS_ORDER: string[] = ['exchange-rate', 'movies', 'dns', 'finance', 'holiday', 'prices', 'fuel-price', 'geo', 'weather']
@@ -35,7 +35,7 @@ const MODULE_OPTIONS_ORDER: string[] = ['exchange-rate', 'movies', 'dns', 'finan
 const MODULE_OPTIONS: { id: string; label: string }[] = [
   ...MODULE_OPTIONS_ORDER.filter((id) => id === 'geo' || (TOOL_CATEGORIES as readonly string[]).includes(id)).map((id) => ({
     id,
-    label: id === 'geo' ? 'China GEO' : (TOOL_CATEGORY_LABELS[id] ?? id),
+    label: id === 'geo' ? 'china-geo' : (TOOL_CATEGORY_LABELS[id] ?? id),
   })),
   ...TOOL_CATEGORIES.filter((id) => !MODULE_OPTIONS_ORDER.includes(id)).map((id) => ({ id, label: TOOL_CATEGORY_LABELS[id] ?? id })),
 ]
@@ -259,7 +259,7 @@ export function HomeClient() {
                     POST endpoint for all MCP tools. Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ tool, params }'}</code>.
                   </p>
                 </div>
-                <Link href="/geo/mcp" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
+                <Link href="/china-geo/mcp" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
                   Open Playground
                 </Link>
               </div>
@@ -301,7 +301,10 @@ export function HomeClient() {
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-800">Function Calling endpoints</p>
                   <p className="mt-0.5 text-[11px] text-gray-600">OpenAI-compatible tools + chat endpoints for Function Calling gateways.</p>
                 </div>
-                <Link href="/geo/function-calling" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
+                <Link
+                  href="/china-geo/function-calling"
+                  className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800"
+                >
                   Open Playground
                 </Link>
               </div>
@@ -348,7 +351,7 @@ export function HomeClient() {
                     <div className="absolute inset-y-0 right-1 flex items-center gap-0">
                       <button
                         type="button"
-                        onClick={() => runGetUrl(base ? `${base}/geo/function-calling` : '/geo/function-calling')}
+                        onClick={() => runGetUrl(base ? `${base}/china-geo/function-calling` : '/china-geo/function-calling')}
                         className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
                         aria-label="Run: open Function Calling playground"
                         title="Run: open playground"
@@ -458,7 +461,7 @@ export function HomeClient() {
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-800">API</p>
                   <p className="mt-0.5 text-[11px] text-gray-600">REST API playground by module (geo, holiday, fuel-price, exchange-rate).</p>
                 </div>
-                <Link href="/geo/api" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
+                <Link href="/china-geo/api" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
                   Open Playground
                 </Link>
               </div>

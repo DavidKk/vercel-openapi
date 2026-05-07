@@ -1,8 +1,8 @@
 # Geolocation module schema
 
 id: geo
-name: Geolocation
-routePrefix: /geo
+name: china-geo
+routePrefix: /china-geo
 
 sidebarItems:
   - key: overview
@@ -39,7 +39,7 @@ apiPage:
           "longitude": 116.4074
         }
   playgroundComponentName: GeoApiPlayground
-  playgroundImportPath: '@/app/geo/api/components'
+  playgroundImportPath: '@/app/china-geo/api/components'
 
 mcpPage:
   title: Geolocation MCP tools
@@ -49,4 +49,4 @@ mcpPage:
       description: Reverse geocode latitude and longitude to location info.
       paramsDescription: 'latitude: number, longitude: number.'
   playgroundComponentName: GeoMcpPlayground
-  playgroundImportPath: '@/app/geo/mcp/components'
+  playgroundImportPath: '@/app/china-geo/mcp/components'
