@@ -37,7 +37,20 @@ apiPage:
 
 mcpPage:
   title: Prices MCP tools
-  subtitle: Prices MCP tools are not exposed yet.
-  tools: []
+  subtitle: Tools exposed via MCP for listing/searching/comparing prices and authenticated product CRUD.
+  tools:
+    - name: list_price_lists
+      description: List all product entries.
+    - name: search_prices
+      description: Search products by keyword.
+      paramsDescription: 'q: string (required) - search keyword.'
+    - name: calc_prices
+      description: Calculate and compare unit prices.
+    - name: create_product
+      description: Create a product (requires authenticated MCP session).
+    - name: update_product
+      description: Update a product by id (requires authenticated MCP session).
+    - name: delete_product
+      description: Delete a product by id (requires authenticated MCP session).
   playgroundComponentName: PricesMcpPlayground
   playgroundImportPath: '@/app/china-prices/mcp/components'

@@ -12,6 +12,26 @@ description: When a user asks for China Fuel Price by province or a recharge pro
 - **Do not** call for non-China fuel data unless the API is extended.
 - **Do not overuse:** unrelated intent → do not call.
 
+## Hard boundaries (must check before call)
+
+- This module is **China province fuel pricing only**. If the target market is outside China, **do not call** it.
+- Promo calculation requires explicit numbers (`amount`, `bonus`); if missing, ask once and stop guessing.
+
+## Pre-check (before tool call)
+
+- Confirm target market/province belongs to China coverage.
+- Confirm required fields are complete for the chosen route (province, amount, bonus, optional fuelType).
+
+## Fallback (when not suitable)
+
+- If user asks for non-China fuel prices, explain coverage limitation and avoid tool call.
+- If promo parameters are incomplete, ask for missing numeric values once.
+
+## Retry policy
+
+- Retry only for transient **5xx** failures.
+- Do not retry unchanged invalid params/path (**400/404**) until inputs are corrected.
+
 ## Multi-turn / Missing parameters
 
 - **All provinces:** no path params — `GET /api/fuel-price`.

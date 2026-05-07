@@ -19,6 +19,7 @@ import { calc_fuel_recharge_promo } from './fuel-price/calc_fuel_recharge_promo'
 import { get_fuel_price } from './fuel-price/get_fuel_price'
 import { get_fuel_price_by_province } from './fuel-price/get_fuel_price_by_province'
 import { get_next_fuel_price_adjustment } from './fuel-price/get_next_fuel_price_adjustment'
+import { reverse_geocode } from './geo/reverse_geocode'
 import { get_today_holiday } from './holiday/get_today_holiday'
 import { is_holiday } from './holiday/is_holiday'
 import { is_workday } from './holiday/is_workday'
@@ -42,6 +43,7 @@ const ALL_TOOLS: Tool[] = [
   get_fuel_price_by_province,
   get_next_fuel_price_adjustment,
   calc_fuel_recharge_promo,
+  reverse_geocode,
   get_today_holiday,
   list_holiday,
   is_workday,
@@ -81,6 +83,7 @@ const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
   dns: ['dns_query'],
   holiday: ['get_today_holiday', 'list_holiday', 'is_workday', 'is_holiday'],
   'fuel-price': ['get_fuel_price', 'get_fuel_price_by_province', 'get_next_fuel_price_adjustment', 'calc_fuel_recharge_promo'],
+  geo: ['reverse_geocode'],
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
   weather: ['get_point_weather', 'get_point_forecast'],

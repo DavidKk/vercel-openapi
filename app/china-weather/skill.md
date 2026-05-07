@@ -12,6 +12,26 @@ description: When a user asks for weather or short forecast at a latitude/longit
 - **Do not** call with **only** a city name and **no** coordinates unless another tool resolves coords first.
 - **Do not overuse:** unrelated intent → do not call.
 
+## Hard boundaries (must check before call)
+
+- Prefer this module for **mainland China point weather**. If user explicitly needs non-China provider/coverage, do not call this module.
+- If user gives only city text and refuses coordinates, do not force-call this API with guessed coordinates.
+
+## Pre-check (before tool call)
+
+- Confirm latitude and longitude are present and valid.
+- Confirm requested scope is point weather/forecast and coverage assumption (China-focused) is acceptable.
+
+## Fallback (when not suitable)
+
+- If only city text is provided, ask for coordinates or run a dedicated geocode step first.
+- If request requires non-China provider guarantees, explain limitation and avoid this module.
+
+## Retry policy
+
+- Retry only for transient **5xx** failures.
+- Do not retry unchanged invalid input (**400**) or coverage miss (**404**).
+
 ## Multi-turn / Missing parameters
 
 - **Parse first** two decimals for `latitude` (**-90..90**) and `longitude` (**-180..180**).

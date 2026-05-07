@@ -1,4 +1,5 @@
 import { FUEL_PRICE_API_SKILL } from '@/app/china-fuel-price/skill-content'
+import { GEO_API_SKILL } from '@/app/china-geo/skill-content'
 import { HOLIDAY_API_SKILL } from '@/app/china-holiday/skill-content'
 import { PRICES_API_SKILL_PUBLIC } from '@/app/china-prices/skill-content'
 import { WEATHER_API_SKILL } from '@/app/china-weather/skill-content'
@@ -20,6 +21,7 @@ const MODULE_SKILL_MARKDOWN: Record<string, string> = {
   dns: DNS_API_SKILL,
   holiday: HOLIDAY_API_SKILL,
   'fuel-price': FUEL_PRICE_API_SKILL,
+  geo: GEO_API_SKILL,
   'exchange-rate': EXCHANGE_RATE_API_SKILL,
   movies: MOVIES_API_SKILL,
   weather: WEATHER_API_SKILL,

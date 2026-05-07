@@ -28,6 +28,28 @@ description: Stocks (index snapshot + exchange index/company daily & hourly; TAS
 - **Funds — overview `stockList` + MACD** (latest bar per symbol, not full daily rows): `GET /api/finance/overview/stock-list?symbols=...&startDate=...&endDate=...` (optional `syncIfEmpty`).
 - **Do not** use exchange `market=` feed paths for non-TASI markets — they return **400**; use **`/api/finance/stock/summary`** for other overview indices.
 
+## Hard boundaries (must check before call)
+
+- Exchange feed paths under `market/...` and `stock/tasi/...` are **TASI-only** in current implementation; non-TASI requests must be redirected to `get_stock_summary`.
+- Do not mix **fund NAV** and **exchange OHLCV** tools: NAV symbols/routes use `get_fund_nav_daily*`, while OHLCV uses `get_market_daily*`.
+- Current precious metals scope is **XAUUSD only**; do not imply support for other metals unless route/tool exists.
+
+## Pre-check (before tool call)
+
+- Classify intent first: stock index snapshot vs TASI feed vs fund NAV vs fund OHLCV vs precious metal.
+- Validate symbol/date requirements per endpoint mode before calling.
+- For non-TASI index needs, route to `get_stock_summary` directly.
+
+## Fallback (when not suitable)
+
+- If symbol/market mapping is ambiguous, ask user to confirm instrument and market once.
+- If request falls outside current scope (e.g. non-XAUUSD precious), explain unsupported scope and avoid fabricating output.
+
+## Retry policy
+
+- Retry only on transient **5xx** failures or temporary upstream sync gaps.
+- Do not retry unchanged validation/mode mismatch errors (**400**) until parameters or route are corrected.
+
 ## Multi-turn / Missing parameters
 
 - **Parse first:** `market`, `date`, `from`/`to`, `code` from natural language; dates **YYYY-MM-DD**.

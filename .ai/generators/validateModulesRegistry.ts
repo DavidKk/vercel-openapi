@@ -27,6 +27,40 @@ interface ModulesRegistryDoc {
 }
 
 /**
+ * Resolve expected app folder for a registry row.
+ * Uses schema `name` when available (e.g. china-geo), falls back to registry `id`.
+ */
+function resolveModuleAppFolder(row: RegistryModuleRow, errors: string[], prefix: string): string {
+  if (typeof row.schema !== 'string' || row.schema.trim() === '') {
+    return row.id
+  }
+  const schemaAbs = resolve(root, '.ai', row.schema)
+  if (!existsSync(schemaAbs)) {
+    return row.id
+  }
+  try {
+    const schemaDoc = parse(readFileSync(schemaAbs, 'utf8')) as { name?: unknown; routePrefix?: unknown } | null
+    if (schemaDoc && typeof schemaDoc.routePrefix === 'string') {
+      const routePrefix = schemaDoc.routePrefix.trim()
+      if (routePrefix.startsWith('/')) {
+        const folder = routePrefix.slice(1)
+        if (folder) return folder
+      }
+    }
+    if (schemaDoc && typeof schemaDoc.name === 'string' && schemaDoc.name.trim() !== '') {
+      const candidate = schemaDoc.name.trim()
+      if (!candidate.includes(' ')) {
+        return candidate
+      }
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`${prefix}: unable to parse schema for app folder resolution (.ai/${row.schema}): ${msg}`)
+  }
+  return row.id
+}
+
+/**
  * Validate the modules registry file and cross-check repo layout.
  * @returns Error messages; empty array means success.
  */
@@ -119,14 +153,17 @@ export function validateModulesRegistry(): string[] {
     }
   }
 
-  /** Each registry id must have app/<id>/layout.tsx */
+  /** Each registry module must have app/<folder>/layout.tsx (folder from schema.name or id fallback) */
+  const expectedAppFolders = new Set<string>()
   for (const row of modules as RegistryModuleRow[]) {
     if (typeof row.id !== 'string') {
       continue
     }
-    const layoutPath = resolve(root, 'app', row.id, 'layout.tsx')
+    const folder = resolveModuleAppFolder(row, errors, `Module "${row.id}"`)
+    expectedAppFolders.add(folder)
+    const layoutPath = resolve(root, 'app', folder, 'layout.tsx')
     if (!existsSync(layoutPath)) {
-      errors.push(`Module "${row.id}": expected app/${row.id}/layout.tsx (add module UI or remove registry entry)`)
+      errors.push(`Module "${row.id}": expected app/${folder}/layout.tsx (add module UI or remove registry entry)`)
     }
   }
 
@@ -146,7 +183,7 @@ export function validateModulesRegistry(): string[] {
     }
   }
 
-  /** Every app/<id>/layout.tsx must be listed in the registry */
+  /** Every app/<id>/layout.tsx must be listed in the registry expected app folders */
   let appEntries: string[] = []
   try {
     appEntries = readdirSync(resolve(root, 'app'), { withFileTypes: true })
@@ -160,8 +197,8 @@ export function validateModulesRegistry(): string[] {
     if (!existsSync(resolve(root, 'app', name, 'layout.tsx'))) {
       continue
     }
-    if (!seenIds.has(name)) {
-      errors.push(`Orphan app module: app/${name}/layout.tsx exists but id "${name}" is not in modules-registry.yaml (add entry or remove the folder)`)
+    if (!expectedAppFolders.has(name)) {
+      errors.push(`Orphan app module: app/${name}/layout.tsx exists but no registry module resolves to folder "${name}" (check schema.name or registry entries)`)
     }
   }
 

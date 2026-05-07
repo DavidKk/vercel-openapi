@@ -12,6 +12,26 @@ description: When a user asks whether today is a public holiday in mainland Chin
 - **Do not** call for **other dates** unless a separate dated endpoint exists in the product spec (this route is **today-only**).
 - **Do not overuse:** unrelated intent (FX, DNS, movies, etc.) → do not call.
 
+## Hard boundaries (must check before call)
+
+- This module is **mainland China holiday semantics**. If user asks for another country/region holiday calendar, **do not call** this endpoint.
+- This route is **today-only**; for historical/future dates, do not fake support on this path.
+
+## Pre-check (before tool call)
+
+- Confirm user intent is "today holiday status" for mainland China.
+- Confirm request does not require historical/future date computation on this endpoint.
+
+## Fallback (when not suitable)
+
+- If user asks for another country, explain region limitation and avoid calling this tool.
+- If user asks for non-today date, explain "today-only" and suggest alternative source/module if available.
+
+## Retry policy
+
+- Retry only on transient **500/5xx** once.
+- Do not retry **4xx** or unsupported-date requests without changed input/route.
+
 ## Multi-turn / Missing parameters
 
 - **No required parameters** for `GET /api/holiday`. If the user asks about **another day**, explain this API is **today-only** and do not invent a date parameter for this path.

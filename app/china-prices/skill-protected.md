@@ -15,6 +15,26 @@ Paths use **`BASE_URL` + `/api/prices/...`** (host + optional app prefix, then t
 - **Do not** call for unrelated shopping math without using **POST BASE_URL/api/prices/calc** inputs the API accepts.
 - **Do not overuse:** unrelated intent → do not call.
 
+## Hard boundaries (must check before call)
+
+- Admin routes require valid `Authorization: Bearer <API_KEY>`; without credentials, do not attempt write calls.
+- For destructive actions (delete), require explicit user intent confirmation before invoking admin endpoint.
+
+## Pre-check (before tool call)
+
+- Confirm authenticated context/API key is available before admin calls.
+- Confirm operation type (create/update/delete) and required fields are explicit.
+
+## Fallback (when not suitable)
+
+- If auth is missing, stop and report required credentials instead of probing admin endpoints.
+- If delete intent is ambiguous, ask for explicit confirmation once.
+
+## Retry policy
+
+- Retry only on transient **5xx** failures.
+- Do not retry auth/permission failures (**401/403**) without new credentials.
+
 ## Multi-turn / Missing parameters
 
 - **Search:** need `q` (keyword). If missing, ask once.

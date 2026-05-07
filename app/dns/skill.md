@@ -12,6 +12,26 @@ description: When a user asks to resolve a hostname → return A/AAAA records (D
 - **Do not** call for non-DNS tasks (MX dig details if not supported, internal network scans, unrelated chat).
 - **Do not overuse:** unrelated intent → do not call.
 
+## Hard boundaries (must check before call)
+
+- This tool resolves DNS records only; do not use it for HTTP reachability, SSL chain validation, or port scanning claims.
+- Input must be a hostname/domain; if user gives only a URL path/query without host, ask for host first.
+
+## Pre-check (before tool call)
+
+- Confirm the target is a valid hostname (or extract host from URL).
+- Confirm requested output is DNS records (A/AAAA scope of this module), not web/app diagnostics.
+
+## Fallback (when not suitable)
+
+- If the request is about site availability/TLS/API latency, explain DNS tool is not sufficient and switch to a more suitable module/tool.
+- If host cannot be parsed, ask user to provide a concrete hostname once.
+
+## Retry policy
+
+- Retry only on transient **5xx** or network-like failures.
+- Do not retry for invalid domain input (**4xx** class or validation errors) until user provides corrected host.
+
 ## Multi-turn / Missing parameters
 
 - **Parse first:** extract **hostname** from URLs (`https://example.com/path` → `example.com`) or plain domain.

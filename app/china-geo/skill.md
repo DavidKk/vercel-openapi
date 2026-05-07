@@ -12,6 +12,26 @@ description: When a user provides China latitude/longitude → reverse geocode t
 - **Do not** call if the user gives **only** a place name or address **without** coordinates to resolve (answer from knowledge or other tools).
 - **Do not overuse**: **Do not** call this API when the user’s intent is **unrelated** to **location lookup from latitude/longitude** (e.g. unrelated chit-chat, other APIs).
 
+## Hard boundaries (must check before call)
+
+- This module is **mainland China only**. If the user clearly asks for non-China coordinates/country, **do not call** this tool.
+- If country/region is ambiguous, ask once whether the target point is in mainland China before calling.
+
+## Pre-check (before tool call)
+
+- Confirm two numeric coordinates are present and in valid ranges.
+- Confirm target geography is mainland China or user explicitly accepts China-only coverage.
+
+## Fallback (when not suitable)
+
+- If user has only place name/address without coordinates, ask for lat/lng or use a dedicated geocoding source (if available) before this tool.
+- If request is clearly outside China, explain this module coverage and avoid calling.
+
+## Retry policy
+
+- Retry only for transient **503/5xx** service failures.
+- Do not retry unchanged invalid coordinates (**400**) or outside-coverage cases (**404**).
+
 ## Multi-turn / Missing parameters
 
 - **Parse first**: try to extract two decimals from the user message (comma, space, labeled `lat`/`lng`, parentheses, etc.).

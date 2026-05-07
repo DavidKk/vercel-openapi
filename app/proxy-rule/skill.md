@@ -12,6 +12,26 @@ description: When a user wants Clash RULE-SET lines filtered by action type → 
 - **Do not** call for unrelated proxy setup without `type`, or for non-Clash formats unless documented.
 - **Do not overuse:** unrelated intent → do not call.
 
+## Hard boundaries (must check before call)
+
+- Default to **public** route `GET /api/proxy-rule/clash/config`; this is the only safe path for normal agent usage.
+- **Do not call admin routes** (`/api/proxy-rule/admin/clash`) unless a valid authenticated session is already established for this request context.
+
+## Pre-check (before tool call)
+
+- Confirm `type` is provided and meaningful for Clash action filtering.
+- Confirm whether user intent is read-only payload retrieval vs admin mutation.
+
+## Fallback (when not suitable)
+
+- If `type` is missing, ask for `Proxy` / `DIRECT` / `REJECT` once before call.
+- If admin auth/session is unavailable, stay on public route and explain write limitation.
+
+## Retry policy
+
+- Retry only for transient **5xx** failures.
+- Do not retry unchanged missing-parameter/auth failures (**400/401/403**).
+
 ## Multi-turn / Missing parameters
 
 - `type` query is **required** for `/api/proxy-rule/clash/config`. If missing, ask once: “Which Clash action type? (e.g. Proxy, DIRECT, REJECT)”.

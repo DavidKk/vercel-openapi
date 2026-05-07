@@ -20,6 +20,26 @@ If you only use a root-relative path like `/api/prices/products` without a host,
 - **Do not** call for unrelated shopping math without using **`POST BASE_URL/api/prices/calc`** with inputs the API accepts.
 - **Do not overuse:** unrelated intent → do not call.
 
+## Hard boundaries (must check before call)
+
+- Public skill is for list/search/calc only; do not execute create/update/delete tools through this path.
+- If the user requests product write operations, require authenticated MCP context and switch to protected/admin flow.
+
+## Pre-check (before tool call)
+
+- Confirm intent belongs to public capability: list, search, or calc.
+- Validate required input for search/calc (`q` or product+quantity+price tuple).
+
+## Fallback (when not suitable)
+
+- If user requests write operations, explain auth requirement and route to protected flow.
+- If calc fields are incomplete, ask for missing values once.
+
+## Retry policy
+
+- Retry only on transient **5xx** failures.
+- Do not retry unchanged validation errors (**4xx**) until input is fixed.
+
 ## Multi-turn / Missing parameters
 
 - **Search:** need `q` (keyword). If missing, ask once.

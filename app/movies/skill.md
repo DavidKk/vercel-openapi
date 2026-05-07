@@ -12,6 +12,26 @@ description: When a user asks for the latest cached movie list → return merged
 - **Do not** call for plot-only questions that need a different tool, or unrelated domains.
 - **Do not overuse:** unrelated chat → do not call.
 
+## Hard boundaries (must check before call)
+
+- This module returns **cached merged list** only; do not imply real-time box-office/live upstream fetch per request.
+- If a title is not in `data.movies`, state “not in current cache” instead of fabricating entries.
+
+## Pre-check (before tool call)
+
+- Confirm user request is compatible with cached list retrieval.
+- Confirm optional filters (e.g. year/top-N) can be derived from returned movie fields.
+
+## Fallback (when not suitable)
+
+- If user requires real-time upstream freshness, explain that this endpoint is cache-backed.
+- If no rows are returned, explicitly report empty cache state rather than guessing.
+
+## Retry policy
+
+- Retry once on transient **500/5xx**.
+- Do not loop retries for persistent empty cache or unsupported filter requests.
+
 ## Multi-turn / Missing parameters
 
 - **No query or body** required for `GET /api/movies`. If the user wants **one specific title** not in the list, answer from the returned list or say it is not in the cached set — **do not** invent movies.

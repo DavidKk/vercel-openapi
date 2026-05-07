@@ -11,6 +11,7 @@ import { resolve } from 'node:path'
 import { loadSchema } from './loadSchema'
 import { createModuleFromSchema } from './skill'
 import { validateModulesRegistry } from './validateModulesRegistry'
+import { validateSkillDocs } from './validateSkillDocs'
 
 const SCHEMAS_DIR = process.env.SCHEMAS_DIR ?? '.ai/schemas'
 const root = resolve(process.cwd())
@@ -61,6 +62,9 @@ async function main(): Promise<void> {
   /** 3. Modules registry + drift vs app/ and schemas */
   errors.push(...validateModulesRegistry())
 
+  /** 4. Skill markdown quality gates */
+  errors.push(...validateSkillDocs())
+
   printAndExit(errors)
 }
 
@@ -73,7 +77,7 @@ function printAndExit(errors: string[]): never {
     process.exit(1)
   }
   // eslint-disable-next-line no-console
-  console.log('validate:ai passed: schemas OK, generator runnable for all schemas, modules registry OK.')
+  console.log('validate:ai passed: schemas OK, generator runnable for all schemas, modules registry OK, skill docs OK.')
   process.exit(0)
 }
 

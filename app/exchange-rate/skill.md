@@ -12,6 +12,26 @@ description: When a user asks for FX rates or currency conversion → return exc
 - **Do not** call for unrelated topics (weather, stocks, generic chat).
 - **Do not overuse:** unrelated intent → do not call this API.
 
+## Hard boundaries (must check before call)
+
+- Use this module only for FX rates/conversion; do not use it for stock, crypto order-book, or payment settlement semantics.
+- For conversion, `from`/`to`/`amount` are all required; if one is missing, ask once instead of guessing.
+
+## Pre-check (before tool call)
+
+- Confirm intent is FX rate lookup or currency conversion.
+- Normalize and validate currency codes and numeric amount before invoking POST conversion.
+
+## Fallback (when not suitable)
+
+- If user asks for non-FX data (stocks, commodities depth, payment gateway settlement), explain scope mismatch and route to correct module.
+- If parameters are incomplete, ask for missing fields once and pause.
+
+## Retry policy
+
+- Retry only for transient **5xx** failures.
+- Do not retry **400** class input errors with the same payload.
+
 ## Multi-turn / Missing parameters
 
 - **GET /api/exchange-rate:** `base` is optional (default USD). Parse ISO currency codes from text if unambiguous.
