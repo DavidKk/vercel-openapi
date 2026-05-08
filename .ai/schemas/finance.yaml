@@ -98,7 +98,7 @@ apiPage:
         {"date":"2025-03-14","open":12000,"high":12100,"low":11950,"close":12050,"volumeTraded":100000000}
     - method: GET
       path: /api/finance/market/summary/hourly
-      description: 'Generic market= (default TASI); TASI only today. SAHMK hourly alignment vs daily summary. Legacy /api/finance/tasi/summary/hourly is alias.'
+      description: 'Generic market= (default TASI); TASI only today. SAHMK hourly alignment vs daily summary.'
       exampleResponse: |
         {}
     - method: GET

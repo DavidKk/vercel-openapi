@@ -36,8 +36,7 @@ export default function FinanceApiPage() {
             app route <code className="rounded bg-gray-100 px-1 py-0.5">/finance/stock/tasi</code> — use{' '}
             <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/stock/tasi/…</code> (same slug as the UI). <strong className="font-medium">Only TASI</strong> is wired
             for that feed; other markets → <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/stock/summary?market=…</code>. Legacy{' '}
-            <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/market/…</code> and <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/tasi/…</code> remain
-            supported.
+            <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/market/…</code> remains supported.
           </p>
 
           <h3 className={SUBHEAD}>{STOCKS_API_SUBGROUP.indexSnapshotMultiMarket}</h3>

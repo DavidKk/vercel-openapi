@@ -16,15 +16,15 @@ description: Stocks (index snapshot + exchange index/company daily & hourly; TAS
 ## When to use
 
 - **Stocks — index snapshot (all overview markets)** (TASI, S&P 500, Dow Jones, Nasdaq, …): `GET /api/finance/stock/summary?market=...` or batch `markets=...`.
-- **Stocks — index daily (exchange feed; TASI only today)** — canonical: **`GET /api/finance/stock/tasi/summary/daily`** (slug matches `/finance/stock/tasi`; no `market=` query). Legacy: `GET /api/finance/market/summary/daily?market=TASI` or `/api/finance/tasi/summary/daily`.
+- **Stocks — index daily (exchange feed; TASI only today)** — canonical: **`GET /api/finance/stock/tasi/summary/daily`** (slug matches `/finance/stock/tasi`; no `market=` query). Legacy: `GET /api/finance/market/summary/daily?market=TASI`.
 - **Stocks — index hourly (exchange feed; TASI only today)**: **`GET /api/finance/stock/tasi/summary/hourly`**. Legacy: `GET /api/finance/market/summary/hourly?market=TASI`.
 - **Stocks — constituents daily (exchange feed; TASI only today)** — **`GET /api/finance/stock/tasi/company/daily`**. Legacy: `GET /api/finance/market/company/daily?market=TASI`.
 - **Stocks — one-call latest snapshot (TASI)** — **`GET /api/finance/stock/tasi/daily/latest`** returns `{ asOf, dataDate, summary, items }` (index + all companies).
 - **Funds / precious spot — exchange-style daily OHLCV (canonical)** — **`GET /api/finance/fund/{symbol}/ohlcv/daily?startDate=...&endDate=...`** (`{symbol}` six-digit or `XAUUSD`; optional `withIndicators=true` adds MACD fields using legacy window cold-start by default; optional `indicatorWarmup=true` uses 120 calendar days; optional `indicatorWarmupDays=35..250` sets the lookback; optional `forceSync=true` refreshes allowlisted cached ranges). Multi-symbol batch legacy: `GET /api/finance/market/daily?symbols=...`.
 - **Funds / precious — latest one OHLCV bar** — **`GET /api/finance/fund/{symbol}/ohlcv/daily/latest`** (same path shape as `market/daily/latest`). Legacy: `GET /api/finance/market/daily/latest?symbols=...`.
 - **Funds — NAV disclosure daily series (canonical)** — **`GET /api/finance/fund/{symbol}/nav/daily?startDate=...&endDate=...`**. Legacy: `GET /api/finance/fund/nav/daily?symbols=...`.
-- **Funds — latest one NAV row** — **`GET /api/finance/fund/{symbol}/nav/daily/latest`**. Legacy: `GET /api/finance/fund/{symbol}/nav/dailylatest` and `GET /api/finance/fund/nav/daily/latest?symbols=...`.
-- **Stocks — TASI latest (split)** — **`GET /api/finance/stock/tasi/summary/daily/latest`**, **`GET /api/finance/stock/tasi/company/daily/latest`**. Legacy: `GET /api/finance/stock/tasi/company/dailylatest` and `GET /api/finance/market/.../latest?market=TASI`.
+- **Funds — latest one NAV row** — **`GET /api/finance/fund/{symbol}/nav/daily/latest`**. Legacy: `GET /api/finance/fund/nav/daily/latest?symbols=...`.
+- **Stocks — TASI latest (split)** — **`GET /api/finance/stock/tasi/summary/daily/latest`**, **`GET /api/finance/stock/tasi/company/daily/latest`**. Legacy: `GET /api/finance/market/.../latest?market=TASI`.
 - **Funds — overview `stockList` + MACD** (latest bar per symbol, not full daily rows): `GET /api/finance/overview/stock-list?symbols=...&startDate=...&endDate=...` (optional `syncIfEmpty`).
 - **Do not** use exchange `market=` feed paths for non-TASI markets — they return **400**; use **`/api/finance/stock/summary`** for other overview indices.
 
@@ -116,14 +116,6 @@ GET /api/finance/stock/tasi/summary/hourly
 GET /api/finance/stock/tasi/daily/latest
 ```
 
-Legacy (same handlers; add `market=TASI` on canonical paths when possible):
-
-```http
-GET /api/finance/tasi/company/daily
-GET /api/finance/tasi/summary/daily
-GET /api/finance/tasi/summary/hourly
-```
-
 ## MCP / function calling (same `tool` names as POST `/api/mcp/finance`)
 
 | Tool                              | Role                                                                                                                                                                                                                                                                                    |
@@ -148,10 +140,10 @@ Same envelope: **`{ code: 0, message: "ok", data: … }`**. **`data`** may be `[
 - **`/api/finance/fund/{symbol}/ohlcv/daily`** and legacy **`/api/finance/market/daily`:** `data` is `{ items, synced }` with **exchange OHLCV** rows only (`items[].open` … `turnoverRate`; when `withIndicators=true`, `ema12`/`ema26`/`dif`/`dea`/`macd` plus `macdUp`/`macdDown`).
 - **`/api/finance/fund/{symbol}/ohlcv/daily/latest`** and legacy **`/api/finance/market/daily/latest`:** `data` is `{ asOf, items, synced }` — one latest bar; **`asOf`** is ISO-8601; **`items[].date`** is the bar’s calendar trade date.
 - **`/api/finance/fund/{symbol}/nav/daily`** and legacy **`/api/finance/fund/nav/daily`:** `data` is `{ items, synced }` with **fund NAV** rows (`items[].unitNav`, `items[].dailyChangePercent` only).
-- **`/api/finance/fund/{symbol}/nav/daily/latest`** and legacy **`/api/finance/fund/{symbol}/nav/dailylatest`** / **`/api/finance/fund/nav/daily/latest`:** `data` is `{ asOf, items, synced }`.
+- **`/api/finance/fund/{symbol}/nav/daily/latest`** and legacy **`/api/finance/fund/nav/daily/latest`:** `data` is `{ asOf, items, synced }`.
 - **`/api/finance/stock/tasi/summary/daily/latest`** (legacy **`/api/finance/market/summary/daily/latest`**): `data` is `{ asOf, dataDate, summary }`.
-- **`/api/finance/stock/tasi/company/daily/latest`** (legacy **`/api/finance/stock/tasi/company/dailylatest`** / **`/api/finance/market/company/daily/latest`**): `data` is `{ asOf, dataDate, items }`.
-- **`/api/finance/stock/tasi/daily/latest`** (legacy **`/api/finance/stock/tasi/dailylatest`**): `data` is `{ asOf, dataDate, summary, items }`.
+- **`/api/finance/stock/tasi/company/daily/latest`** (legacy **`/api/finance/market/company/daily/latest`**): `data` is `{ asOf, dataDate, items }`.
+- **`/api/finance/stock/tasi/daily/latest`**: `data` is `{ asOf, dataDate, summary, items }`.
 
 ## Examples
 

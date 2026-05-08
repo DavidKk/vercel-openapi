@@ -25,8 +25,8 @@ declare namespace NodeJS {
     CRON_SECRET?: string
     /**
      * cf-feed-bridge base URL (no trailing slash). Server-side TASI ingest calls
-     * `GET {TASI_FEED_URL}/api/finance/tasi/company/daily` and `.../tasi/summary/daily` (see `services/finance/tasi/fetch.ts`).
-     * Public Next API remains `/api/finance/market/company/daily` etc.
+     * `GET {TASI_FEED_URL}/api/finance/stock/tasi/company/daily` and `.../stock/tasi/summary/daily`
+     * (see `services/finance/tasi/fetch.ts`).
      */
     TASI_FEED_URL?: string
     /** Preferred feed request headers JSON. Example: {"x-api-key":"...","x-internal-call":"vercel"} */

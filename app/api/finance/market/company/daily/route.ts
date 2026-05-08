@@ -11,7 +11,7 @@ const logger = createLogger('api-finance-market-company-daily')
 /**
  * GET /api/finance/market/company/daily
  * Generic `market` query (default TASI). **Only TASI is supported** today; other values return 400.
- * Query: (none) | date | code+from+to — same semantics as legacy GET /api/finance/tasi/company/daily.
+ * Query: (none) | date | code+from+to — same semantics as GET /api/finance/stock/tasi/company/daily.
  */
 export const GET = api(async (_req, ctx) => {
   const marketRaw = ctx.searchParams.get('market') ?? 'TASI'

@@ -38,8 +38,8 @@ describe('getModuleSubPath', () => {
   })
 
   describe('module-specific sub-paths (not preserved)', () => {
-    it('should return empty string when path is /finance/tasi', () => {
-      expect(getModuleSubPath('/finance/tasi')).toBe('')
+    it('should return empty string when path is /finance/stock/tasi', () => {
+      expect(getModuleSubPath('/finance/stock/tasi')).toBe('')
     })
 
     it('should return empty string for unknown first segment sub-path (e.g. /finance/other)', () => {

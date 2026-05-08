@@ -6,11 +6,15 @@ import { createLogger } from '@/services/logger'
 
 export const runtime = 'edge'
 
-const logger = createLogger('api-finance-stock-slug-dailylatest')
+const logger = createLogger('api-finance-stock-slug-daily')
 
 /**
- * GET /api/finance/stock/:market/dailylatest
- * Single-call latest snapshot for the stock market page: index summary + all companies (slug must be `tasi`).
+ * GET /api/finance/stock/:market/daily
+ * Daily merged payload for the stock market page: index summary + company rows (slug must be `tasi`).
+ * Query:
+ * - date: single trading day
+ * - from/to: range query
+ * - code: optional company code filter (applies to company rows only)
  */
 export const GET = api<{ market: string }>(async (_req, ctx) => {
   const params = await ctx.params
@@ -18,14 +22,17 @@ export const GET = api<{ market: string }>(async (_req, ctx) => {
   if (slugErr) {
     return jsonInvalidParameters(slugErr)
   }
-  logger.info('request', { slug: params.market })
 
-  const asOf = new Date().toISOString()
-  const [summary, items] = await Promise.all([getSummaryDaily({}), getCompanyDaily({})])
-  const dataDate = summary != null && !Array.isArray(summary) ? summary.date : (items[0]?.date ?? null)
+  const date = ctx.searchParams.get('date') ?? undefined
+  const from = ctx.searchParams.get('from') ?? undefined
+  const to = ctx.searchParams.get('to') ?? undefined
+  const code = ctx.searchParams.get('code') ?? undefined
+  logger.info('request', { slug: params.market, date, from, to, code })
+
+  const [summary, items] = await Promise.all([getSummaryDaily({ date, from, to }), getCompanyDaily({ date, from, to, code })])
 
   return jsonSuccess(
-    { asOf, dataDate, summary, items },
+    { summary, items },
     {
       headers: new Headers({
         'Content-Type': 'application/json',

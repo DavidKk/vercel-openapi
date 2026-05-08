@@ -8,9 +8,9 @@
 
 ## Registry
 
-| Tag                    | Scope                   | Note                                                   |
-| ---------------------- | ----------------------- | ------------------------------------------------------ |
-| `finance-tasi-history` | `/api/finance/tasi/...` | Historical / range queries + stored series (approved). |
+| Tag                    | Scope                         | Note                                                   |
+| ---------------------- | ----------------------------- | ------------------------------------------------------ |
+| `finance-tasi-history` | `/api/finance/stock/tasi/...` | Historical / range queries + stored series (approved). |
 
 _Add a row when the developer approves an exception; add the same tag inline in the relevant spec (see below)._
 

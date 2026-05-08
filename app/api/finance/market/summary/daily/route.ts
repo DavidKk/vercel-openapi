@@ -11,7 +11,7 @@ const logger = createLogger('api-finance-market-summary-daily')
 /**
  * GET /api/finance/market/summary/daily
  * Generic `market` query (default TASI). **Only TASI is supported** today (feed + Turso / K-line); other markets → GET /api/finance/stock/summary?market=...
- * Query: date | from & to — same semantics as legacy GET /api/finance/tasi/summary/daily.
+ * Query: date | from & to — same semantics as GET /api/finance/stock/tasi/summary/daily.
  */
 export const GET = api(async (_req, ctx) => {
   const marketRaw = ctx.searchParams.get('market') ?? 'TASI'

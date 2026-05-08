@@ -75,7 +75,7 @@ Flow: **L0 → (request) → L1 → L2 → upstream**; on success write back L2 
 
 ## Overview (module)
 
-The **first sidebar entry** of every module and the main view at `/<module>` (e.g. `/holiday`, `/finance/tasi`). Content is **not** generated from the module schema; it is module-specific (calendar, table, form, etc.). The generator produces an empty placeholder; the developer specifies or leaves it empty. Do not confuse with "product overview" or "spec overview."
+The **first sidebar entry** of every module and the main view at `/<module>` (e.g. `/holiday`, `/finance/stock/tasi`). Content is **not** generated from the module schema; it is module-specific (calendar, table, form, etc.). The generator produces an empty placeholder; the developer specifies or leaves it empty. Do not confuse with "product overview" or "spec overview."
 
 ---
 

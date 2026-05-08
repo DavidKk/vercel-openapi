@@ -10,10 +10,11 @@ import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 const logger = createLogger('finance-tasi-fetch')
 
 /**
- * Paths on **cf-feed-bridge** (Worker). Bridge uses `/api/finance/tasi/*`; this app’s Next routes use `/api/finance/market/*` as the public API.
+ * Paths on cf-feed-bridge (external Worker).
+ * Bridge and local canonical paths are both `/api/finance/stock/tasi/*`.
  */
-const BRIDGE_COMPANY_DAILY_PATH = '/api/finance/tasi/company/daily'
-const BRIDGE_SUMMARY_DAILY_PATH = '/api/finance/tasi/summary/daily'
+const BRIDGE_COMPANY_DAILY_PATH = '/api/finance/stock/tasi/company/daily'
+const BRIDGE_SUMMARY_DAILY_PATH = '/api/finance/stock/tasi/summary/daily'
 
 /** TTL for in-memory cache (ms). 60s to reduce requests during development. */
 const TASI_BRIDGE_CACHE_MS = 60 * 1000
