@@ -75,14 +75,14 @@ Standard envelope `{ code, message, data }`. Trust **HTTP status**:
 
 ## Say to the user (one line)
 
-- Both city and district empty → **province** only (e.g. 北京市).
-- District set → **province + city + district** (e.g. 广东省 深圳市 南山区).
-- District empty, city set → **province + city** (e.g. 四川省 成都市).
+- Both city and district empty → **province** only (e.g. Beijing direct-controlled municipality).
+- District set → **province + city + district** (e.g. Guangdong / Shenzhen / Nanshan).
+- District empty, city set → **province + city** (e.g. Sichuan / Chengdu).
 
 ## Output language
 
-- **Admin names** in the one-line summary: use the **Chinese** strings from the API (`province` / `city` / `district`) as returned.
-- **Everything else** (errors, clarifying questions, disclaimers): use the **user’s language** when they are not writing in Chinese; if the user writes in Chinese, stay in Chinese.
+- **Admin names** in the one-line summary: use `province` / `city` / `district` strings **exactly as returned** by the API (do not invent labels).
+- **Everything else** (errors, clarifying questions, disclaimers): match the **user’s language**.
 
 ## Idempotency & cache (conversation)
 
@@ -91,9 +91,9 @@ Standard envelope `{ code, message, data }`. Trust **HTTP status**:
 
 ## Examples
 
-- User: `39.9042,116.4074 在哪？` → **北京市** (illustrative; follow live API `data`).
-- User: `22.54,113.93` → **广东省 深圳市 南山区** (illustrative; verify with API response).
-- User: `北京在哪？` → **Do not call this API** (no coordinates). Answer with general knowledge / maps context as appropriate; this tool is **only** for coordinate → admin region.
+- User: “Where is 39.9042,116.4074?” → summarize as **Beijing** (illustrative; follow live API `data`).
+- User: `22.54,113.93` → **Guangdong / Shenzhen / Nanshan** (illustrative; verify with API response).
+- User: “Where is Beijing?” (text only) → **Do not call this API** (no coordinates). Answer from general knowledge or another tool; this endpoint is **only** coordinate → admin region.
 
 ## Agent rules
 

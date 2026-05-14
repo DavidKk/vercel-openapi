@@ -3,14 +3,14 @@
 ## When to use
 
 - User wants **current (or previous) fuel prices** in **China by province**, or **recharge promo** math for a province.
-- Triggers: “油价”, “92号汽油 北京”, “fuel price Guangdong”, “promo bonus 加油”.
+- Triggers: phrases about **fuel price** / **gasoline grade + province** / **province price** / **recharge promo** (any language).
 - **Do not** call for non-China fuel data unless the API is extended.
 - **Do not overuse:** unrelated intent → do not call.
 
 ## Multi-turn / Missing parameters
 
 - **All provinces:** no path params — `GET /api/fuel-price`.
-- **Single province:** need **province** segment (Chinese or English as API accepts, e.g. 北京, Beijing). **Parse first**; if missing, ask once.
+- **Single province:** need **province** path segment (format accepted by the API). **Parse first**; if missing, ask once.
 - **Promo:** need `province`, `amount`, `bonus`; optional `fuelType` (`b92`|`b95`|`b98`|`b0`, default `b92`). If missing, ask — **do not** guess amounts.
 
 ## Parameters
@@ -34,7 +34,7 @@
 
 **Single province:**  
 `GET /api/fuel-price/{province}`  
-Example: `GET /api/fuel-price/北京`
+Example: `GET /api/fuel-price/Beijing` (or locale slug your API expects)
 
 **Promo (recharge):**  
 `GET /api/fuel-price/{province}/promo?fuelType=b92&amount=500&bonus=50`
@@ -57,8 +57,8 @@ JSON with **current** / **previous** arrays of province rows (`b92`, `b95`, `b98
 
 ## Examples
 
-- User: “北京今天油价” → `GET /api/fuel-price/北京` → summarize `current`.
-- User: “全国油价” → `GET /api/fuel-price`.
+- User: “Today’s fuel price in Beijing” → `GET /api/fuel-price/Beijing` → summarize `current`.
+- User: “Nationwide fuel prices” → `GET /api/fuel-price`.
 - User: “DNS lookup example.com” → **Do not call this API**.
 
 ## Agent rules

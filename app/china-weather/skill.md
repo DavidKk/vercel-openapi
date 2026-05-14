@@ -58,7 +58,7 @@ description: When a user asks for weather or short forecast at a latitude/longit
 `POST /api/weather` — body `{ "latitude": number, "longitude": number }`
 
 **Forecast:**
-`POST /api/weather/forecast` — body e.g. `{ "latitude": 23.031389, "longitude": 113.137222, "granularity": "hourly", "hours": 6 }` (佛山市南海区中心附近，维基百科 23°01′53″N 113°08′14″E)
+`POST /api/weather/forecast` — body e.g. `{ "latitude": 23.031389, "longitude": 113.137222, "granularity": "hourly", "hours": 6 }` (illustrative point near Nanhai, Foshan; coordinates from public references)
 
 ## Response
 
@@ -83,7 +83,7 @@ description: When a user asks for weather or short forecast at a latitude/longit
 
 - User: “Weather at 23.031389, 113.137222 now” → POST `/api/weather` with that body → summarize `now`.
 - User: “Next 6 hours same point” → POST `/api/weather/forecast` with `hours: 6`.
-- User: “北京天气？” (no coordinates) → **Do not call** until coords known or user accepts using another geocode step.
+- User: “What’s the weather in Beijing?” (no coordinates) → **Do not call** until coords known or user accepts using another geocode step.
 
 ## Agent rules
 

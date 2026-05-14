@@ -7,7 +7,7 @@ description: When a user asks whether today is a public holiday in mainland Chin
 
 ## When to use
 
-- User asks whether **today** is a **public holiday** in **mainland China**, or the **holiday name** for today, “今天放假吗”, “是不是节假日”.
+- User asks whether **today** is a **public holiday** in **mainland China**, or the **holiday name** for today (any language, e.g. “is today a public holiday?”).
 - Same intent in various languages → still trigger.
 - **Do not** call for **other dates** unless a separate dated endpoint exists in the product spec (this route is **today-only**).
 - **Do not overuse:** unrelated intent (FX, DNS, movies, etc.) → do not call.
@@ -67,7 +67,7 @@ Trust **HTTP status** first, then read **`data`** for fields above.
 
 ## Output language
 
-- Use the **user’s language** for the sentence; keep official holiday **name** as returned if it is Chinese text.
+- Keep official holiday **name** from `data` verbatim when the API returns localized labels.
 
 ## Idempotency & cache (conversation)
 
@@ -75,8 +75,8 @@ Trust **HTTP status** first, then read **`data`** for fields above.
 
 ## Examples
 
-- User: “今天是不是法定节假日？” → GET `/api/holiday` → answer from `data`.
-- User: “明天放假吗？” → **Do not use this endpoint** for “tomorrow”; say the API is **today-only** and offer general guidance or another data source if available.
+- User: “Is today an official public holiday?” → GET `/api/holiday` → answer from `data`.
+- User: “Is tomorrow a holiday?” → **Do not use this endpoint** for “tomorrow”; say the API is **today-only** and offer general guidance or another data source if available.
 - User: “DNS for example.com” → **Do not call this API**.
 
 ## Agent rules
