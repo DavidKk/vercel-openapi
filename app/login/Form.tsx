@@ -3,12 +3,14 @@
 import { useRequest } from 'ahooks'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { TbShieldCheck } from 'react-icons/tb'
 
 import Alert, { type AlertImperativeHandler } from '@/components/Alert'
 import { Spinner } from '@/components/Spinner'
 
 export interface LoginFormProps {
   enable2FA?: boolean
+  enableSignet?: boolean
   redirectUrl?: string
 }
 
@@ -18,7 +20,7 @@ export interface LoginFormProps {
  * @returns Login form component
  */
 export function LoginForm(props: Readonly<LoginFormProps>) {
-  const { enable2FA = false, redirectUrl = '/' } = props
+  const { enable2FA = false, enableSignet = false, redirectUrl = '/' } = props
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [access2FAToken, setAccess2FAToken] = useState('')
@@ -142,6 +144,15 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
             <span>Login</span>
           )}
         </button>
+        {enableSignet && (
+          <a
+            href={`/api/auth/signet/start?redirectUrl=${encodeURIComponent(redirectUrl)}`}
+            className="inline-flex w-full max-w-lg items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-gray-800 transition-colors hover:bg-gray-50"
+          >
+            <TbShieldCheck className="h-5 w-5" />
+            <span>Sign in with Signet</span>
+          </a>
+        )}
         <Alert ref={alertRef} />
       </form>
     </div>

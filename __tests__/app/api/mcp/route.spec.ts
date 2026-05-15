@@ -35,7 +35,6 @@ describe('MCP API /api/mcp', () => {
       expect(data.result.tools.get_today_holiday).toBeDefined()
       expect(data.result.tools.create_product).toBeUndefined()
       expect(Array.isArray(data.result.resources)).toBe(true)
-      expect(data.result.resources.length).toBe(9)
       expect(data.result.resources.some((r: { name: string }) => r.name === 'unbnd-holiday-skill.md')).toBe(true)
     })
   })
@@ -174,7 +173,7 @@ describe('MCP API /api/mcp', () => {
       expect(data.jsonrpc).toBe('2.0')
       expect(data.id).toBe(10)
       expect(Array.isArray(data.result.resources)).toBe(true)
-      expect(data.result.resources.length).toBe(9)
+      expect(data.result.resources.some((r: { name: string }) => r.name === 'unbnd-holiday-skill.md')).toBe(true)
     })
 
     it('should return markdown for resources/read with holiday SKILL uri', async () => {

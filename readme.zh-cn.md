@@ -30,6 +30,9 @@
 - `ACCESS_2FA_SECRET`: 双因素认证密钥（可选）
 - `ACCESS_USERNAME`: 管理员用户名
 - `ACCESS_PASSWORD`: 管理员密码
+- `SIGNET_SDK_URL`: 三方登录使用的 Signet hosted SDK 地址（可选；切换 Signet 服务时优先改这里）
+- `SIGNET_ORIGIN`: Signet 认证中心地址覆盖项（可选；为空时从 `SIGNET_SDK_URL` 推导）
+- `ENABLE_SIGNET_LOGIN`: 设为 `0` 可隐藏 Signet 登录入口（可选）
 
 ## 快速开始
 

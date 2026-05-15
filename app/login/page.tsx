@@ -1,4 +1,5 @@
 import { checkUnAccess } from '@/services/auth/access'
+import { isSignetLoginEnabled } from '@/services/auth/signet-sdk'
 
 import { LoginForm } from './Form'
 
@@ -17,5 +18,5 @@ export default async function LoginPage(props: LoginPageProps) {
   const redirectUrl = decodeURIComponent(url)
   await checkUnAccess({ redirectUrl, isApiRouter: false })
 
-  return <LoginForm enable2FA={Boolean(process.env.ACCESS_2FA_SECRET)} redirectUrl={redirectUrl} />
+  return <LoginForm enable2FA={Boolean(process.env.ACCESS_2FA_SECRET)} enableSignet={isSignetLoginEnabled()} redirectUrl={redirectUrl} />
 }

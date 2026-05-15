@@ -30,6 +30,9 @@ Refer to the [`.env.example`](./.env.example) file to set required environment v
 - `ACCESS_2FA_SECRET`: 2FA secret key (optional)
 - `ACCESS_USERNAME`: Admin username
 - `ACCESS_PASSWORD`: Admin password
+- `SIGNET_SDK_URL`: Signet hosted SDK URL for third-party login (optional; change this to switch Signet provider)
+- `SIGNET_ORIGIN`: Signet auth center origin override (optional; derived from `SIGNET_SDK_URL` when empty)
+- `ENABLE_SIGNET_LOGIN`: Set to `0` to hide Signet login (optional)
 
 ## Quick Start
 
