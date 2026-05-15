@@ -38,6 +38,42 @@ export async function verifyToken(token: string): Promise<Record<string, unknown
   }
 }
 
+/**
+ * Resolves JWT expiry for interactive password login.
+ * @param rememberMe When true, uses `JWT_EXPIRES_IN` from the environment; when false, forces one day.
+ * @returns Duration string passed to `generateToken`
+ */
+export function getLoginJwtExpiresIn(rememberMe: boolean): string {
+  const { JWT_EXPIRES_IN } = getJWTConfig()
+  return rememberMe ? JWT_EXPIRES_IN : '1d'
+}
+
+/**
+ * Approximate cookie Max-Age seconds from a simple duration string (numeric prefix + d|h|m|s).
+ * @param expiresIn Value such as `7d` or `12h`
+ * @returns Non-negative seconds suitable for Set-Cookie Max-Age
+ */
+export function jwtExpiresInToMaxAgeSeconds(expiresIn: string): number {
+  const m = /^(\d+)\s*([dhms])$/i.exec(expiresIn.trim())
+  if (!m) {
+    return 86400
+  }
+  const amount = parseInt(m[1], 10)
+  const unit = m[2].toLowerCase()
+  switch (unit) {
+    case 'd':
+      return amount * 86400
+    case 'h':
+      return amount * 3600
+    case 'm':
+      return amount * 60
+    case 's':
+      return amount
+    default:
+      return 86400
+  }
+}
+
 function getJWTConfig() {
   const JWT_SECRET = process.env.JWT_SECRET || process.env.ACCESS_PASSWORD || 'unbnd-default-jwt-secret'
   const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d'

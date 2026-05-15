@@ -11,9 +11,11 @@ import { login } from './login'
 const logger = createLogger('api-auth')
 
 export const POST = api(async (req) => {
-  const { username, password, token } = await req.json()
+  const body = (await req.json()) as { username?: string; password?: string; token?: string; rememberMe?: boolean }
+  const { username = '', password = '', token } = body
+  const rememberMe = body.rememberMe !== false
   logger.info('login request', { username: username ? '(present)' : undefined })
-  const { cookie } = await login(username, password, token)
+  const { cookie } = await login(username, password, token, rememberMe)
 
   const headers = new Headers()
   headers.append('Set-Cookie', cookie)
