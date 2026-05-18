@@ -21,7 +21,7 @@ export function ProductItem({ product, isSelected, onSelect, onDelete, disabled 
   return (
     <div
       onClick={!disabled ? onSelect : undefined}
-      className={`w-full px-2 py-1.5 text-left transition ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50'} ${isSelected ? 'bg-gray-100' : 'bg-white'}`}
+      className={`w-full px-3 py-2 text-left transition sm:px-4 md:px-2 md:py-1.5 ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50'} ${isSelected ? 'bg-gray-100' : 'bg-white'}`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">

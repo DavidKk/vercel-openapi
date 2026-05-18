@@ -21,7 +21,7 @@ Single source for layout, sidebar, and page structure for all modules (Holiday, 
 Every module layout must use this structure:
 
 - **Outer container:** `<div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-100">`
-- **Inner container (two columns):** `<div className="flex min-h-0 flex-1 overflow-hidden">`
+- **Inner container (mobile: bar + main; md+: sidebar + main):** `<div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">`
 - **Main content (right):** `<main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">`
 - **Sidebar + content:** Left = `DashboardSidebar`; right = `main` renders the current route's `children`. Do not change the above classNames or structure; only configure the items passed to `DashboardSidebar`.
 

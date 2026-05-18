@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { ImCheckboxChecked, ImCheckboxUnchecked } from 'react-icons/im'
 
-import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_TOOLBAR_SCROLL_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
 import { useNotification } from '@/components/Notification'
 
 import { ProxyRuleClashYamlSnippet } from './ProxyRuleClashYamlSnippet'
@@ -50,14 +50,13 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
-      <div className={`${CONTENT_HEADER_CLASS} text-sm text-gray-600`}>
-        <span className="text-base font-semibold text-gray-700">Sample Clash rule configuration</span>
-        <div className="ml-auto flex items-center gap-2">
+      <ContentPageHeader title="Sample Clash rule configuration" titleClassName="min-w-0 truncate text-base font-semibold text-gray-700" className="text-sm text-gray-600">
+        <div className={CONTENT_PAGE_HEADER_TOOLBAR_SCROLL_CLASS}>
           <button
             type="button"
             onClick={() => setIncludeDns((v) => !v)}
             aria-pressed={includeDns}
-            className={`inline-flex h-9 items-center rounded-lg border px-3 text-[11px] font-medium transition-colors ${
+            className={`inline-flex h-9 shrink-0 items-center rounded-lg border px-3 text-[11px] font-medium transition-colors ${
               includeDns ? 'border-gray-400 bg-gray-100 text-gray-800' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900'
             }`}
             title="Toggle DNS block"
@@ -71,7 +70,7 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
             type="button"
             onClick={() => setIncludeTun((v) => !v)}
             aria-pressed={includeTun}
-            className={`inline-flex h-9 items-center rounded-lg border px-3 text-[11px] font-medium transition-colors ${
+            className={`inline-flex h-9 shrink-0 items-center rounded-lg border px-3 text-[11px] font-medium transition-colors ${
               includeTun ? 'border-gray-400 bg-gray-100 text-gray-800' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900'
             }`}
             title="Toggle TUN block"
@@ -100,7 +99,7 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
             Download
           </button>
         </div>
-      </div>
+      </ContentPageHeader>
 
       <ProxyRuleClashYamlSnippet secret={secret} actions={actions} includeDns={includeDns} includeTun={includeTun} hideCopyButton onYamlTextChange={setYamlText} />
     </div>

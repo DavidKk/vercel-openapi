@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from 'react'
 import type { ProductType } from '@/app/actions/prices/product'
 import { importProductsFromJsonText, replaceProductsInKv } from '@/app/actions/prices/product'
 import { ProductProvider, useProductActions } from '@/app/china-prices/contexts/product'
-import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
 import { useNotification } from '@/components/Notification'
 import { useAction } from '@/hooks/useAction'
 
@@ -138,6 +138,8 @@ function PricesManagerContent() {
   }
 
   const formProduct = isCreating ? null : selectedProduct
+  /** On narrow viewports, show list or form full-width (not side-by-side 50%). */
+  const mobileShowsForm = isCreating || selectedProductId !== null
 
   async function createDraftProduct(product: Omit<ProductType, 'id'>): Promise<ProductType> {
     const base = draftProducts ?? products
@@ -188,16 +190,14 @@ function PricesManagerContent() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-white">
-      <div className={`${CONTENT_HEADER_CLASS} bg-white`}>
-        <h1 className="min-w-0 truncate text-sm font-semibold text-gray-900">Prices Manager</h1>
-
-        <div className="ml-auto flex min-w-max items-center gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <ContentPageHeader title="Prices Manager" className="bg-white">
+        <div className={CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS}>
           <input
             type="text"
             value={productFilterText}
             onChange={(e) => setProductFilterText(e.target.value)}
             placeholder="Search products..."
-            className="h-8 w-56 flex-shrink-0 rounded-md border border-gray-300 bg-white px-3 text-xs text-gray-800 outline-none transition-colors focus:border-gray-500"
+            className="h-8 min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 text-xs text-gray-800 outline-none transition-colors focus:border-gray-500 sm:max-w-xs"
           />
 
           <input
@@ -217,7 +217,9 @@ function PricesManagerContent() {
               }
             }}
           />
+        </div>
 
+        <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
           <button
             type="button"
             disabled={loading || importing || savingKv}
@@ -259,11 +261,11 @@ function PricesManagerContent() {
             {savingKv ? 'Saving…' : 'Save'}
           </button>
         </div>
-      </div>
+      </ContentPageHeader>
 
-      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full w-full">
-          <div className="w-1/2 min-w-0 h-full min-h-0 border-r border-gray-200 pr-0">
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="flex h-full w-full flex-col md:flex-row">
+          <div className={`min-h-0 h-full min-w-0 border-gray-200 md:w-1/2 md:border-r md:pr-0 ${mobileShowsForm ? 'hidden md:flex md:flex-col' : 'flex w-full flex-1 flex-col'}`}>
             <ProductList
               products={products}
               selectedProduct={selectedProduct}
@@ -276,7 +278,7 @@ function PricesManagerContent() {
               loading={loading}
             />
           </div>
-          <div className="w-1/2 min-w-0 h-full min-h-0 pl-0">
+          <div className={`min-h-0 h-full min-w-0 md:w-1/2 md:pl-0 ${mobileShowsForm ? 'flex w-full flex-1 flex-col' : 'hidden md:flex md:flex-col'}`}>
             <ProductForm
               product={formProduct}
               onCancel={handleCancelForm}
@@ -285,6 +287,7 @@ function PricesManagerContent() {
               draftMode={draftDirty}
               onDraftCreate={createDraftProduct}
               onDraftUpdate={updateDraftProduct}
+              showMobileBack={mobileShowsForm}
             />
           </div>
         </div>

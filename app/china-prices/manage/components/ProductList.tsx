@@ -32,10 +32,11 @@ export function ProductList({ products, selectedProduct, onProductSelect, filter
 
   return (
     <section className="relative flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-2 py-1.5">
+      <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2 sm:px-4 md:px-2 md:py-1.5">
         <div>
           <div className="text-sm font-semibold leading-tight text-gray-900">Products</div>
-          <div className="mt-0.5 text-[10px] text-gray-500">Select a product to edit on the right.</div>
+          <p className="mt-0.5 text-[10px] text-gray-500 md:hidden">Tap a product to open the editor.</p>
+          <p className="mt-0.5 hidden text-[10px] text-gray-500 md:block">Select a product to edit on the right.</p>
         </div>
       </div>
 

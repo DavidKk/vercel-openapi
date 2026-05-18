@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbChevronDown, TbSearch } from 'react-icons/tb'
 
-import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
+import { FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_TOOLBAR_SCROLL_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
 import { LazyImage } from '@/components/LazyImage'
 import type { MergedMovie } from '@/services/maoyan/types'
 import { isHot } from '@/services/movies/popularity'
@@ -129,9 +130,8 @@ export function MovieList(props: MovieListProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-white">
       {/* Header: title + Hot TABs + Genre dropdown */}
-      <div className={CONTENT_HEADER_CLASS}>
-        <div className="text-sm font-semibold text-gray-900">Recently Released Movies</div>
-        <div className="ml-auto flex items-center gap-2">
+      <ContentPageHeader title="Recently Released Movies">
+        <div className={CONTENT_PAGE_HEADER_TOOLBAR_SCROLL_CLASS}>
           {/* Hot filter: TAB (click to toggle, active highlighted); height aligned with FILTER_BUTTON_CLASS */}
           <div className="flex h-[38px] items-stretch rounded-lg border border-gray-200 bg-gray-50 p-1" role="tablist" aria-label="Filter by popularity">
             <button
@@ -207,7 +207,7 @@ export function MovieList(props: MovieListProps) {
             </div>
           )}
         </div>
-      </div>
+      </ContentPageHeader>
 
       <div className="min-h-0 flex-1 overflow-y-auto border-b border-gray-200 bg-gray-50 px-3 py-3 transform-gpu">
         {filteredMovies.length === 0 ? (

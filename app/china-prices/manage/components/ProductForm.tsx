@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { TbMinus, TbPlus } from 'react-icons/tb'
+import { TbArrowLeft, TbMinus, TbPlus } from 'react-icons/tb'
 
 import type { ProductType } from '@/app/actions/prices/product'
 import { useProductActions } from '@/app/china-prices/contexts/product'
@@ -21,6 +21,8 @@ interface ProductFormProps {
   draftMode?: boolean
   onDraftCreate?: (product: Omit<ProductType, 'id'>) => Promise<ProductType> | ProductType
   onDraftUpdate?: (id: string, updates: Partial<ProductType>) => Promise<ProductType | null> | ProductType | null
+  /** When true, show a back control on narrow viewports (master-detail layout). */
+  showMobileBack?: boolean
 }
 
 /**
@@ -28,7 +30,7 @@ interface ProductFormProps {
  * @param props Form props
  * @returns Product form
  */
-export function ProductForm({ product, afterSaved, onCancel, showEmptyState = true, draftMode, onDraftCreate, onDraftUpdate }: Readonly<ProductFormProps>) {
+export function ProductForm({ product, afterSaved, onCancel, showEmptyState = true, draftMode, onDraftCreate, onDraftUpdate, showMobileBack = false }: Readonly<ProductFormProps>) {
   const notification = useNotification()
   const formRef = useRef<HTMLFormElement>(null)
   const isDraftMode = Boolean(draftMode)
@@ -224,7 +226,7 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
 
   return (
     <section className="relative flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-between border-b border-gray-200 px-2 py-1.5">
+      <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2 sm:px-4 md:px-2 md:py-1.5">
         <div className="flex flex-col">
           <h2 className="text-sm font-semibold text-gray-900">{isEditing ? 'Edit Product' : 'Add product'}</h2>
           <p className="mt-0.5 leading-tight text-[10px] text-gray-500">Edit product fields and save.</p>
@@ -232,16 +234,28 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 text-base text-gray-600 transition hover:bg-gray-100"
-          aria-label="Close"
-          title="Close"
+          className={`inline-flex items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-100 ${
+            showMobileBack ? 'h-8 gap-1 px-2 text-xs font-medium md:h-7 md:w-7 md:gap-0 md:px-0 md:text-base' : 'h-7 w-7 text-base'
+          }`}
+          aria-label={showMobileBack ? 'Back to product list' : 'Close'}
+          title={showMobileBack ? 'Back to product list' : 'Close'}
         >
-          ×
+          {showMobileBack ? (
+            <>
+              <TbArrowLeft className="h-4 w-4 md:hidden" aria-hidden />
+              <span className="md:hidden">Back</span>
+              <span className="hidden md:inline" aria-hidden>
+                ×
+              </span>
+            </>
+          ) : (
+            '×'
+          )}
         </button>
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-2 pt-2 pb-2">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-2 [scrollbar-width:none] sm:px-4 md:px-2 [&::-webkit-scrollbar]:hidden">
           <ProductFormInput
             label="Product Name"
             value={name}
@@ -305,7 +319,7 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
           </div>
         </div>
 
-        <div className="shrink-0 px-2 pb-2 pt-2">
+        <div className="shrink-0 px-3 pb-2 pt-2 sm:px-4 md:px-2">
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
               <button

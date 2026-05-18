@@ -9,7 +9,7 @@ import { TbFileText } from 'react-icons/tb'
 import { Virtuoso } from 'react-virtuoso'
 
 import { importProxyRuleClashRulesFromYamlText, type UiClashRuleRow, updateProxyRuleClashRules } from '@/app/actions/proxy-rule/clash'
-import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
 import { EmptyState } from '@/components/EmptyState'
 import { FormSelect, type FormSelectOption } from '@/components/FormSelect'
 import { useNotification } from '@/components/Notification'
@@ -351,21 +351,19 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-white">
-      <div className={`${CONTENT_HEADER_CLASS} bg-white md:overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
-        <div className="flex min-w-0 items-center gap-2">
-          <h2 className="text-sm font-semibold text-gray-900">Manage Clash rules</h2>
-        </div>
-
-        <div className="ml-auto flex min-w-max items-center gap-2 overflow-x-auto md:overflow-visible whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <ContentPageHeader title="Manage Clash rules" className="bg-white">
+        <div className={CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS}>
           <div className="shrink-0">
             <FormSelect value={typeFilter} onChange={setTypeFilter} options={typeFilterOptions} wrapperClassName="w-[168px]" className="!text-xs" id="clash-rule-type-filter" />
           </div>
 
           {/** Fixed-width wrapper so FORM_INPUT_CLASS w-full does not stretch across the toolbar flex row */}
-          <div className="w-40 max-w-[min(100%,11rem)] shrink-0 sm:w-44">
+          <div className="min-w-0 flex-1 sm:max-w-[11rem]">
             <input type="text" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search (value/action/type)" className={FORM_INPUT_CLASS} />
           </div>
+        </div>
 
+        <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
           <button
             type="button"
             onClick={addRow}
@@ -412,7 +410,7 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
             )}
           </button>
         </div>
-      </div>
+      </ContentPageHeader>
 
       <input
         ref={importInputRef}
