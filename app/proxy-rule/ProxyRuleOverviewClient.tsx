@@ -51,7 +51,7 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
       <div className={`${CONTENT_HEADER_CLASS} text-sm text-gray-600`}>
-        <span className="text-base font-semibold text-gray-700">Clash 规则配置示例</span>
+        <span className="text-base font-semibold text-gray-700">Sample Clash rule configuration</span>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
