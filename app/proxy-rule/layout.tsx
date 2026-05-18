@@ -1,4 +1,4 @@
-import { TbApi, TbCode, TbFileText, TbFilter, TbRobot } from 'react-icons/tb'
+import { TbApi, TbCode, TbFileText, TbRobot, TbRoute2 } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -9,7 +9,7 @@ interface ProxyRuleLayoutProps {
 }
 
 const PROXY_RULE_SIDEBAR_ITEMS = [
-  { href: '/proxy-rule', title: 'Overview', ariaLabel: 'Overview', icon: <TbFilter className="h-5 w-5" /> },
+  { href: '/proxy-rule', title: 'Overview', ariaLabel: 'Overview', icon: <TbRoute2 className="h-5 w-5" /> },
   { href: '/proxy-rule/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/proxy-rule/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
   { href: '/proxy-rule/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },

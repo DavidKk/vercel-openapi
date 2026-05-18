@@ -8,6 +8,7 @@ sidebarItems:
   - key: overview
     title: Overview
     ariaLabel: Overview
+    iconName: TbRoute2
   - key: api
     title: API
     ariaLabel: API

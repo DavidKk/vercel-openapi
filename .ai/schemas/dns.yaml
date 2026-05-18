@@ -8,7 +8,7 @@ sidebarItems:
   - key: overview
     title: Overview
     ariaLabel: Overview
-    iconName: TbWorld
+    iconName: TbServer2
   - key: api
     title: API
     ariaLabel: API

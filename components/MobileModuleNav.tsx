@@ -23,7 +23,7 @@ const drawerLinkActive = 'bg-gray-900 text-white'
 const drawerLinkInactive = 'text-gray-700 hover:bg-gray-100'
 
 /**
- * Mobile module sub-navigation: compact bar with current section title and a left drawer for all module links.
+ * Mobile module sub-navigation: menu button and left drawer for module links (no duplicate page title in the bar).
  * @param props Sidebar items for the current module
  * @returns Mobile-only nav bar and drawer (hidden from `md` up)
  */
@@ -109,7 +109,7 @@ export function MobileModuleNav(props: Readonly<MobileModuleNavProps>) {
 
   return (
     <>
-      <div className="flex w-full shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 md:hidden">
+      <div className="flex w-full shrink-0 items-center border-b border-gray-200 bg-white px-3 py-2 md:hidden" aria-label={`${barTitle} — open module menu`}>
         <button
           ref={menuButtonRef}
           type="button"
@@ -134,11 +134,6 @@ export function MobileModuleNav(props: Readonly<MobileModuleNavProps>) {
             />
           </span>
         </button>
-        <span
-          className={`min-w-0 truncate text-sm font-semibold text-gray-900 transition-opacity duration-200 motion-reduce:transition-none ${open ? 'opacity-70' : 'opacity-100'}`}
-        >
-          {barTitle}
-        </span>
       </div>
 
       {mounted && visible

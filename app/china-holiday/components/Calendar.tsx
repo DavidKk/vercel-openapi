@@ -9,11 +9,24 @@ import { TbCalendarSearch, TbChevronDown, TbChevronLeft, TbChevronRight, TbSearc
 import type { Holiday } from '@/app/actions/holiday/api'
 import { getHolidaysForYear } from '@/app/china-holiday/lib/getHolidaysForYear'
 import { FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
-import { CONTENT_PAGE_HEADER_SHELL_CLASS, CONTENT_PAGE_HEADER_TOOLBAR_CLASS } from '@/components/ContentPageHeader'
 import { useDebugPanel } from '@/components/DebugPanel'
 import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
 import { EmptyState } from '@/components/EmptyState'
 import { FloatingDropdown } from '@/components/FloatingDropdown'
+
+/** Holiday calendar toolbar: two compact rows on mobile, one row from `sm`. */
+const CALENDAR_TOOLBAR_SHELL_CLASS = 'flex shrink-0 min-w-0 flex-col gap-2 border-b border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3'
+
+/** Month prev / label / next — full width on mobile. */
+const CALENDAR_MONTH_NAV_CLASS = 'flex w-full min-w-0 items-center gap-1 sm:w-auto sm:shrink-0'
+
+/** Today + holiday filter: equal columns on mobile, inline on desktop. */
+const CALENDAR_ACTIONS_ROW_CLASS = 'grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center sm:gap-2'
+
+const CALENDAR_TODAY_BUTTON_CLASS =
+  'flex h-9 w-full items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 sm:w-auto'
+
+const CALENDAR_HOLIDAY_TRIGGER_CLASS = `${FILTER_BUTTON_CLASS} h-9 w-full min-w-0 justify-center sm:w-auto`
 
 interface CalendarProps {
   /** Optional initial data (e.g. from SSR). When omitted, data is loaded client-side via IDB + API. */
@@ -106,14 +119,16 @@ export function Calendar(props: CalendarProps) {
   if (forceLoading || (loading && holidays.length === 0)) {
     return (
       <div className="flex h-full min-h-0 flex-col bg-white" aria-busy="true" aria-label="Loading holiday calendar">
-        <div className={`${CONTENT_PAGE_HEADER_SHELL_CLASS} min-h-[63px]`}>
-          <div className="flex items-center justify-center gap-1 sm:justify-start">
+        <div className={CALENDAR_TOOLBAR_SHELL_CLASS}>
+          <div className={CALENDAR_MONTH_NAV_CLASS}>
             <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100" aria-hidden />
-            <div className="h-6 w-28 animate-pulse rounded bg-gray-200" aria-hidden />
+            <div className="h-6 flex-1 animate-pulse rounded bg-gray-200" aria-hidden />
             <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100" aria-hidden />
           </div>
-          <div className="h-9 w-16 animate-pulse rounded-lg bg-gray-100" aria-hidden />
-          <div className="ml-auto h-9 w-20 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+          <div className={CALENDAR_ACTIONS_ROW_CLASS}>
+            <div className="h-9 w-full animate-pulse rounded-lg bg-gray-100" aria-hidden />
+            <div className="h-9 w-full animate-pulse rounded-lg bg-gray-100" aria-hidden />
+          </div>
         </div>
         <div className="grid shrink-0 grid-cols-7 border-b border-gray-100 bg-gray-50/80">
           {WEEKDAY_LABELS.map((label) => (
@@ -143,73 +158,81 @@ export function Calendar(props: CalendarProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className={CONTENT_PAGE_HEADER_SHELL_CLASS}>
-        <div className="flex items-center justify-center gap-1 sm:justify-start">
-          <button type="button" onClick={handlePrevMonth} className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100" aria-label="Previous month">
+      <div className={CALENDAR_TOOLBAR_SHELL_CLASS}>
+        <div className={CALENDAR_MONTH_NAV_CLASS}>
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
+            aria-label="Previous month"
+          >
             <TbChevronLeft className="h-5 w-5" />
           </button>
-          <span className="min-w-[120px] text-center text-lg font-semibold text-gray-800">
+          <span className="min-w-0 flex-1 text-center text-base font-semibold text-gray-800 sm:min-w-[120px] sm:flex-none sm:text-lg">
             {currentYear}年{currentMonth + 1}月
           </span>
-          <button type="button" onClick={handleNextMonth} className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100" aria-label="Next month">
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
+            aria-label="Next month"
+          >
             <TbChevronRight className="h-5 w-5" />
           </button>
         </div>
 
-        <div className={`${CONTENT_PAGE_HEADER_TOOLBAR_CLASS} sm:flex-nowrap`}>
-          <button type="button" onClick={goToToday} className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-100" aria-label="Go to today">
+        <div className={CALENDAR_ACTIONS_ROW_CLASS}>
+          <button type="button" onClick={goToToday} className={CALENDAR_TODAY_BUTTON_CLASS} aria-label="Go to today">
             今天
           </button>
 
-          <div className="shrink-0">
-            <FloatingDropdown
-              open={pickerOpen}
-              onOpenChange={setPickerOpen}
-              align="end"
-              menuMinWidth={320}
-              matchTriggerWidth={false}
-              menuClassName="rounded-lg border border-gray-200 bg-white py-2 shadow-lg ring-1 ring-black/5"
-              trigger={
-                <button
-                  type="button"
-                  onClick={() => setPickerOpen((o) => !o)}
-                  className={FILTER_BUTTON_CLASS}
-                  aria-label="Choose a holiday"
-                  aria-expanded={pickerOpen}
-                  aria-haspopup="listbox"
-                >
-                  <TbSearch className="h-4 w-4 text-gray-500" />
-                  节日
-                  <TbChevronDown className="h-4 w-4 text-gray-500" />
-                </button>
-              }
-            >
-              <div className="border-b border-gray-100 px-2 pb-2" role="presentation">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜索节日…"
-                  className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400"
-                  aria-label="Search holidays"
-                />
-              </div>
-              <DropdownMenuScrollArea as="ul" scrollClassName="max-h-56" scrollProps={{ role: 'listbox' }}>
-                {pickerOptions.length === 0 ? (
-                  <li className="px-3 py-2.5 text-sm text-gray-500">无匹配节日</li>
-                ) : (
-                  pickerOptions.map((h) => (
-                    <li key={h.date}>
-                      <button type="button" onClick={() => selectHoliday(h)} className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100" role="option">
-                        <span className="font-medium">{h.name}</span>
-                        <span className="ml-2 text-gray-500">{h.date}</span>
-                      </button>
-                    </li>
-                  ))
-                )}
-              </DropdownMenuScrollArea>
-            </FloatingDropdown>
-          </div>
+          <FloatingDropdown
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            align="end"
+            menuMinWidth={320}
+            matchTriggerWidth={false}
+            menuClassName="rounded-lg border border-gray-200 bg-white py-2 shadow-lg ring-1 ring-black/5"
+            trigger={
+              <button
+                type="button"
+                onClick={() => setPickerOpen((o) => !o)}
+                className={CALENDAR_HOLIDAY_TRIGGER_CLASS}
+                aria-label="Choose a holiday"
+                aria-expanded={pickerOpen}
+                aria-haspopup="listbox"
+              >
+                <TbSearch className="h-4 w-4 shrink-0 text-gray-500" />
+                <span className="truncate">节日</span>
+                <TbChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+              </button>
+            }
+          >
+            <div className="border-b border-gray-100 px-2 pb-2" role="presentation">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜索节日…"
+                className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400"
+                aria-label="Search holidays"
+              />
+            </div>
+            <DropdownMenuScrollArea as="ul" scrollClassName="max-h-56" scrollProps={{ role: 'listbox' }}>
+              {pickerOptions.length === 0 ? (
+                <li className="px-3 py-2.5 text-sm text-gray-500">无匹配节日</li>
+              ) : (
+                pickerOptions.map((h) => (
+                  <li key={h.date}>
+                    <button type="button" onClick={() => selectHoliday(h)} className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100" role="option">
+                      <span className="font-medium">{h.name}</span>
+                      <span className="ml-2 text-gray-500">{h.date}</span>
+                    </button>
+                  </li>
+                ))
+              )}
+            </DropdownMenuScrollArea>
+          </FloatingDropdown>
         </div>
       </div>
 

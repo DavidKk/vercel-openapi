@@ -41,17 +41,10 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
   })
 
   const latestUpdatedDate = new Date(fuelPrices.latestUpdated)
-  const latestUpdated =
-    Number.isNaN(latestUpdatedDate.getTime()) === false
-      ? `${latestUpdatedDate.getFullYear()}-${String(latestUpdatedDate.getMonth() + 1).padStart(2, '0')}-${String(latestUpdatedDate.getDate()).padStart(
-          2,
-          '0'
-        )} ${String(latestUpdatedDate.getHours()).padStart(2, '0')}:${String(latestUpdatedDate.getMinutes()).padStart(
-          2,
-          '0'
-        )}:${String(latestUpdatedDate.getSeconds()).padStart(2, '0')}`
-      : ''
+  const latestUpdated = formatLatestUpdatedFull(latestUpdatedDate)
+  const latestUpdatedCompact = formatLatestUpdatedCompact(latestUpdatedDate)
   const nextAdjustmentDate = fuelPrices.nextAdjustmentDate ?? null
+  const nextAdjustmentCompact = nextAdjustmentDate ? formatCompactIsoDate(nextAdjustmentDate) : null
 
   let userProvinceData = null
   let otherProvincesData = [...fuelPrices.current]
@@ -293,12 +286,58 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-col gap-0.5 border-t border-gray-200 px-4 py-1.5 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-        {nextAdjustmentDate && <span className="sm:ml-auto">Next adjustment: {nextAdjustmentDate}</span>}
-        <span>Last updated: {latestUpdated}</span>
+      <div className="flex shrink-0 flex-row items-center justify-between gap-2 border-t border-gray-200 px-3 py-1 text-[11px] leading-tight text-gray-500 sm:justify-end sm:gap-3 sm:px-4 sm:py-1.5 sm:text-xs">
+        {nextAdjustmentDate && (
+          <>
+            <span className="min-w-0 truncate sm:hidden">Next: {nextAdjustmentCompact}</span>
+            <span className="hidden sm:ml-auto sm:inline">Next adjustment: {nextAdjustmentDate}</span>
+          </>
+        )}
+        {(latestUpdatedCompact || latestUpdated) && (
+          <span className={classNames('min-w-0 shrink-0 truncate text-right', !nextAdjustmentDate && 'sm:ml-auto')}>
+            {latestUpdatedCompact ? <span className="sm:hidden">Updated {latestUpdatedCompact}</span> : null}
+            {latestUpdated ? <span className="hidden sm:inline">Last updated: {latestUpdated}</span> : null}
+          </span>
+        )}
       </div>
     </div>
   )
+}
+
+/** ISO date `YYYY-MM-DD` → compact `YY.MM.DD` for narrow footers. */
+function formatCompactIsoDate(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate)
+  if (!match) {
+    return isoDate
+  }
+  return `${match[1].slice(-2)}.${match[2]}.${match[3]}`
+}
+
+/** Full timestamp for desktop footer (includes seconds). */
+function formatLatestUpdatedFull(date: Date): string {
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const y = date.getFullYear()
+  const mo = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const mi = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  return `${y}-${mo}-${d} ${h}:${mi}:${s}`
+}
+
+/** Compact timestamp for mobile footer (no seconds, two-digit year). */
+function formatLatestUpdatedCompact(date: Date): string {
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const yy = String(date.getFullYear()).slice(-2)
+  const mo = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const mi = String(date.getMinutes()).padStart(2, '0')
+  return `${yy}.${mo}.${d} ${h}:${mi}`
 }
 
 function getPriceChangeAmount(currentPrice: string, previousPrice: string | undefined): string | null {

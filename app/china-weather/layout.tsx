@@ -1,4 +1,4 @@
-import { TbApi, TbCode, TbFileText, TbRobot } from 'react-icons/tb'
+import { TbApi, TbBook, TbCloudRain, TbCode, TbRobot } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -9,11 +9,11 @@ interface WeatherLayoutProps {
 }
 
 const SIDEBAR_ITEMS = [
-  { href: '/china-weather', title: 'Overview', ariaLabel: 'Overview', icon: <TbFileText className="h-5 w-5" /> },
+  { href: '/china-weather', title: 'Overview', ariaLabel: 'Overview', icon: <TbCloudRain className="h-5 w-5" /> },
   { href: '/china-weather/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/china-weather/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
   { href: '/china-weather/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },
-  { href: '/china-weather/skill', title: 'Skill', ariaLabel: 'Skill', icon: <TbFileText className="h-5 w-5" /> },
+  { href: '/china-weather/skill', title: 'Skill', ariaLabel: 'Skill', icon: <TbBook className="h-5 w-5" /> },
 ]
 
 /**

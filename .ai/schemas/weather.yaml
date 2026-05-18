@@ -21,6 +21,7 @@ sidebarItems:
   - key: skill
     title: Skill
     ariaLabel: Skill
+    iconName: TbBook
 
 apiPage:
   title: China Weather REST API

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { MdPriceCheck } from 'react-icons/md'
-import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbFilter, TbGasStation, TbMapPin, TbMovie, TbWorld } from 'react-icons/tb'
+import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbGasStation, TbMapPin, TbMovie, TbRoute2, TbServer2 } from 'react-icons/tb'
 
 import { Tooltip } from '@/components/Tooltip'
 
@@ -62,9 +62,9 @@ function ScrollToActiveOnLeave({ children, ...rest }: { children: React.ReactNod
 const NAV_ITEMS = [
   { href: '/exchange-rate', title: 'Exchange Rate', icon: <TbCurrencyDollar className="h-5 w-5" /> },
   { href: '/movies', title: 'Movies', icon: <TbMovie className="h-5 w-5" /> },
-  { href: '/dns', title: 'DNS Query', icon: <TbWorld className="h-5 w-5" /> },
+  { href: '/dns', title: 'DNS Query', icon: <TbServer2 className="h-5 w-5" /> },
   { href: '/finance', title: 'Finance', icon: <TbChartLine className="h-5 w-5" /> },
-  { href: '/proxy-rule', title: 'Proxy Rule', icon: <TbFilter className="h-5 w-5" /> },
+  { href: '/proxy-rule', title: 'Proxy Rule', icon: <TbRoute2 className="h-5 w-5" /> },
   { href: '/china-holiday', title: 'china-holiday', icon: <TbCalendarSearch className="h-5 w-5" /> },
   { href: '/china-prices', title: 'china-prices', icon: <MdPriceCheck className="h-5 w-5" /> },
   { href: '/china-fuel-price', title: 'china-fuel-price', icon: <TbGasStation className="h-5 w-5" /> },

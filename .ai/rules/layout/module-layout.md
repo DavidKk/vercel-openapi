@@ -67,7 +67,7 @@ New modules should copy these patterns from existing implementations (e.g. holid
 ## Icons and styling
 
 - Sidebar entries use `react-icons/tb` icons with `className="h-5 w-5"`.
-- Allowed icon names (extend in rules when needed): `TbCalendarSearch`, `TbGasStation`, `TbCurrencyDollar`, `TbMapPin`, `TbApi`, `TbRobot`, `TbCode`, `TbFileText`, `TbMovie`, `TbWorld`, `TbCloudRain`. Use only `react-icons/tb`. Do not introduce new icon sets without updating this rule.
+- Allowed icon names (extend in rules when needed): `TbCalendarSearch`, `TbGasStation`, `TbCurrencyDollar`, `TbMapPin`, `TbApi`, `TbRobot`, `TbCode`, `TbFileText`, `TbBook`, `TbMovie`, `TbCloudRain`, `TbRoute2`, `TbServer2`, `TbWallet`, `TbChartLine`, `TbCoin`. Use only `react-icons/tb` (module-specific icons may use `react-icons/md` when documented, e.g. `MdPriceCheck` for china-prices). Do not introduce new icon sets without updating this rule.
 
 ---
 

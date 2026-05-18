@@ -1,14 +1,17 @@
 import { randomUUID } from 'crypto'
+import { Suspense } from 'react'
 
 import { loadProxyRuleClashRulesForManage, type UiClashRuleRow } from '@/app/actions/proxy-rule/clash'
+import { ProxyRuleManageSkeleton } from '@/components/manage'
 import { checkAccess } from '@/services/auth/access'
 
 import { ProxyRuleManageEditor } from './components/ProxyRuleManageEditor'
 
 /**
- * Authenticated manage page for Clash rules stored in KV.
+ * Loads clash rules after shell renders (Suspense shows skeleton during fetch).
+ * @returns Proxy rule manage editor with initial rows
  */
-export default async function ProxyRuleManagePage() {
+async function ProxyRuleManageContent() {
   await checkAccess({ isApiRouter: false })
 
   const { rules, actions } = await loadProxyRuleClashRulesForManage()
@@ -36,9 +39,19 @@ export default async function ProxyRuleManagePage() {
     }
   })
 
+  return <ProxyRuleManageEditor initialRows={initialRows} actions={actions} />
+}
+
+/**
+ * Authenticated manage page for Clash rules stored in KV.
+ * @returns Manage page with streaming shell
+ */
+export default function ProxyRuleManagePage() {
   return (
     <section className="flex h-full min-h-0 flex-col bg-white">
-      <ProxyRuleManageEditor initialRows={initialRows} actions={actions} />
+      <Suspense fallback={<ProxyRuleManageSkeleton />}>
+        <ProxyRuleManageContent />
+      </Suspense>
     </section>
   )
 }

@@ -1,4 +1,4 @@
-import { TbApi, TbChartLine, TbCode, TbCoin, TbCurrencyDollar, TbFileText, TbRobot } from 'react-icons/tb'
+import { TbApi, TbChartLine, TbCode, TbCoin, TbFileText, TbRobot, TbWallet } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -20,7 +20,7 @@ const FINANCE_SIDEBAR_ITEMS = [
     href: '/finance/fund',
     title: 'Funds',
     ariaLabel: 'Funds',
-    icon: <TbCurrencyDollar className="h-5 w-5" />,
+    icon: <TbWallet className="h-5 w-5" />,
     matchChildPaths: true,
   },
   {

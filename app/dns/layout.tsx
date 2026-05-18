@@ -1,4 +1,4 @@
-import { TbApi, TbCode, TbFileText, TbRobot, TbWorld } from 'react-icons/tb'
+import { TbApi, TbCode, TbFileText, TbRobot, TbServer2 } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -9,7 +9,7 @@ interface DnsLayoutProps {
 }
 
 const DNS_SIDEBAR_ITEMS = [
-  { href: '/dns', title: 'Overview', ariaLabel: 'Overview', icon: <TbWorld className="h-5 w-5" /> },
+  { href: '/dns', title: 'Overview', ariaLabel: 'Overview', icon: <TbServer2 className="h-5 w-5" /> },
   { href: '/dns/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/dns/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
   { href: '/dns/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },

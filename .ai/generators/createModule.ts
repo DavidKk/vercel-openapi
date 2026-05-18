@@ -236,7 +236,24 @@ function escapeBacktick(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${')
 }
 
-const ICON_NAMES = ['TbCalendarSearch', 'TbGasStation', 'TbCurrencyDollar', 'TbMapPin', 'TbApi', 'TbRobot', 'TbCode', 'TbFileText', 'TbMovie', 'TbWorld'] as const
+const ICON_NAMES = [
+  'TbCalendarSearch',
+  'TbGasStation',
+  'TbCurrencyDollar',
+  'TbMapPin',
+  'TbApi',
+  'TbRobot',
+  'TbCode',
+  'TbFileText',
+  'TbBook',
+  'TbMovie',
+  'TbCloudRain',
+  'TbRoute2',
+  'TbServer2',
+  'TbWallet',
+  'TbChartLine',
+  'TbCoin',
+] as const
 
 function getIconJsx(iconName: string): string {
   const name = ICON_NAMES.includes(iconName as (typeof ICON_NAMES)[number]) ? iconName : 'TbFileText'
