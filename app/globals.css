@@ -21,6 +21,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --app-viewport-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-viewport-height: 100dvh;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -34,6 +41,10 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.app-shell {
+  height: var(--app-viewport-height);
 }
 
 @keyframes notification-countdown-shrink {

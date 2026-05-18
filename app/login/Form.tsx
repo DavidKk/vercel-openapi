@@ -35,7 +35,7 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
     const base =
       'w-full rounded-lg border border-slate-200 bg-white py-2.5 text-base text-slate-900 shadow-sm placeholder:text-slate-400 placeholder:tracking-normal transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950/80 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/25'
     return {
-      shell: 'min-h-screen flex flex-col items-center justify-center bg-slate-100 px-4 py-10 text-slate-900 dark:bg-slate-950 dark:text-slate-100',
+      shell: 'min-h-[var(--app-viewport-height)] flex flex-col items-center justify-center bg-slate-100 px-4 py-10 text-slate-900 dark:bg-slate-950 dark:text-slate-100',
       withIconLeft: `${base} pl-10 pr-3.5`,
       passwordInput: `${base} pl-10 pr-10`,
       plainField: `${base} px-3.5`,

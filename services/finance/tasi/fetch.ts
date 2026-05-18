@@ -11,10 +11,11 @@ const logger = createLogger('finance-tasi-fetch')
 
 /**
  * Paths on cf-feed-bridge (external Worker).
- * Bridge and local canonical paths are both `/api/finance/stock/tasi/*`.
+ * Local public routes expose `/api/finance/stock/tasi/*`, while cf-feed-bridge
+ * keeps the original `/api/finance/tasi/*` paths.
  */
-const BRIDGE_COMPANY_DAILY_PATH = '/api/finance/stock/tasi/company/daily'
-const BRIDGE_SUMMARY_DAILY_PATH = '/api/finance/stock/tasi/summary/daily'
+const BRIDGE_COMPANY_DAILY_PATH = '/api/finance/tasi/company/daily'
+const BRIDGE_SUMMARY_DAILY_PATH = '/api/finance/tasi/summary/daily'
 
 /** TTL for in-memory cache (ms). 60s to reduce requests during development. */
 const TASI_BRIDGE_CACHE_MS = 60 * 1000

@@ -36,7 +36,7 @@ export function DashboardSidebar(props: Readonly<DashboardSidebarProps>) {
   const { items } = props
 
   return (
-    <nav className="flex w-14 flex-col items-center gap-3 border-r border-gray-200 bg-white py-3">
+    <nav className="flex w-14 flex-col items-center gap-3 overflow-y-auto border-r border-gray-200 bg-white px-0 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       {items.map((item) => {
         const isActive = pathname === item.href || Boolean(item.matchChildPaths && pathname.startsWith(`${item.href}/`))
         const className = [linkBase, isActive ? linkActive : linkInactive].join(' ')
