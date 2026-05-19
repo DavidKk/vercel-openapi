@@ -8,25 +8,30 @@ import { TbCalendarSearch, TbChevronDown, TbChevronLeft, TbChevronRight, TbSearc
 
 import type { Holiday } from '@/app/actions/holiday/api'
 import { getHolidaysForYear } from '@/app/china-holiday/lib/getHolidaysForYear'
-import { FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
 import { useDebugPanel } from '@/components/DebugPanel'
 import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
 import { EmptyState } from '@/components/EmptyState'
 import { FloatingDropdown } from '@/components/FloatingDropdown'
 
-/** Holiday calendar toolbar: two compact rows on mobile, one row from `sm`. */
-const CALENDAR_TOOLBAR_SHELL_CLASS = 'flex shrink-0 min-w-0 flex-col gap-2 border-b border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3'
+/** Holiday calendar toolbar: desktop single row; two compact rows below `md` (module mobile layout). */
+const CALENDAR_TOOLBAR_SHELL_CLASS = 'flex shrink-0 min-w-0 flex-row items-center gap-3 border-b border-gray-200 px-4 py-3 max-md:flex-col max-md:gap-1.5 max-md:px-3 max-md:py-1.5'
 
-/** Month prev / label / next — full width on mobile. */
-const CALENDAR_MONTH_NAV_CLASS = 'flex w-full min-w-0 items-center gap-1 sm:w-auto sm:shrink-0'
+/** Month prev / label / next — full width on mobile only. */
+const CALENDAR_MONTH_NAV_CLASS = 'flex w-auto shrink-0 items-center gap-1 max-md:w-full max-md:min-w-0 max-md:gap-0.5'
+
+const CALENDAR_MONTH_NAV_BTN_CLASS =
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 max-md:h-8 max-md:w-8 max-md:rounded-md'
+
+const CALENDAR_MONTH_LABEL_CLASS = 'min-w-[120px] text-center text-lg font-semibold text-gray-800 max-md:min-w-0 max-md:flex-1 max-md:text-sm'
 
 /** Today + holiday filter: equal columns on mobile, inline on desktop. */
-const CALENDAR_ACTIONS_ROW_CLASS = 'grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center sm:gap-2'
+const CALENDAR_ACTIONS_ROW_CLASS = 'ml-auto flex w-auto shrink-0 items-center gap-2 max-md:ml-0 max-md:grid max-md:w-full max-md:grid-cols-2 max-md:gap-1.5'
 
 const CALENDAR_TODAY_BUTTON_CLASS =
-  'flex h-9 w-full items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 sm:w-auto'
+  'flex h-9 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 max-md:h-8 max-md:w-full max-md:rounded-md max-md:px-2 max-md:text-xs'
 
-const CALENDAR_HOLIDAY_TRIGGER_CLASS = `${FILTER_BUTTON_CLASS} h-9 w-full min-w-0 justify-center sm:w-auto`
+const CALENDAR_HOLIDAY_TRIGGER_CLASS =
+  'flex h-9 shrink-0 items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 max-md:h-8 max-md:w-full max-md:justify-center max-md:gap-0.5 max-md:rounded-md max-md:px-2 max-md:py-0 max-md:text-xs'
 
 interface CalendarProps {
   /** Optional initial data (e.g. from SSR). When omitted, data is loaded client-side via IDB + API. */
@@ -121,13 +126,13 @@ export function Calendar(props: CalendarProps) {
       <div className="flex h-full min-h-0 flex-col bg-white" aria-busy="true" aria-label="Loading holiday calendar">
         <div className={CALENDAR_TOOLBAR_SHELL_CLASS}>
           <div className={CALENDAR_MONTH_NAV_CLASS}>
-            <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100" aria-hidden />
-            <div className="h-6 flex-1 animate-pulse rounded bg-gray-200" aria-hidden />
-            <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+            <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100 max-md:h-8 max-md:w-8 max-md:rounded-md" aria-hidden />
+            <div className="h-6 w-28 animate-pulse rounded bg-gray-200 max-md:h-5 max-md:flex-1 max-md:w-auto" aria-hidden />
+            <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-gray-100 max-md:h-8 max-md:w-8 max-md:rounded-md" aria-hidden />
           </div>
           <div className={CALENDAR_ACTIONS_ROW_CLASS}>
-            <div className="h-9 w-full animate-pulse rounded-lg bg-gray-100" aria-hidden />
-            <div className="h-9 w-full animate-pulse rounded-lg bg-gray-100" aria-hidden />
+            <div className="h-9 w-20 shrink-0 animate-pulse rounded-lg bg-gray-100 max-md:h-8 max-md:w-full max-md:rounded-md" aria-hidden />
+            <div className="h-9 w-24 shrink-0 animate-pulse rounded-lg bg-gray-100 max-md:h-8 max-md:w-full max-md:rounded-md" aria-hidden />
           </div>
         </div>
         <div className="grid shrink-0 grid-cols-7 border-b border-gray-100 bg-gray-50/80">
@@ -160,24 +165,14 @@ export function Calendar(props: CalendarProps) {
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div className={CALENDAR_TOOLBAR_SHELL_CLASS}>
         <div className={CALENDAR_MONTH_NAV_CLASS}>
-          <button
-            type="button"
-            onClick={handlePrevMonth}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
-            aria-label="Previous month"
-          >
-            <TbChevronLeft className="h-5 w-5" />
+          <button type="button" onClick={handlePrevMonth} className={CALENDAR_MONTH_NAV_BTN_CLASS} aria-label="Previous month">
+            <TbChevronLeft className="h-5 w-5 max-md:h-4 max-md:w-4" />
           </button>
-          <span className="min-w-0 flex-1 text-center text-base font-semibold text-gray-800 sm:min-w-[120px] sm:flex-none sm:text-lg">
+          <span className={CALENDAR_MONTH_LABEL_CLASS}>
             {currentYear}年{currentMonth + 1}月
           </span>
-          <button
-            type="button"
-            onClick={handleNextMonth}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
-            aria-label="Next month"
-          >
-            <TbChevronRight className="h-5 w-5" />
+          <button type="button" onClick={handleNextMonth} className={CALENDAR_MONTH_NAV_BTN_CLASS} aria-label="Next month">
+            <TbChevronRight className="h-5 w-5 max-md:h-4 max-md:w-4" />
           </button>
         </div>
 
@@ -202,9 +197,9 @@ export function Calendar(props: CalendarProps) {
                 aria-expanded={pickerOpen}
                 aria-haspopup="listbox"
               >
-                <TbSearch className="h-4 w-4 shrink-0 text-gray-500" />
+                <TbSearch className="h-4 w-4 shrink-0 text-gray-500 max-md:h-3.5 max-md:w-3.5" />
                 <span className="truncate">节日</span>
-                <TbChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+                <TbChevronDown className="h-4 w-4 shrink-0 text-gray-500 max-md:h-3.5 max-md:w-3.5" />
               </button>
             }
           >
