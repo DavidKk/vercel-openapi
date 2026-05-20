@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react'
 import { MdPriceCheck } from 'react-icons/md'
 import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbGasStation, TbMapPin, TbMovie, TbRoute2, TbServer2 } from 'react-icons/tb'
 
+import { ModuleNavMenuButton } from '@/components/ModuleNavContext'
 import { Tooltip } from '@/components/Tooltip'
 
 import { AuthEntry } from './AuthEntry'
@@ -82,10 +83,13 @@ export function Nav() {
 
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 py-2">
-      <Link href="/" className="flex shrink-0 items-center gap-2 text-sm font-semibold text-gray-900 hover:text-gray-700">
-        <Image src="/logo-32.png" alt="Unbnd logo" width={24} height={24} className="h-6 w-6 shrink-0" />
-        <span>Unbnd</span>
-      </Link>
+      <div className="flex shrink-0 items-center gap-1">
+        <ModuleNavMenuButton />
+        <Link href="/" className="flex shrink-0 items-center gap-2 text-sm font-semibold text-gray-900 hover:text-gray-700">
+          <Image src="/logo-32.png" alt="Unbnd logo" width={24} height={24} className="h-6 w-6 shrink-0" />
+          <span>Unbnd</span>
+        </Link>
+      </div>
       <ScrollToActiveOnLeave
         className="flex-1 overflow-x-auto overflow-y-hidden py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ scrollBehavior: 'smooth' }}

@@ -5,10 +5,9 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
+import { AppShell } from '@/components/AppShell'
 import { DebugPanel, DebugPanelProvider } from '@/components/DebugPanel'
 import { NotificationProvider, NotificationStack } from '@/components/Notification'
-
-import { Nav } from './Nav'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -47,8 +46,7 @@ export default function RootLayout(props: Readonly<RootLayoutProps>) {
       <body className={`${geistSans.variable} ${geistMono.variable} app-shell antialiased flex flex-col overflow-hidden`}>
         <NotificationProvider>
           <DebugPanelProvider>
-            <Nav />
-            <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+            <AppShell>{children}</AppShell>
             <NotificationStack />
             <DebugPanel />
           </DebugPanelProvider>

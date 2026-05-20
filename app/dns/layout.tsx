@@ -28,10 +28,9 @@ export default async function DnsLayout(props: Readonly<DnsLayoutProps>) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-100">
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
-        <DashboardSidebar items={sidebarItems} />
+      <DashboardSidebar items={sidebarItems}>
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)]">{children}</main>
-      </div>
+      </DashboardSidebar>
     </div>
   )
 }
