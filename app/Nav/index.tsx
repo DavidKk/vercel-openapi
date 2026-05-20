@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { MdPriceCheck } from 'react-icons/md'
 import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbGasStation, TbMapPin, TbMovie, TbRoute2, TbServer2 } from 'react-icons/tb'
 
@@ -15,25 +15,73 @@ import { getModuleSubPath, MODULES_WITH_MANAGER_PAGES } from './utils'
 
 const RESIZE_DEBOUNCE_MS = 150
 
+/** Mobile-only edge fade overlays hinting horizontal scroll (match header `bg-white`). */
+const SCROLL_EDGE_FADE_BASE_CLASS = 'pointer-events-none absolute inset-y-0 z-10 w-6 transition-opacity duration-200 md:hidden'
+
 /**
  * Wraps a scrollable nav: on mount, on mouse leave, and on resize (debounced), scrolls the element with aria-current="page" into view when overflow exists.
+ * On mobile, shows left/right gradient fades when more content is off-screen.
  */
-function ScrollToActiveOnLeave({ children, ...rest }: { children: React.ReactNode } & React.ComponentPropsWithoutRef<'nav'>) {
+function ScrollToActiveOnLeave({
+  children,
+  className,
+  routeKey,
+  ...rest
+}: {
+  children: React.ReactNode
+  className?: string
+  /** Re-run scroll-into-view and fade when the route changes. */
+  routeKey?: string
+} & Omit<React.ComponentPropsWithoutRef<'nav'>, 'className'>) {
   const ref = useRef<HTMLElement>(null)
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [fadeLeft, setFadeLeft] = useState(false)
+  const [fadeRight, setFadeRight] = useState(false)
 
-  function scrollActiveIntoView(behavior: ScrollBehavior = 'smooth') {
+  const updateScrollFades = useCallback(() => {
     const el = ref.current
-    if (!el || el.scrollWidth <= el.clientWidth) return
-    const active = el.querySelector('[aria-current="page"]')
-    if (active instanceof HTMLElement) {
-      active.scrollIntoView({ behavior, block: 'nearest', inline: 'nearest' })
-    }
-  }
+    if (!el) return
+    const { scrollLeft, scrollWidth, clientWidth } = el
+    const canScroll = scrollWidth > clientWidth + 1
+    setFadeLeft(canScroll && scrollLeft > 2)
+    setFadeRight(canScroll && scrollLeft + clientWidth < scrollWidth - 2)
+  }, [])
+
+  const scrollActiveIntoView = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      const el = ref.current
+      if (!el || el.scrollWidth <= el.clientWidth) return
+      const active = el.querySelector('[aria-current="page"]')
+      if (active instanceof HTMLElement) {
+        active.scrollIntoView({ behavior, block: 'nearest', inline: 'nearest' })
+      }
+      requestAnimationFrame(updateScrollFades)
+    },
+    [updateScrollFades]
+  )
 
   useEffect(() => {
     scrollActiveIntoView('auto')
-  }, [])
+    updateScrollFades()
+  }, [routeKey, scrollActiveIntoView, updateScrollFades])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    function onScroll() {
+      updateScrollFades()
+    }
+
+    el.addEventListener('scroll', onScroll, { passive: true })
+    const observer = new ResizeObserver(() => updateScrollFades())
+    observer.observe(el)
+
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      observer.disconnect()
+    }
+  }, [updateScrollFades])
 
   useEffect(() => {
     function onResize() {
@@ -41,6 +89,7 @@ function ScrollToActiveOnLeave({ children, ...rest }: { children: React.ReactNod
       resizeTimeoutRef.current = setTimeout(() => {
         resizeTimeoutRef.current = null
         scrollActiveIntoView('auto')
+        updateScrollFades()
       }, RESIZE_DEBOUNCE_MS)
     }
     window.addEventListener('resize', onResize)
@@ -48,12 +97,18 @@ function ScrollToActiveOnLeave({ children, ...rest }: { children: React.ReactNod
       window.removeEventListener('resize', onResize)
       if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current)
     }
-  }, [])
+  }, [scrollActiveIntoView, updateScrollFades])
+
+  const navClass = ['min-w-0 flex-1 overflow-x-auto overflow-y-hidden py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className].filter(Boolean).join(' ')
 
   return (
-    <nav ref={ref} onMouseLeave={() => scrollActiveIntoView()} {...rest}>
-      {children}
-    </nav>
+    <div className="relative min-w-0 flex-1">
+      <div className={`${SCROLL_EDGE_FADE_BASE_CLASS} left-0 bg-gradient-to-r from-white to-transparent ${fadeLeft ? 'opacity-100' : 'opacity-0'}`} aria-hidden />
+      <div className={`${SCROLL_EDGE_FADE_BASE_CLASS} right-0 bg-gradient-to-l from-white to-transparent ${fadeRight ? 'opacity-100' : 'opacity-0'}`} aria-hidden />
+      <nav ref={ref} className={navClass} onMouseLeave={() => scrollActiveIntoView()} onScroll={updateScrollFades} {...rest}>
+        {children}
+      </nav>
+    </div>
   )
 }
 
@@ -90,11 +145,7 @@ export function Nav() {
           <span>Unbnd</span>
         </Link>
       </div>
-      <ScrollToActiveOnLeave
-        className="flex-1 overflow-x-auto overflow-y-hidden py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        style={{ scrollBehavior: 'smooth' }}
-        aria-label="Modules"
-      >
+      <ScrollToActiveOnLeave routeKey={pathname ?? ''} style={{ scrollBehavior: 'smooth' }} aria-label="Modules">
         <div className="flex min-w-max flex-nowrap items-center justify-end gap-1 pr-2">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname?.startsWith(item.href) ?? false
