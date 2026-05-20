@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbArrowDown, TbArrowsSort, TbArrowUp, TbSearch } from 'react-icons/tb'
 
-import { CONTENT_PAGE_HEADER_SHELL_CLASS, CONTENT_PAGE_HEADER_TOOLBAR_CLASS } from '@/components/ContentPageHeader'
 import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from '@/services/finance/tasi'
 import { writeCompanyDailyToIdb, writeSummaryToIdb } from '@/services/finance/tasi/browser'
@@ -160,60 +159,63 @@ export function TasiOverview({ company, summary, error, headerTitle = 'TASI', he
   return (
     <section className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col bg-white">
-        <div className={`shrink-0 ${CONTENT_PAGE_HEADER_SHELL_CLASS} overflow-visible`}>
-          {shouldShowHeaderTitle ? <span className="min-w-0 truncate text-base font-semibold text-gray-700">{headerTitle}</span> : null}
-          <div className={`${CONTENT_PAGE_HEADER_TOOLBAR_CLASS} overflow-visible`}>
+        <header className="flex shrink-0 items-center justify-between gap-2 overflow-visible border-b border-gray-200 px-4 py-2 sm:py-3">
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {shouldShowHeaderTitle ? <h1 className="truncate text-sm font-semibold text-gray-900 sm:text-base">{headerTitle}</h1> : null}
             {headerAddon ?? null}
-            <div ref={searchWrapRef} className={`relative w-full sm:ml-auto sm:w-auto ${companySearchDisabled ? 'opacity-60' : ''}`}>
-              <div className="relative">
-                <TbSearch className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${companySearchDisabled ? 'text-gray-400' : 'text-gray-500'}`} aria-hidden />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => {
-                    if (!companySearchDisabled) setShowSuggestions(true)
-                  }}
-                  disabled={companySearchDisabled}
-                  placeholder="Search by code or name…"
-                  className="w-full rounded border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 sm:w-56"
-                  aria-label="Search by code or name"
-                  aria-autocomplete="list"
-                  aria-expanded={!companySearchDisabled && showSuggestions && suggestionList.length > 0}
-                  aria-controls="tasi-search-listbox"
-                  aria-activedescendant={undefined}
-                />
-                {showSuggestions && searchQuery.trim() && (
-                  <div className="absolute right-0 top-full z-30 mt-1 w-64 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
-                    <DropdownMenuScrollArea as="ul" scrollClassName="max-h-56" scrollProps={{ id: 'tasi-search-listbox', role: 'listbox' }}>
-                      {suggestionList.length === 0 ? (
-                        <li className="px-3 py-2.5 text-sm text-gray-500">No matches</li>
-                      ) : (
-                        suggestionList.map((row) => (
-                          <li key={row.code}>
-                            <button
-                              type="button"
-                              role="option"
-                              className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100"
-                              onMouseDown={(e) => {
-                                e.preventDefault()
-                                setSearchQuery(row.code)
-                                setShowSuggestions(false)
-                              }}
-                            >
-                              <span className="font-mono font-medium">{row.code}</span>
-                              {row.name ? <span className="ml-2 text-gray-500">{row.name}</span> : null}
-                            </button>
-                          </li>
-                        ))
-                      )}
-                    </DropdownMenuScrollArea>
-                  </div>
-                )}
-              </div>
+          </div>
+          <div ref={searchWrapRef} className={`relative shrink-0 ${companySearchDisabled ? 'opacity-60' : ''}`}>
+            <div className="relative">
+              <TbSearch
+                className={`absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 sm:left-3 sm:h-4 sm:w-4 ${companySearchDisabled ? 'text-gray-400' : 'text-gray-500'}`}
+                aria-hidden
+              />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => {
+                  if (!companySearchDisabled) setShowSuggestions(true)
+                }}
+                disabled={companySearchDisabled}
+                placeholder="Search by code or name…"
+                className="h-7 w-36 rounded-md border border-gray-200 bg-white py-0 pl-7 pr-2 text-xs outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 sm:h-auto sm:w-56 sm:rounded sm:py-2 sm:pl-9 sm:pr-3 sm:text-sm"
+                aria-label="Search by code or name"
+                aria-autocomplete="list"
+                aria-expanded={!companySearchDisabled && showSuggestions && suggestionList.length > 0}
+                aria-controls="tasi-search-listbox"
+                aria-activedescendant={undefined}
+              />
+              {showSuggestions && searchQuery.trim() && (
+                <div className="absolute right-0 top-full z-30 mt-1 w-64 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                  <DropdownMenuScrollArea as="ul" scrollClassName="max-h-56" scrollProps={{ id: 'tasi-search-listbox', role: 'listbox' }}>
+                    {suggestionList.length === 0 ? (
+                      <li className="px-3 py-2.5 text-sm text-gray-500">No matches</li>
+                    ) : (
+                      suggestionList.map((row) => (
+                        <li key={row.code}>
+                          <button
+                            type="button"
+                            role="option"
+                            className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100"
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              setSearchQuery(row.code)
+                              setShowSuggestions(false)
+                            }}
+                          >
+                            <span className="font-mono font-medium">{row.code}</span>
+                            {row.name ? <span className="ml-2 text-gray-500">{row.name}</span> : null}
+                          </button>
+                        </li>
+                      ))
+                    )}
+                  </DropdownMenuScrollArea>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </header>
         <div className="min-h-0 flex-1 overflow-auto">
           {!hasCompanyData ? (
             <div className="flex min-h-full min-w-full flex-1 flex-col">

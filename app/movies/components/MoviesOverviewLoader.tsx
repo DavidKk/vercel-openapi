@@ -82,11 +82,11 @@ export function MoviesOverviewLoader() {
   if (forceLoading || (loading && !payload)) {
     return (
       <section className="flex h-full flex-col overflow-hidden bg-white">
-        <div className="flex shrink-0 items-center border-b border-gray-200 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2">
           <div className="h-5 w-40 animate-pulse rounded bg-gray-200" aria-hidden />
-          <div className="ml-auto flex items-center gap-2">
-            <div className="h-[38px] w-20 animate-pulse rounded-lg bg-gray-100" aria-hidden />
-            <div className="h-9 w-28 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div className="h-7 w-[4.5rem] animate-pulse rounded-md bg-gray-100" aria-hidden />
+            <div className="h-7 w-16 animate-pulse rounded-md bg-gray-100" aria-hidden />
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto border-b border-gray-200 bg-gray-50 px-3 py-3">

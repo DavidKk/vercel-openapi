@@ -43,10 +43,10 @@ export function StockOverviewSwitcher({ market }: StockOverviewSwitcherProps) {
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={() => setOpen((v) => !v)}
-          className="m-0 inline-flex cursor-pointer select-none items-center gap-1 border-0 bg-transparent p-0 text-left text-base font-semibold text-gray-700 outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2"
+          className="inline-flex h-7 shrink-0 cursor-pointer select-none items-center gap-1 rounded-md border border-gray-300 bg-white px-2 text-xs font-semibold text-gray-700 outline-none transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 sm:m-0 sm:h-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:text-left sm:text-base sm:text-gray-700"
         >
           <span>{market}</span>
-          <TbChevronDown className={`h-4 w-4 shrink-0 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} aria-hidden />
+          <TbChevronDown className={`h-3 w-3 shrink-0 text-gray-500 transition-transform duration-200 sm:h-4 sm:w-4 ${open ? 'rotate-180' : ''}`} aria-hidden />
         </button>
       }
     >

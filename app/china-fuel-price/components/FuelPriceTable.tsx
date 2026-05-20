@@ -5,8 +5,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbChevronDown, TbMapPin, TbSearch } from 'react-icons/tb'
 
 import type { FuelPriceData, FuelPriceList } from '@/app/actions/fuel-price/types'
-import { CONTENT_HEADER_CLASS, FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
 import { Spinner } from '@/components/Spinner'
+
+/** Region filter trigger: compact on mobile, original filter button size from `sm` up. */
+const FUEL_REGION_FILTER_BUTTON_CLASS =
+  'inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 transition-colors hover:bg-gray-50 sm:h-auto sm:rounded-lg sm:px-3 sm:py-2 sm:text-sm'
 import { useUserLocation } from '@/hooks/useUserLocation'
 
 export interface FuelPriceTableProps {
@@ -162,20 +165,20 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
-      <div className={`${CONTENT_HEADER_CLASS} text-sm text-gray-600`}>
-        <span className="text-base font-semibold text-gray-700">China Fuel Price</span>
-        <div className="relative ml-auto" ref={pickerRef}>
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
+        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-700 sm:text-base">China Fuel Price</h1>
+        <div className="relative shrink-0" ref={pickerRef}>
           <button
             type="button"
             onClick={() => setPickerOpen((open) => !open)}
-            className={FILTER_BUTTON_CLASS}
+            className={FUEL_REGION_FILTER_BUTTON_CLASS}
             aria-label="选择地区"
             aria-expanded={pickerOpen}
             aria-haspopup="listbox"
           >
-            <TbSearch className="h-4 w-4 text-gray-500" />
+            <TbSearch className="h-3 w-3 shrink-0 text-gray-500 sm:h-4 sm:w-4" />
             地区
-            <TbChevronDown className="h-4 w-4 text-gray-500" />
+            <TbChevronDown className="h-3 w-3 shrink-0 text-gray-500 sm:h-4 sm:w-4" />
           </button>
           {pickerOpen && (
             <div className="absolute right-0 top-full z-10 mt-1 w-72 min-w-[14rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
@@ -210,7 +213,7 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
             </div>
           )}
         </div>
-      </div>
+      </header>
 
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="h-full w-full">

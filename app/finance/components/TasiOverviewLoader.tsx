@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
-import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
 import { useDebugPanel } from '@/components/DebugPanel'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from '@/services/finance/tasi'
 import { getLatestValidSnapshotFromIdb } from '@/services/finance/tasi/browser'
@@ -35,14 +34,12 @@ export function TasiOverviewSkeleton(props?: TasiOverviewSkeletonProps) {
   return (
     <section className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label={ariaLabel}>
       <div className="flex min-h-0 flex-1 flex-col bg-white">
-        <div className={`shrink-0 min-h-[63px] ${CONTENT_HEADER_CLASS} gap-2`}>
-          {showLeadingTitle ? (
-            <span className="text-base font-semibold text-gray-700">{leadingTitle}</span>
-          ) : (
-            <span className="h-6 w-24 shrink-0 animate-pulse rounded bg-gray-200" aria-hidden />
-          )}
-          {headerAddon != null ? headerAddon : null}
-          <div className="relative ml-auto h-9 w-56 animate-pulse rounded border border-gray-200 bg-gray-100" aria-hidden />
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {showLeadingTitle ? <span className="text-base font-semibold text-gray-700">{leadingTitle}</span> : null}
+            {headerAddon != null ? headerAddon : null}
+          </div>
+          <div className="h-7 w-36 shrink-0 animate-pulse rounded-md border border-gray-200 bg-gray-100 sm:h-9 sm:w-56 sm:rounded" aria-hidden />
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">

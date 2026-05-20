@@ -77,9 +77,9 @@ export function FuelPriceOverviewLoader() {
   if (forceLoading || (loading && !fuelPrices)) {
     return (
       <section id="fuel-overview" className="flex h-full flex-col">
-        <div className="flex shrink-0 items-center border-b border-gray-200 px-4 py-3">
-          <span className="text-base font-semibold text-gray-700">China Fuel Price</span>
-          <div className="ml-auto h-9 w-24 animate-pulse rounded-lg bg-gray-200" aria-hidden />
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
+          <span className="text-sm font-semibold text-gray-700 sm:text-base">China Fuel Price</span>
+          <div className="h-7 w-16 shrink-0 animate-pulse rounded-md border border-gray-200 bg-gray-100 sm:h-9 sm:w-24 sm:rounded-lg" aria-hidden />
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">

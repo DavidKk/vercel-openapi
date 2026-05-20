@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbChevronDown, TbSearch } from 'react-icons/tb'
 
-import { FILTER_BUTTON_CLASS } from '@/app/Nav/constants'
-import { CONTENT_PAGE_HEADER_TOOLBAR_SCROLL_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
+/** Compact genre filter trigger (movies header toolbar). */
+const MOVIES_COMPACT_FILTER_BUTTON_CLASS =
+  'inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 transition-colors hover:bg-gray-50'
+
+/** Compact All / Popular tab shell height. */
+const MOVIES_HOT_TAB_SHELL_CLASS = 'flex h-7 shrink-0 items-stretch rounded-md border border-gray-200 bg-gray-50 p-0.5'
 import { LazyImage } from '@/components/LazyImage'
 import type { MergedMovie } from '@/services/maoyan/types'
 import { isHot } from '@/services/movies/popularity'
@@ -129,17 +133,17 @@ export function MovieList(props: MovieListProps) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-white">
-      {/* Header: title + Hot TABs + Genre dropdown */}
-      <ContentPageHeader title="Recently Released Movies">
-        <div className={CONTENT_PAGE_HEADER_TOOLBAR_SCROLL_CLASS}>
-          {/* Hot filter: TAB (click to toggle, active highlighted); height aligned with FILTER_BUTTON_CLASS */}
-          <div className="flex h-[38px] items-stretch rounded-lg border border-gray-200 bg-gray-50 p-1" role="tablist" aria-label="Filter by popularity">
+      {/* Header: title left; compact Hot tabs + Genre dropdown on the right */}
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2">
+        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">Movies</h1>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className={MOVIES_HOT_TAB_SHELL_CLASS} role="tablist" aria-label="Filter by popularity">
             <button
               type="button"
               role="tab"
               aria-selected={hotTab === 'all'}
               onClick={() => setHotTab('all')}
-              className={`flex items-center rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+              className={`flex items-center rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
                 hotTab === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -150,27 +154,26 @@ export function MovieList(props: MovieListProps) {
               role="tab"
               aria-selected={hotTab === 'popular'}
               onClick={() => setHotTab('popular')}
-              className={`flex items-center rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+              className={`flex items-center rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
                 hotTab === 'popular' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Popular
             </button>
           </div>
-          {/* Genre: dropdown with search */}
           {genres.length > 0 && (
             <div className="relative" ref={pickerRef}>
               <button
                 type="button"
                 onClick={() => setPickerOpen((open) => !open)}
-                className={FILTER_BUTTON_CLASS}
+                className={MOVIES_COMPACT_FILTER_BUTTON_CLASS}
                 aria-label="Filter by genre"
                 aria-expanded={pickerOpen}
                 aria-haspopup="listbox"
               >
-                <TbSearch className="h-4 w-4 text-gray-500" />
-                {selectedGenre === 'all' ? 'Genre' : genreToLabelEn(selectedGenre)}
-                <TbChevronDown className="h-4 w-4 text-gray-500" />
+                <TbSearch className="h-3 w-3 shrink-0 text-gray-500" />
+                <span className="max-w-[5.5rem] truncate">{selectedGenre === 'all' ? 'Genre' : genreToLabelEn(selectedGenre)}</span>
+                <TbChevronDown className="h-3 w-3 shrink-0 text-gray-500" />
               </button>
               {pickerOpen && (
                 <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
@@ -207,7 +210,7 @@ export function MovieList(props: MovieListProps) {
             </div>
           )}
         </div>
-      </ContentPageHeader>
+      </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto border-b border-gray-200 bg-gray-50 px-3 py-3 transform-gpu">
         {filteredMovies.length === 0 ? (
