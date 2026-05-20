@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
+import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
 import { useDebugPanel } from '@/components/DebugPanel'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from '@/services/finance/tasi'
 import { getLatestValidSnapshotFromIdb } from '@/services/finance/tasi/browser'
@@ -36,7 +37,7 @@ export function TasiOverviewSkeleton(props?: TasiOverviewSkeletonProps) {
       <div className="flex min-h-0 flex-1 flex-col bg-white">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
-            {showLeadingTitle ? <span className="text-base font-semibold text-gray-700">{leadingTitle}</span> : null}
+            {showLeadingTitle ? <h1 className={CONTENT_PAGE_TITLE_CLASS}>{leadingTitle}</h1> : null}
             {headerAddon != null ? headerAddon : null}
           </div>
           <div className="h-7 w-36 shrink-0 animate-pulse rounded-md border border-gray-200 bg-gray-100 sm:h-9 sm:w-56 sm:rounded" aria-hidden />

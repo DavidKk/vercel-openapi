@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
+
 /** Page header shell: title row + toolbar; stacks on mobile, single row from `sm`. */
 export const CONTENT_PAGE_HEADER_SHELL_CLASS = 'flex shrink-0 min-w-0 flex-col gap-3 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:gap-2'
 
@@ -35,7 +37,7 @@ export interface ContentPageHeaderProps {
  * @returns Header element
  */
 export function ContentPageHeader(props: Readonly<ContentPageHeaderProps>) {
-  const { title, titleClassName = 'min-w-0 truncate text-sm font-semibold text-gray-900', children, className = '' } = props
+  const { title, titleClassName = CONTENT_PAGE_TITLE_CLASS, children, className = '' } = props
   const shellClass = [CONTENT_PAGE_HEADER_SHELL_CLASS, className].filter(Boolean).join(' ')
 
   return (

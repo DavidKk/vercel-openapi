@@ -1,6 +1,6 @@
 import { getCachedExchangeRate } from '@/app/actions/exchange-rate/api'
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
-import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
+import { CONTENT_HEADER_CLASS, CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
 import { Spinner } from '@/components/Spinner'
 
 import { CurrencyConverter } from './CurrencyConverter'
@@ -34,7 +34,7 @@ export default async function ExchangeRateServer({ initialBaseCurrency = 'USD' }
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
       <div className={`${CONTENT_HEADER_CLASS} text-sm text-gray-600`}>
-        <span>Exchange rates</span>
+        <h1 className={CONTENT_PAGE_TITLE_CLASS}>Exchange rates</h1>
       </div>
 
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">

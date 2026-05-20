@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbArrowDown, TbArrowsSort, TbArrowUp, TbSearch } from 'react-icons/tb'
 
+import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
 import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from '@/services/finance/tasi'
 import { writeCompanyDailyToIdb, writeSummaryToIdb } from '@/services/finance/tasi/browser'
@@ -161,7 +162,7 @@ export function TasiOverview({ company, summary, error, headerTitle = 'TASI', he
       <div className="flex min-h-0 flex-1 flex-col bg-white">
         <header className="flex shrink-0 items-center justify-between gap-2 overflow-visible border-b border-gray-200 px-4 py-2 sm:py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
-            {shouldShowHeaderTitle ? <h1 className="truncate text-sm font-semibold text-gray-900 sm:text-base">{headerTitle}</h1> : null}
+            {shouldShowHeaderTitle ? <h1 className={CONTENT_PAGE_TITLE_CLASS}>{headerTitle}</h1> : null}
             {headerAddon ?? null}
           </div>
           <div ref={searchWrapRef} className={`relative shrink-0 ${companySearchDisabled ? 'opacity-60' : ''}`}>

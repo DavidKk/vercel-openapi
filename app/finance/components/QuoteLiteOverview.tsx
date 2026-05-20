@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
+import { CONTENT_HEADER_CLASS, CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
 import type { FinanceMarketOhlcvDailyRecord } from '@/services/finance/market/daily/types'
 import { formatNumber, formatPercent } from '@/utils/formatNumber'
 
@@ -124,7 +124,7 @@ export function QuoteLiteOverview() {
     return (
       <section className="flex min-h-0 flex-1 flex-col bg-white">
         <div className={`shrink-0 ${CONTENT_HEADER_CLASS}`}>
-          <span className="min-w-0 truncate text-base font-semibold text-gray-700">Gold / USD</span>
+          <h1 className={CONTENT_PAGE_TITLE_CLASS}>Gold / USD</h1>
           <span className="shrink-0 rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-[11px] font-medium text-gray-600">XAUUSD</span>
         </div>
         <div className="flex flex-1 items-center justify-center p-8 text-sm text-gray-400">Loading…</div>
@@ -137,7 +137,7 @@ export function QuoteLiteOverview() {
       <div className="flex min-h-0 flex-1 flex-col bg-white">
         <div className={`shrink-0 ${CONTENT_HEADER_CLASS} overflow-visible`}>
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <span className="min-w-0 truncate text-base font-semibold text-gray-700">Gold / USD</span>
+            <h1 className={CONTENT_PAGE_TITLE_CLASS}>Gold / USD</h1>
             <span
               className="shrink-0 rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-[11px] font-medium text-gray-600"
               title="ISO-style pair ticker; stored under symbol XAUUSD"

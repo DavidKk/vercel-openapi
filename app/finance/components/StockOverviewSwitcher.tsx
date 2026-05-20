@@ -6,6 +6,7 @@ import { TbChevronDown } from 'react-icons/tb'
 
 import { FMP_UNSUPPORTED_STOCK_MARKETS } from '@/app/finance/stock/fmpUnsupportedMarkets'
 import { getSlugByMarket, STOCK_MARKET_ROUTE_OPTIONS } from '@/app/finance/stock/marketRoute'
+import { CONTENT_PAGE_TITLE_TEXT_CLASS } from '@/app/Nav/constants'
 import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
 import { FloatingDropdown } from '@/components/FloatingDropdown'
 import type { StockMarket } from '@/services/finance/stock/types'
@@ -43,7 +44,7 @@ export function StockOverviewSwitcher({ market }: StockOverviewSwitcherProps) {
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-7 shrink-0 cursor-pointer select-none items-center gap-1 rounded-md border border-gray-300 bg-white px-2 text-xs font-semibold text-gray-700 outline-none transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 sm:m-0 sm:h-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:text-left sm:text-base sm:text-gray-700"
+          className={`inline-flex h-7 max-w-full min-w-0 shrink-0 cursor-pointer select-none items-center gap-1 rounded-md border border-gray-300 bg-white px-2 outline-none transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 sm:m-0 sm:h-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:text-left ${CONTENT_PAGE_TITLE_TEXT_CLASS}`}
         >
           <span>{market}</span>
           <TbChevronDown className={`h-3 w-3 shrink-0 text-gray-500 transition-transform duration-200 sm:h-4 sm:w-4 ${open ? 'rotate-180' : ''}`} aria-hidden />

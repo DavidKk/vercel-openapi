@@ -4,6 +4,12 @@ export const HIDDEN_ROUTES: string[] = ['/china-holiday', '/china-fuel-price', '
 /** Same height for all content section headers (Calendar toolbar, FuelPrice bar). No wrap; horizontal scroll when long. */
 export const CONTENT_HEADER_CLASS = 'flex shrink-0 min-w-0 flex-nowrap items-center gap-2 overflow-x-auto border-b border-gray-200 px-4 py-3'
 
+/** Content/overview page title: text-sm on mobile, text-base from `sm` (desktop). */
+export const CONTENT_PAGE_TITLE_CLASS = 'min-w-0 truncate text-sm font-semibold text-gray-900 sm:text-base'
+
+/** Same typography as {@link CONTENT_PAGE_TITLE_CLASS} without truncation layout (e.g. market dropdown trigger). */
+export const CONTENT_PAGE_TITLE_TEXT_CLASS = 'text-sm font-semibold text-gray-900 sm:text-base'
+
 /** Min height for doc/playground panel headers so left and right align */
 const PANEL_HEADER_MIN_H = 'min-h-[3.5rem]'
 

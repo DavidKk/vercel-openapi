@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbChevronDown, TbMapPin, TbSearch } from 'react-icons/tb'
 
 import type { FuelPriceData, FuelPriceList } from '@/app/actions/fuel-price/types'
+import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
 import { Spinner } from '@/components/Spinner'
 
 /** Region filter trigger: compact on mobile, original filter button size from `sm` up. */
@@ -166,7 +167,7 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
-        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-700 sm:text-base">China Fuel Price</h1>
+        <h1 className={`flex-1 ${CONTENT_PAGE_TITLE_CLASS}`}>China Fuel Price</h1>
         <div className="relative shrink-0" ref={pickerRef}>
           <button
             type="button"

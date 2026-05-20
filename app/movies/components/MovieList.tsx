@@ -9,6 +9,7 @@ const MOVIES_COMPACT_FILTER_BUTTON_CLASS =
 
 /** Compact All / Popular tab shell height. */
 const MOVIES_HOT_TAB_SHELL_CLASS = 'flex h-7 shrink-0 items-stretch rounded-md border border-gray-200 bg-gray-50 p-0.5'
+import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
 import { LazyImage } from '@/components/LazyImage'
 import type { MergedMovie } from '@/services/maoyan/types'
 import { isHot } from '@/services/movies/popularity'
@@ -135,7 +136,7 @@ export function MovieList(props: MovieListProps) {
     <div className="flex h-full flex-col overflow-hidden bg-white">
       {/* Header: title left; compact Hot tabs + Genre dropdown on the right */}
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2">
-        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">Movies</h1>
+        <h1 className={`flex-1 ${CONTENT_PAGE_TITLE_CLASS}`}>Movies</h1>
         <div className="flex shrink-0 items-center gap-1.5">
           <div className={MOVIES_HOT_TAB_SHELL_CLASS} role="tablist" aria-label="Filter by popularity">
             <button
