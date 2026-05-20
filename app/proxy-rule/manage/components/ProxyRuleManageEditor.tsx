@@ -217,9 +217,10 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
     })
   }
 
+  const getVirtuosoRowKey = useCallback((_index: number, row: UiClashRuleRow & { id: string }) => row.id, [])
+
   const renderVirtuosoRow = useCallback(
-    (index: number) => {
-      const row = visibleRows[index]
+    (_index: number, row: UiClashRuleRow & { id: string }) => {
       if (!row) return null
       return (
         <ProxyRuleVirtuosoRow
@@ -233,7 +234,7 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
         />
       )
     },
-    [visibleRows, orderNoById, isFilterMode, typeOptions, actionOptions, patchRow, removeRowById]
+    [orderNoById, isFilterMode, typeOptions, actionOptions, patchRow, removeRowById]
   )
 
   function addRow() {
@@ -444,7 +445,13 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
               <div className="min-h-0 min-w-0 flex-1">
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-                    <Virtuoso style={{ height: '100%' }} totalCount={visibleRows.length} fixedItemHeight={PROXY_RULE_VIRTUOSO_ITEM_HEIGHT} itemContent={renderVirtuosoRow} />
+                    <Virtuoso
+                      style={{ height: '100%' }}
+                      data={visibleRows}
+                      computeItemKey={getVirtuosoRowKey}
+                      fixedItemHeight={PROXY_RULE_VIRTUOSO_ITEM_HEIGHT}
+                      itemContent={renderVirtuosoRow}
+                    />
                   </SortableContext>
                 </DndContext>
               </div>
