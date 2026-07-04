@@ -1,14 +1,14 @@
 'use client'
 
 import { useRequest } from 'ahooks'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { TbArrowsExchange, TbChevronDown } from 'react-icons/tb'
+import { useCallback, useEffect, useState } from 'react'
+import { TbArrowsExchange } from 'react-icons/tb'
 
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
 import { LoadingEllipsis } from '@/components/LoadingEllipsis'
+import { SearchableSelect } from '@/components/SearchableSelect'
 import { Spinner } from '@/components/Spinner'
 import { getExchangeRateFromIdb, setExchangeRateInIdb } from '@/services/freecurrencyapi/browser'
-import { fuzzySearch } from '@/utils/find'
 
 /**
  * Fetch exchange rates: L0 IndexedDB → API; on success write to IDB.
@@ -52,25 +52,6 @@ interface AmountCurrencyRowProps {
 }
 
 function AmountCurrencyRow({ amountValue, currencyValue, currencyOptions, onAmountChange, onCurrencyChange, onAmountFocus, placeholder = '0' }: AmountCurrencyRowProps) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) setSearch('')
-  }, [open])
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const filtered = search.trim() === '' ? currencyOptions : currencyOptions.filter((opt) => fuzzySearch(search.trim(), opt.label))
-  const selectedLabel = currencyOptions.find((o) => o.value === currencyValue)?.label ?? currencyValue
-
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onAmountChange(formatAmountInput(e.target.value))
   }
@@ -86,46 +67,19 @@ function AmountCurrencyRow({ amountValue, currencyValue, currencyOptions, onAmou
         placeholder={placeholder}
         className="min-w-0 flex-1 border-0 bg-transparent text-2xl font-light tabular-nums text-gray-900 outline-none placeholder:text-gray-300"
       />
-      <div ref={containerRef} className="relative shrink-0">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex h-9 min-w-[5rem] items-center justify-between gap-1.5 border-0 bg-transparent px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
-        >
-          <span>{selectedLabel}</span>
-          <TbChevronDown className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
-        </button>
-        {open && (
-          <div className="absolute top-full right-0 z-10 mt-1 max-h-56 w-56 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search currency..."
-              className="w-full border-0 border-b border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400"
-            />
-            <ul className="max-h-44 overflow-y-auto py-1" data-testid="currency-options-list">
-              {filtered.length === 0 ? (
-                <li className="px-3 py-2.5 text-xs text-gray-500">No match</li>
-              ) : (
-                filtered.map((opt) => (
-                  <li key={opt.value}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onCurrencyChange(opt.value)
-                        setOpen(false)
-                      }}
-                      className={`w-full px-3 py-2.5 text-left text-sm hover:bg-gray-100 ${opt.value === currencyValue ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-700'}`}
-                    >
-                      {opt.label}
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-        )}
+      <div className="relative shrink-0">
+        <SearchableSelect
+          value={currencyValue}
+          options={currencyOptions}
+          onChange={onCurrencyChange}
+          clearable={false}
+          searchable
+          size="sm"
+          searchPlaceholder="Search currency..."
+          listTestId="currency-options-list"
+          className="w-auto"
+          triggerClassName="h-9 min-w-[5rem] gap-1.5 rounded-md border-0 bg-transparent px-2 py-1.5 text-sm font-medium text-gray-700 shadow-none hover:bg-gray-100 focus:ring-0"
+        />
       </div>
     </div>
   )

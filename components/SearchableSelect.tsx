@@ -1,9 +1,11 @@
 'use client'
 
 import classNames from 'classnames'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { TbChevronDown } from 'react-icons/tb'
 
+import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
+import { FloatingDropdown } from '@/components/FloatingDropdown'
 import { fuzzyMatch } from '@/utils/fuzzyMatch'
 
 export interface Option {
@@ -20,42 +22,67 @@ export interface SearchableSelectProps {
   clearable?: boolean
   size?: 'sm' | 'md' | 'lg'
   searchable?: boolean
+  /** Classes on the trigger button (e.g. borderless inline picker) */
+  triggerClassName?: string
+  /** `data-testid` on the scrollable options list */
+  listTestId?: string
+  /** Search input placeholder */
+  searchPlaceholder?: string
+}
+
+function getListboxOptionButtons(list: HTMLElement | null): HTMLButtonElement[] {
+  if (!list) {
+    return []
+  }
+  return Array.from(list.querySelectorAll('button[role="option"]:not([disabled])')) as HTMLButtonElement[]
 }
 
 /**
  * Searchable select dropdown for product and option picking.
+ * Uses {@link FloatingDropdown} so menus are not clipped by overflow ancestors.
  * @param props Select props
  * @returns Searchable select component
  */
-export default function SearchableSelect(props: Readonly<SearchableSelectProps>) {
-  const { className, options = [], value, placeholder, onChange, clearable = true, size = 'md', searchable = true } = props
+export function SearchableSelect(props: Readonly<SearchableSelectProps>) {
+  const {
+    className,
+    options = [],
+    value,
+    placeholder,
+    onChange,
+    clearable = true,
+    size = 'md',
+    searchable = true,
+    triggerClassName,
+    listTestId,
+    searchPlaceholder = 'Search...',
+  } = props
+
+  const reactId = useId()
+  const listboxId = useMemo(() => `searchable-select-listbox-${reactId.replace(/:/g, '')}`, [reactId])
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
   const [selectedValue, setSelectedValue] = useState(value ?? '')
   const [searchTerm, setSearchTerm] = useState('')
-  const [isOpen, setIsOpen] = useState(false)
-  const [activeIndex, setActiveIndex] = useState(-1)
-  const selectRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     setSelectedValue(value ?? '')
   }, [value])
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-        setActiveIndex(-1)
-      }
+    if (!open) {
+      setSearchTerm('')
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [open])
 
   useEffect(() => {
-    if (isOpen) {
-      inputRef.current?.focus()
+    if (open && searchable) {
+      searchInputRef.current?.focus()
     }
-  }, [isOpen])
+  }, [open, searchable])
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm) {
@@ -73,105 +100,189 @@ export default function SearchableSelect(props: Readonly<SearchableSelectProps>)
   function handleOptionSelect(optionValue: string) {
     setSelectedValue(optionValue)
     onChange?.(optionValue)
-    setIsOpen(false)
+    setOpen(false)
     setSearchTerm('')
-    setActiveIndex(-1)
   }
 
-  function handleKeyDown(event: React.KeyboardEvent) {
-    if (!isOpen) {
-      if (event.key === 'Enter' || event.key === ' ') {
+  const focusOptionIndex = useCallback((index: number) => {
+    const buttons = getListboxOptionButtons(listRef.current)
+    buttons[index]?.focus({ preventScroll: true })
+  }, [])
+
+  const handleTriggerKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>) => {
+      if (!open && (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown')) {
         event.preventDefault()
-        setIsOpen(true)
+        setOpen(true)
       }
-      return
-    }
-    switch (event.key) {
-      case 'ArrowDown':
+    },
+    [open]
+  )
+
+  const handleSearchKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'ArrowDown' && filteredOptions.length > 0) {
         event.preventDefault()
-        setActiveIndex((prev) => (prev < filteredOptions.length - 1 ? prev + 1 : prev))
-        break
-      case 'ArrowUp':
+        focusOptionIndex(0)
+        return
+      }
+      if (event.key === 'Escape') {
         event.preventDefault()
-        setActiveIndex((prev) => (prev > 0 ? prev - 1 : -1))
-        break
-      case 'Enter':
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
+    },
+    [filteredOptions.length, focusOptionIndex]
+  )
+
+  const handleListboxKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLUListElement>) => {
+      const target = event.target
+      if (!(target instanceof HTMLButtonElement) || target.getAttribute('role') !== 'option') {
+        return
+      }
+      const buttons = getListboxOptionButtons(listRef.current)
+      const n = buttons.length
+      if (n === 0) {
+        return
+      }
+      const index = buttons.indexOf(target)
+      if (index < 0) {
+        return
+      }
+      if (event.key === 'ArrowDown') {
         event.preventDefault()
-        if (activeIndex >= 0 && filteredOptions[activeIndex]) {
-          handleOptionSelect(filteredOptions[activeIndex].value)
-        } else if (filteredOptions[0]) {
-          handleOptionSelect(filteredOptions[0].value)
+        focusOptionIndex(Math.min(index + 1, n - 1))
+        return
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        if (index <= 0) {
+          if (searchable) {
+            searchInputRef.current?.focus()
+          } else {
+            triggerRef.current?.focus()
+          }
+        } else {
+          focusOptionIndex(index - 1)
         }
-        break
-      case 'Escape':
+        return
+      }
+      if (event.key === 'Escape') {
         event.preventDefault()
-        setIsOpen(false)
-        setActiveIndex(-1)
-        break
-    }
-  }
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
+    },
+    [filteredOptions.length, focusOptionIndex, searchable]
+  )
+
+  const listboxScrollProps = useMemo(
+    () => ({
+      id: listboxId,
+      role: 'listbox' as const,
+      ...(listTestId ? { 'data-testid': listTestId } : {}),
+      onKeyDown: handleListboxKeyDown,
+    }),
+    [listboxId, listTestId, handleListboxKeyDown]
+  )
+
+  const defaultTriggerClass = classNames(
+    'flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 text-left text-sm text-gray-800',
+    {
+      'h-10': size === 'sm',
+      'h-11': size === 'md',
+      'h-12': size === 'lg',
+    },
+    triggerClassName
+  )
 
   return (
-    <div ref={selectRef} className={classNames('relative w-full', className)} onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        className={classNames('flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 text-left text-sm text-gray-800', {
-          'h-10': size === 'sm',
-          'h-11': size === 'md',
-          'h-12': size === 'lg',
-        })}
-      >
-        <span className={classNames('truncate', selectedValue ? 'text-gray-800' : 'text-gray-400')}>{selectedValue ? selectedLabel : (placeholder ?? 'Select')}</span>
-        <span className="ml-2 flex items-center gap-2">
-          {clearable && selectedValue ? (
-            <span
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-              onClick={(event) => {
-                event.stopPropagation()
-                setSelectedValue('')
-                onChange?.('')
-                setSearchTerm('')
-              }}
-            >
-              ×
-            </span>
-          ) : null}
-          <TbChevronDown className={classNames('h-4 w-4 text-gray-500 transition-transform', { 'rotate-180': isOpen })} />
-        </span>
-      </button>
-
-      {isOpen ? (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md">
-          {searchable ? (
-            <div className="p-2">
-              <input
-                ref={inputRef}
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-gray-200"
-                placeholder="Search..."
-              />
-            </div>
-          ) : null}
-          <div className="max-h-60 overflow-y-auto py-1">
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((option, index) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={classNames('block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100', { 'bg-gray-100': activeIndex === index })}
-                  onClick={() => handleOptionSelect(option.value)}
+    <div className={classNames('min-w-0', className)}>
+      <FloatingDropdown
+        open={open}
+        onOpenChange={setOpen}
+        align="start"
+        menuMinWidth={200}
+        matchTriggerWidth
+        triggerWrapperClassName="flex w-full min-w-0"
+        menuClassName="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md ring-1 ring-black/5"
+        trigger={
+          <button
+            ref={triggerRef}
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            aria-controls={open ? listboxId : undefined}
+            onClick={() => setOpen((isOpen) => !isOpen)}
+            onKeyDown={handleTriggerKeyDown}
+            className={defaultTriggerClass}
+          >
+            <span className={classNames('truncate', selectedValue ? 'text-gray-800' : 'text-gray-400')}>{selectedValue ? selectedLabel : (placeholder ?? 'Select')}</span>
+            <span className="ml-2 flex items-center gap-2">
+              {clearable && selectedValue ? (
+                <span
+                  role="button"
+                  tabIndex={-1}
+                  className="inline-flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setSelectedValue('')
+                    onChange?.('')
+                    setSearchTerm('')
+                  }}
                 >
-                  {option.label}
-                </button>
-              ))
-            ) : (
-              <div className="px-3 py-2 text-sm text-gray-500">No matches found</div>
-            )}
+                  ×
+                </span>
+              ) : null}
+              <TbChevronDown className={classNames('h-4 w-4 text-gray-500 transition-transform', { 'rotate-180': open })} />
+            </span>
+          </button>
+        }
+      >
+        {searchable ? (
+          <div className="border-b border-gray-100 p-2">
+            <input
+              ref={searchInputRef}
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-gray-200"
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+            />
           </div>
-        </div>
-      ) : null}
+        ) : null}
+        <DropdownMenuScrollArea ref={listRef} as="ul" scrollClassName="max-h-60 py-1" scrollProps={listboxScrollProps}>
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((option) => {
+              const isSelected = option.value === selectedValue
+              return (
+                <li key={option.value} role="none">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    className={classNames(
+                      'block w-full px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100',
+                      isSelected && 'bg-gray-100 font-medium text-gray-900'
+                    )}
+                    onClick={() => handleOptionSelect(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                </li>
+              )
+            })
+          ) : (
+            <li role="none">
+              <div className="px-3 py-2 text-sm text-gray-500">No matches found</div>
+            </li>
+          )}
+        </DropdownMenuScrollArea>
+      </FloatingDropdown>
     </div>
   )
 }
+
+export default SearchableSelect

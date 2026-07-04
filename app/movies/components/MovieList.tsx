@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { TbChevronDown, TbSearch } from 'react-icons/tb'
+import { useMemo, useState } from 'react'
 
 /** Compact genre filter trigger (movies header toolbar). */
 const MOVIES_COMPACT_FILTER_BUTTON_CLASS =
@@ -11,6 +10,7 @@ const MOVIES_COMPACT_FILTER_BUTTON_CLASS =
 const MOVIES_HOT_TAB_SHELL_CLASS = 'flex h-7 shrink-0 items-stretch rounded-md border border-gray-200 bg-gray-50 p-0.5'
 import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
 import { LazyImage } from '@/components/LazyImage'
+import { SearchFilterDropdown } from '@/components/SearchFilterDropdown'
 import type { MergedMovie } from '@/services/maoyan/types'
 import { isHot } from '@/services/movies/popularity'
 
@@ -83,9 +83,6 @@ export function MovieList(props: MovieListProps) {
 
   const [hotTab, setHotTab] = useState<'all' | 'popular'>('all')
   const [selectedGenre, setSelectedGenre] = useState<string>('all')
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const pickerRef = useRef<HTMLDivElement>(null)
 
   const filteredMovies = useMemo(() => {
     let list = hotTab === 'popular' ? movies.filter(isHot) : movies
@@ -97,26 +94,12 @@ export function MovieList(props: MovieListProps) {
   const genreOptions = useMemo(() => {
     const options: Array<{ value: string; label: string }> = [{ value: 'all', label: 'All' }]
     genres.forEach((g) => options.push({ value: g, label: genreToLabelEn(g) }))
-    if (!searchQuery.trim()) return options
-    const q = searchQuery.toLowerCase()
-    return options.filter((o) => o.label.toLowerCase().includes(q))
-  }, [genres, searchQuery])
+    return options
+  }, [genres])
 
   function handleSelectGenre(value: string) {
-    setPickerOpen(false)
-    setSearchQuery('')
     setSelectedGenre(value)
   }
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        setPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   const sourceFlags = useMemo(() => {
     let hasMaoyan = false
@@ -163,52 +146,18 @@ export function MovieList(props: MovieListProps) {
             </button>
           </div>
           {genres.length > 0 && (
-            <div className="relative" ref={pickerRef}>
-              <button
-                type="button"
-                onClick={() => setPickerOpen((open) => !open)}
-                className={MOVIES_COMPACT_FILTER_BUTTON_CLASS}
-                aria-label="Filter by genre"
-                aria-expanded={pickerOpen}
-                aria-haspopup="listbox"
-              >
-                <TbSearch className="h-3 w-3 shrink-0 text-gray-500" />
-                <span className="max-w-[5.5rem] truncate">{selectedGenre === 'all' ? 'Genre' : genreToLabelEn(selectedGenre)}</span>
-                <TbChevronDown className="h-3 w-3 shrink-0 text-gray-500" />
-              </button>
-              {pickerOpen && (
-                <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
-                  <div className="border-b border-gray-100 px-2 pb-2">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search genre…"
-                      className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs outline-none focus:border-gray-400"
-                      aria-label="Search genre"
-                    />
-                  </div>
-                  <ul className="max-h-56 overflow-auto">
-                    {genreOptions.length === 0 ? (
-                      <li className="px-3 py-2.5 text-xs text-gray-500">No match</li>
-                    ) : (
-                      genreOptions.map((o) => (
-                        <li key={o.value}>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectGenre(o.value)}
-                            className="w-full px-3 py-2.5 text-left text-xs text-gray-800 hover:bg-gray-100"
-                            role="option"
-                          >
-                            {o.label}
-                          </button>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-              )}
-            </div>
+            <SearchFilterDropdown
+              value={selectedGenre}
+              onChange={handleSelectGenre}
+              options={genreOptions}
+              triggerLabel={<span className="max-w-[5.5rem] truncate">{selectedGenre === 'all' ? 'Genre' : genreToLabelEn(selectedGenre)}</span>}
+              ariaLabel="Filter by genre"
+              searchPlaceholder="Search genre…"
+              emptyText="No match"
+              buttonClassName={MOVIES_COMPACT_FILTER_BUTTON_CLASS}
+              menuWidthClassName="w-40"
+              align="end"
+            />
           )}
         </div>
       </header>

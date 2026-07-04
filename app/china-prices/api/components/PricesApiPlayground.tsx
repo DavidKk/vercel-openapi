@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { MdOutlineAdminPanelSettings } from 'react-icons/md'
-import { TbChevronDown, TbCode } from 'react-icons/tb'
+import { TbCode } from 'react-icons/tb'
 
 import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
+import { DropdownSelect } from '@/components/DropdownSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
@@ -70,8 +71,6 @@ export interface PricesApiPlaygroundProps {
 
 export function PricesApiPlayground(props: PricesApiPlaygroundProps) {
   const { canWrite, adminApiKey } = props
-  const dropdownRef = useRef<HTMLDivElement | null>(null)
-  const [endpointOpen, setEndpointOpen] = useState(false)
   const [state, setState] = useState<PricesApiState>({
     loading: false,
     endpoint: 'list',
@@ -89,20 +88,6 @@ export function PricesApiPlayground(props: PricesApiPlaygroundProps) {
   })
 
   const [examplesOpen, setExamplesOpen] = useState(false)
-
-  useEffect(() => {
-    if (!endpointOpen) return
-    function onPointerDown(event: MouseEvent) {
-      const el = dropdownRef.current
-      if (!el) return
-      if (event.target instanceof Node && !el.contains(event.target)) {
-        setEndpointOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', onPointerDown)
-    return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [endpointOpen])
 
   const endpointOptions: PricesApiEndpoint[] = useMemo(() => {
     const base: PricesApiEndpoint[] = ['list', 'search', 'calc']
@@ -167,6 +152,33 @@ export function PricesApiPlayground(props: PricesApiPlaygroundProps) {
   const selected = PRICES_API_ENDPOINTS[endpoint]
   const selectedDisplay = PRICES_API_ENDPOINT_DISPLAY[endpoint]
 
+  const endpointSelectOptions = useMemo(
+    () =>
+      endpointOptions.map((opt) => {
+        const display = PRICES_API_ENDPOINT_DISPLAY[opt]
+        return {
+          value: opt,
+          label: `${display.method} ${display.path}`,
+        }
+      }),
+    [endpointOptions]
+  )
+
+  function renderEndpointLabel(display: (typeof PRICES_API_ENDPOINT_DISPLAY)[PricesApiEndpoint]) {
+    return (
+      <div className="flex min-w-0 items-center gap-1">
+        <span className="min-w-0 truncate leading-none">
+          {display.method} {display.path}
+        </span>
+        {display.admin ? (
+          <Tooltip content="ADMIN" placement="top">
+            <MdOutlineAdminPanelSettings className="h-3 w-3 shrink-0 text-indigo-700" aria-label="ADMIN" />
+          </Tooltip>
+        ) : null}
+      </div>
+    )
+  }
+
   const requestExamples: RequestExampleInput | null = (() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
     const q = query.trim()
@@ -212,65 +224,14 @@ export function PricesApiPlayground(props: PricesApiPlaygroundProps) {
           <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">
               <span className="text-[11px] text-gray-700">Endpoint</span>
-              <div ref={dropdownRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => setEndpointOpen((open) => !open)}
-                  className="flex h-8 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-900"
-                  aria-haspopup="listbox"
-                  aria-expanded={endpointOpen}
-                >
-                  <div className="flex min-w-0 items-center gap-1">
-                    <span className="min-w-0 truncate leading-none">
-                      {selectedDisplay.method} {selectedDisplay.path}
-                    </span>
-                    {selectedDisplay.admin ? (
-                      <Tooltip content="ADMIN" placement="top">
-                        <MdOutlineAdminPanelSettings className="h-3 w-3 shrink-0 text-indigo-700" aria-label="ADMIN" />
-                      </Tooltip>
-                    ) : null}
-                  </div>
-                  <TbChevronDown className={`ml-2 h-4 w-4 text-gray-500 transition-transform ${endpointOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {endpointOpen ? (
-                  <div
-                    role="listbox"
-                    aria-label="Endpoint"
-                    className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-auto rounded-lg border border-gray-200 bg-white shadow-md"
-                  >
-                    {endpointOptions.map((opt) => {
-                      const display = PRICES_API_ENDPOINT_DISPLAY[opt]
-                      const isSelected = opt === endpoint
-
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          role="option"
-                          aria-selected={isSelected}
-                          className={`block w-full px-3 py-2 text-left text-sm transition-colors ${isSelected ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'}`}
-                          onClick={() => {
-                            setState((prev) => ({ ...prev, endpoint: opt }))
-                            setEndpointOpen(false)
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="min-w-0 truncate leading-none">
-                              {display.method} {display.path}
-                            </span>
-                            {display.admin ? (
-                              <Tooltip content="ADMIN" placement="top">
-                                <MdOutlineAdminPanelSettings className="h-3 w-3 shrink-0 text-indigo-700" aria-label="ADMIN" />
-                              </Tooltip>
-                            ) : null}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                ) : null}
-              </div>
+              <DropdownSelect
+                value={endpoint}
+                onChange={(value) => setState((prev) => ({ ...prev, endpoint: value as PricesApiEndpoint }))}
+                options={endpointSelectOptions}
+                ariaLabel="Endpoint"
+                renderValue={() => renderEndpointLabel(selectedDisplay)}
+                renderOption={(opt) => renderEndpointLabel(PRICES_API_ENDPOINT_DISPLAY[opt.value as PricesApiEndpoint])}
+              />
             </label>
             {endpoint === 'search' || endpoint === 'update' || endpoint === 'delete' ? (
               <label className="flex flex-col gap-1">

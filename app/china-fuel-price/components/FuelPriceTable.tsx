@@ -1,11 +1,12 @@
 'use client'
 
 import classNames from 'classnames'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { TbChevronDown, TbMapPin, TbSearch } from 'react-icons/tb'
+import { useEffect, useMemo, useState } from 'react'
+import { TbMapPin } from 'react-icons/tb'
 
 import type { FuelPriceData, FuelPriceList } from '@/app/actions/fuel-price/types'
 import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
+import { SearchFilterDropdown } from '@/components/SearchFilterDropdown'
 import { Spinner } from '@/components/Spinner'
 
 /** Region filter trigger: compact on mobile, original filter button size from `sm` up. */
@@ -27,9 +28,6 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
 
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' | 'none' } | null>(null)
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const pickerRef = useRef<HTMLDivElement | null>(null)
 
   if (!fuelPrices) {
     return (
@@ -119,7 +117,7 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
 
   const provinceOptions = useMemo(() => {
     const seen = new Set<string>()
-    const all = allProvincesData
+    return allProvincesData
       .map((item) => item.province)
       .filter((name) => {
         if (!name) return false
@@ -127,29 +125,12 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
         seen.add(name)
         return true
       })
-
-    if (!searchQuery.trim()) {
-      return all
-    }
-    const lower = searchQuery.toLowerCase()
-    return all.filter((name) => name.toLowerCase().includes(lower))
-  }, [allProvincesData, searchQuery])
+      .map((name) => ({ value: name, label: name }))
+  }, [allProvincesData])
 
   const handleSelectProvince = (provinceName: string) => {
-    setPickerOpen(false)
-    setSearchQuery('')
     setSelectedProvince(provinceName)
   }
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        setPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   useEffect(() => {
     if (!selectedProvince) return
@@ -168,51 +149,19 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
         <h1 className={`flex-1 ${CONTENT_PAGE_TITLE_CLASS}`}>China Fuel Price</h1>
-        <div className="relative shrink-0" ref={pickerRef}>
-          <button
-            type="button"
-            onClick={() => setPickerOpen((open) => !open)}
-            className={FUEL_REGION_FILTER_BUTTON_CLASS}
-            aria-label="选择地区"
-            aria-expanded={pickerOpen}
-            aria-haspopup="listbox"
-          >
-            <TbSearch className="h-3 w-3 shrink-0 text-gray-500 sm:h-4 sm:w-4" />
-            地区
-            <TbChevronDown className="h-3 w-3 shrink-0 text-gray-500 sm:h-4 sm:w-4" />
-          </button>
-          {pickerOpen && (
-            <div className="absolute right-0 top-full z-10 mt-1 w-72 min-w-[14rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg" role="listbox">
-              <div className="border-b border-gray-100 px-2 pb-2">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜索地区…"
-                  className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs outline-none focus:border-gray-400"
-                  aria-label="搜索地区"
-                />
-              </div>
-              <ul className="max-h-56 overflow-auto">
-                {provinceOptions.length === 0 ? (
-                  <li className="px-3 py-2.5 text-xs text-gray-500">无匹配地区</li>
-                ) : (
-                  provinceOptions.map((name) => (
-                    <li key={name}>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectProvince(name)}
-                        className="w-full px-3 py-2.5 text-left text-xs text-gray-800 hover:bg-gray-100"
-                        role="option"
-                      >
-                        {name}
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-          )}
+        <div className="shrink-0">
+          <SearchFilterDropdown
+            value={selectedProvince ?? ''}
+            onChange={handleSelectProvince}
+            options={provinceOptions}
+            triggerLabel={<span>地区</span>}
+            ariaLabel="选择地区"
+            searchPlaceholder="搜索地区…"
+            emptyText="无匹配地区"
+            buttonClassName={FUEL_REGION_FILTER_BUTTON_CLASS}
+            menuWidthClassName="w-72 min-w-[14rem]"
+            align="end"
+          />
         </div>
       </header>
 
