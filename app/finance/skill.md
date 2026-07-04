@@ -1,6 +1,6 @@
 ---
 name: finance
-description: Stocks (multi-market index snapshot via stock/summary, incl. TASI; legacy TASI feed for historical K-line only), funds (six-digit OHLCV vs NAV daily), precious metals (XAUUSD) — pick the matching REST path or MCP tool.
+description: Stocks (multi-market index snapshot + daily summary via stock/summary, incl. TASI), funds (six-digit OHLCV vs NAV daily), precious metals (XAUUSD) — pick the matching REST path or MCP tool.
 ---
 
 # Finance API — Stocks / Funds / Precious metals (agent-ready)
@@ -9,16 +9,15 @@ description: Stocks (multi-market index snapshot via stock/summary, incl. TASI; 
 
 | Major               | Meaning                                                                                                                                                                                               |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Stocks**          | Stock market: multi-market **index snapshot**, exchange-scoped **index daily**, **index hourly** — TASI **constituent company daily is not supported** (use index snapshot instead).                  |
+| **Stocks**          | Stock market: multi-market **index snapshot** (latest) and **index daily summary** (latest / date / range) — TASI **constituent company daily is not supported** (use index snapshot instead).        |
 | **Funds**           | Six-digit **daily** data in **two shapes**: **exchange daily bars (OHLCV)** vs **NAV disclosure (unit + daily %)**.                                                                                   |
 | **Precious metals** | Spot **XAUUSD** daily OHLCV via **`GET /api/finance/fund/XAUUSD/ohlcv/daily`** (canonical; legacy `market/daily?symbols=XAUUSD`); Turso `source=eastmoney-precious-spot`. Only XAUUSD in scope today. |
 
 ## When to use
 
 - **Stocks — index snapshot (all overview markets, including TASI)** — **`GET /api/finance/stock/summary?market=...`** or batch `markets=...`. **TASI latest index → `GET /api/finance/stock/summary?market=TASI`** (canonical; same as other markets).
-- **Stocks — index daily (exchange feed; TASI only today)** — canonical: **`GET /api/finance/stock/tasi/summary/daily`** (slug matches `/finance/stock/tasi`; no `market=` query). Legacy: `GET /api/finance/market/summary/daily?market=TASI`. For **latest TASI bar**, prefer **`/api/finance/stock/summary?market=TASI`**.
-- **Stocks — index hourly (exchange feed; TASI only today)**: **`GET /api/finance/stock/tasi/summary/hourly`**. Legacy: `GET /api/finance/market/summary/hourly?market=TASI`.
-- **Stocks — TASI constituents** — **not supported** for latest/full list. Legacy `company/daily` paths return **400** for today; use **`/api/finance/stock/summary?market=TASI`**. Historical K-line (`code`+`from`+`to`) may still read Turso when data exists.
+- **Stocks — index daily summary (all overview markets)** — **`GET /api/finance/stock/summary/daily?market=...`**. No date params → **latest** (same data as `/stock/summary`); optional `date=YYYY-MM-DD` (single historical day) or `from`+`to` (range, max 365 days → `data.items`). TASI history from the TASI Turso feed; other markets from `finance_stock_summary_daily`.
+- **Stocks — TASI constituents** — **not supported** for latest/full list; use **`/api/finance/stock/summary?market=TASI`** for the index.
 - **Funds / precious spot — exchange-style daily OHLCV (canonical)** — **`GET /api/finance/fund/{symbol}/ohlcv/daily?startDate=...&endDate=...`** (`{symbol}` six-digit or `XAUUSD`; optional `withIndicators=true` adds MACD fields using legacy window cold-start by default; optional `indicatorWarmup=true` uses 120 calendar days; optional `indicatorWarmupDays=35..250` sets the lookback; optional `forceSync=true` refreshes allowlisted cached ranges). Multi-symbol batch legacy: `GET /api/finance/market/daily?symbols=...`.
 - **Funds / precious — latest one OHLCV bar** — **`GET /api/finance/fund/{symbol}/ohlcv/daily/latest`** (same path shape as `market/daily/latest`). Legacy: `GET /api/finance/market/daily/latest?symbols=...`.
 - **Funds — NAV disclosure daily series (canonical)** — **`GET /api/finance/fund/{symbol}/nav/daily?startDate=...&endDate=...`**. Legacy: `GET /api/finance/fund/nav/daily?symbols=...`.
@@ -29,13 +28,13 @@ description: Stocks (multi-market index snapshot via stock/summary, incl. TASI; 
 ## Hard boundaries (must check before call)
 
 - **TASI company list / latest constituents** — not available. Use **`GET /api/finance/stock/summary?market=TASI`** or MCP **`get_stock_summary`**.
-- Exchange feed paths under `market/...` and `stock/tasi/...` (summary daily/hourly) are **TASI-only** in current implementation; non-TASI requests must be redirected to `get_stock_summary`.
+- On `/api/finance/stock/summary/daily`, non-TASI markets return historical rows only for dates the daily ingest has written (`finance_stock_summary_daily`); missing days come back as `null` (single) or are absent from `items` (range), not an error.
 - Do not mix **fund NAV** and **exchange OHLCV** tools: NAV symbols/routes use `get_fund_nav_daily*`, while OHLCV uses `get_market_daily*`.
 - Current precious metals scope is **XAUUSD only**; do not imply support for other metals unless route/tool exists.
 
 ## Pre-check (before tool call)
 
-- Classify intent first: stock index snapshot vs TASI feed (daily/hourly) vs fund NAV vs fund OHLCV vs precious metal.
+- Classify intent first: stock index latest snapshot vs stock index daily summary (date/range) vs fund NAV vs fund OHLCV vs precious metal.
 - For **TASI index latest** → `get_stock_summary` / `/api/finance/stock/summary?market=TASI`.
 - For **TASI company list** → explain unsupported; offer index snapshot instead.
 - Validate symbol/date requirements per endpoint mode before calling.
@@ -54,7 +53,7 @@ description: Stocks (multi-market index snapshot via stock/summary, incl. TASI; 
 ## Multi-turn / Missing parameters
 
 - **Parse first:** `market`, `date`, `from`/`to`, `code` from natural language; dates **YYYY-MM-DD**.
-- **Index K-line (TASI):** requires **`from`** and **`to`**. If only one date, ask for the range.
+- **Index range summary:** requires **`from`** and **`to`** together. If only one date is given, treat it as `date` (single day) or ask for the range.
 
 ## Parameters (canonical REST)
 
@@ -69,24 +68,22 @@ description: Stocks (multi-market index snapshot via stock/summary, incl. TASI; 
 
 **HTTP 200 body:** `{ "code": 0, "message": "ok", "data": … }` — single: `data: { "market", "summary" }`; batch: `data: { "items": [...] }`.
 
-### Stocks — index daily (TASI index feed / Turso)
+### Stocks — index daily summary (all overview markets)
 
-`GET /api/finance/stock/tasi/summary/daily` — **canonical** (slug `tasi`). Legacy: `GET /api/finance/market/summary/daily?market=TASI`. For **latest** bar, prefer **`/api/finance/stock/summary?market=TASI`**.
+`GET /api/finance/stock/summary/daily` — one market per request via `market=` (default TASI).
 
-| Mode         | Query                             |
-| ------------ | --------------------------------- |
-| Latest       | _(none)_ or `market=TASI`         |
-| Single day   | `date=YYYY-MM-DD`                 |
-| Index K-line | `from=YYYY-MM-DD` `to=YYYY-MM-DD` |
+| Mode       | Query                                                         |
+| ---------- | ------------------------------------------------------------- |
+| Latest     | `market=TASI` (default) — same data as `/stock/summary`       |
+| Single day | `market=...` `date=YYYY-MM-DD`                                |
+| Range      | `market=...` `from=YYYY-MM-DD` `to=YYYY-MM-DD` (max 365 days) |
 
-### Stocks — index hourly alignment
-
-`GET /api/finance/stock/tasi/summary/hourly` — **TASI only**; no query params. Legacy: `GET /api/finance/market/summary/hourly?market=TASI`.
+**HTTP 200 body:** latest / single day → `data: { "market", "summary" }`; range → `data: { "market", "items": [...] }`. Do not send `date` together with `from`/`to`.
 
 ## Steps
 
 0. **Conversation cache:** Same full URL already returned **HTTP 200** with usable `data` → reuse.
-1. **Choose path:** stocks snapshot (incl. TASI latest) → **stock/summary**; TASI historical index K-line / hourly alignment → **stock/tasi/summary/daily** or **hourly** (legacy); funds → **fund/…/ohlcv** vs **fund/…/nav** vs **overview/stock-list**.
+1. **Choose path:** stocks latest snapshot (incl. TASI) → **stock/summary**; stocks historical / range summary → **stock/summary/daily** (`date` or `from`+`to`); funds → **fund/…/ohlcv** vs **fund/…/nav** vs **overview/stock-list**.
 2. **Validate** required query parts for that mode.
 3. **GET** only (no body).
 4. **Check HTTP** then envelope `{ code, message, data }` on **200**.
@@ -97,9 +94,8 @@ description: Stocks (multi-market index snapshot via stock/summary, incl. TASI; 
 ```http
 GET /api/finance/stock/summary?market=TASI
 GET /api/finance/stock/summary?market=Nasdaq
-GET /api/finance/stock/tasi/summary/daily?date=2026-03-01
-GET /api/finance/stock/tasi/summary/daily?from=2026-01-01&to=2026-03-01
-GET /api/finance/stock/tasi/summary/hourly
+GET /api/finance/stock/summary/daily?market=TASI&date=2026-03-01
+GET /api/finance/stock/summary/daily?market=TASI&from=2026-01-01&to=2026-03-01
 ```
 
 ## MCP / function calling (same `tool` names as POST `/api/mcp/finance`)
@@ -136,13 +132,13 @@ Same envelope: **`{ code: 0, message: "ok", data: … }`**. **`data`** may be `[
 - **`/api/finance/fund/{symbol}/ohlcv/daily/latest`** and legacy **`/api/finance/market/daily/latest`:** `data` is `{ asOf, items, synced }` — one latest bar; **`asOf`** is ISO-8601; **`items[].date`** is the bar’s calendar trade date.
 - **`/api/finance/fund/{symbol}/nav/daily`** and legacy **`/api/finance/fund/nav/daily`:** `data` is `{ items, synced }` with **fund NAV** rows (`items[].unitNav`, `items[].dailyChangePercent` only).
 - **`/api/finance/fund/{symbol}/nav/daily/latest`** and legacy **`/api/finance/fund/nav/daily/latest`:** `data` is `{ asOf, items, synced }`.
-- **`/api/finance/stock/tasi/summary/daily/latest`** (legacy **`/api/finance/market/summary/daily/latest`**): `data` is `{ asOf, dataDate, summary }`.
+- **`/api/finance/stock/summary/daily`:** latest / single day → `data` is `{ market, summary }`; range (`from`+`to`) → `data` is `{ market, items }`. `summary`/`items` may be `null`/`[]` on **200** when no row exists for that date.
 
 ## Examples
 
 - User: “TASI summary today” → `GET /api/finance/stock/summary?market=TASI`.
 - User: “Nasdaq summary today” → `GET /api/finance/stock/summary?market=Nasdaq`.
-- User: “TASI index K-line Jan–Mar 2026” → `GET /api/finance/stock/tasi/summary/daily?from=2026-01-01&to=2026-03-01`.
+- User: “TASI index daily Jan–Mar 2026” → `GET /api/finance/stock/summary/daily?market=TASI&from=2026-01-01&to=2026-03-01`.
 - User: “TASI all companies today” → explain constituents not supported; offer `GET /api/finance/stock/summary?market=TASI` for index snapshot.
 
 ## Agent rules

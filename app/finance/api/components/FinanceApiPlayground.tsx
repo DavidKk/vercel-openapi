@@ -10,7 +10,16 @@ import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
 import type { RequestExampleInput } from '@/utils/requestExamples'
 
-type Endpoint = 'stockSummary' | 'stockSummaryBatch' | 'marketDaily' | 'fundNavDaily' | 'overviewStockList'
+type Endpoint =
+  | 'stockSummaryDaily'
+  | 'stockSummaryBatch'
+  | 'marketDaily'
+  | 'marketDailyLatest'
+  | 'fundNavDaily'
+  | 'fundNavDailyLatest'
+  | 'preciousDaily'
+  | 'preciousDailyLatest'
+  | 'overviewStockList'
 
 interface FinanceApiState {
   loading: boolean
@@ -21,6 +30,9 @@ interface FinanceApiState {
   endpoint: Endpoint
   stockMarket: string
   stockMarkets: string
+  stockDate: string
+  stockFrom: string
+  stockTo: string
   mdSymbols: string
   mdStart: string
   mdEnd: string
@@ -28,6 +40,8 @@ interface FinanceApiState {
   mdIndicatorWarmup: boolean
   mdIndicatorWarmupDays: string
   mdSyncIfEmpty: boolean
+  mdForceSync: boolean
+  mdLatestWithIndicators: boolean
   ovSymbols: string
   ovStart: string
   ovEnd: string
@@ -40,9 +54,12 @@ interface FinanceApiState {
 export function FinanceApiPlayground() {
   const [state, setState] = useState<FinanceApiState>({
     loading: false,
-    endpoint: 'stockSummary',
+    endpoint: 'stockSummaryDaily',
     stockMarket: 'TASI',
     stockMarkets: 'TASI,S&P 500,Dow Jones',
+    stockDate: '',
+    stockFrom: '',
+    stockTo: '',
     mdSymbols: '518880',
     mdStart: '',
     mdEnd: '',
@@ -50,6 +67,8 @@ export function FinanceApiPlayground() {
     mdIndicatorWarmup: false,
     mdIndicatorWarmupDays: '',
     mdSyncIfEmpty: true,
+    mdForceSync: false,
+    mdLatestWithIndicators: true,
     ovSymbols: '518880',
     ovStart: '',
     ovEnd: '',
@@ -59,10 +78,20 @@ export function FinanceApiPlayground() {
   const [examplesOpen, setExamplesOpen] = useState(false)
 
   function pathForEndpoint(endpoint: Endpoint): string {
-    if (endpoint === 'marketDaily') return '/api/finance/fund/…/ohlcv/daily'
-    if (endpoint === 'fundNavDaily') return '/api/finance/fund/…/nav/daily'
+    if (endpoint === 'marketDaily' || endpoint === 'marketDailyLatest') return '/api/finance/fund/…/ohlcv/daily[/latest]'
+    if (endpoint === 'fundNavDaily' || endpoint === 'fundNavDailyLatest') return '/api/finance/fund/…/nav/daily[/latest]'
+    if (endpoint === 'preciousDaily' || endpoint === 'preciousDailyLatest') return '/api/finance/fund/XAUUSD/ohlcv/daily[/latest]'
     if (endpoint === 'overviewStockList') return '/api/finance/overview/stock-list'
-    return '/api/finance/stock/summary'
+    if (endpoint === 'stockSummaryBatch') return '/api/finance/stock/summary'
+    return '/api/finance/stock/summary/daily'
+  }
+
+  function symbolForEndpoint(endpoint: Endpoint, values: FinanceApiState): string {
+    if (endpoint === 'preciousDaily' || endpoint === 'preciousDailyLatest') return 'XAUUSD'
+    if (endpoint === 'fundNavDaily' || endpoint === 'fundNavDailyLatest') {
+      return values.mdSymbols.split(',')[0]?.trim() || '012922'
+    }
+    return values.mdSymbols.split(',')[0]?.trim() || '518880'
   }
 
   function buildRequestUrl(endpoint: Endpoint, values: FinanceApiState): string {
@@ -74,8 +103,19 @@ export function FinanceApiPlayground() {
       q.set('markets', values.stockMarkets)
       return `${baseStock}?${q.toString()}`
     }
+    if (endpoint === 'stockSummaryDaily') {
+      const q = new URLSearchParams()
+      q.set('market', values.stockMarket)
+      if (values.stockDate.trim()) {
+        q.set('date', values.stockDate.trim())
+      } else if (values.stockFrom.trim() && values.stockTo.trim()) {
+        q.set('from', values.stockFrom.trim())
+        q.set('to', values.stockTo.trim())
+      }
+      return `/api/finance/stock/summary/daily?${q.toString()}`
+    }
     if (endpoint === 'marketDaily') {
-      const sym = values.mdSymbols.split(',')[0]?.trim() || '518880'
+      const sym = symbolForEndpoint(endpoint, values)
       const q = new URLSearchParams()
       q.set('startDate', values.mdStart)
       q.set('endDate', values.mdEnd)
@@ -83,15 +123,40 @@ export function FinanceApiPlayground() {
       if (values.mdIndicatorWarmup) q.set('indicatorWarmup', 'true')
       if (values.mdIndicatorWarmupDays.trim()) q.set('indicatorWarmupDays', values.mdIndicatorWarmupDays.trim())
       if (values.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      if (values.mdForceSync) q.set('forceSync', 'true')
       return `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily?${q.toString()}`
     }
+    if (endpoint === 'marketDailyLatest' || endpoint === 'preciousDailyLatest') {
+      const sym = symbolForEndpoint(endpoint, values)
+      const q = new URLSearchParams()
+      if (!values.mdLatestWithIndicators) q.set('withIndicators', 'false')
+      if (values.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      return `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily/latest?${q.toString()}`
+    }
+    if (endpoint === 'preciousDaily') {
+      const q = new URLSearchParams()
+      q.set('startDate', values.mdStart)
+      q.set('endDate', values.mdEnd)
+      if (values.mdWithIndicators) q.set('withIndicators', 'true')
+      if (values.mdIndicatorWarmup) q.set('indicatorWarmup', 'true')
+      if (values.mdIndicatorWarmupDays.trim()) q.set('indicatorWarmupDays', values.mdIndicatorWarmupDays.trim())
+      if (values.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      if (values.mdForceSync) q.set('forceSync', 'true')
+      return `/api/finance/fund/XAUUSD/ohlcv/daily?${q.toString()}`
+    }
     if (endpoint === 'fundNavDaily') {
-      const sym = values.mdSymbols.split(',')[0]?.trim() || '012922'
+      const sym = symbolForEndpoint(endpoint, values)
       const q = new URLSearchParams()
       q.set('startDate', values.mdStart)
       q.set('endDate', values.mdEnd)
       if (values.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
       return `/api/finance/fund/${encodeURIComponent(sym)}/nav/daily?${q.toString()}`
+    }
+    if (endpoint === 'fundNavDailyLatest') {
+      const sym = symbolForEndpoint(endpoint, values)
+      const q = new URLSearchParams()
+      if (values.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      return `/api/finance/fund/${encodeURIComponent(sym)}/nav/daily/latest?${q.toString()}`
     }
     if (endpoint === 'overviewStockList') {
       const q = new URLSearchParams()
@@ -101,9 +166,7 @@ export function FinanceApiPlayground() {
       if (values.ovSyncIfEmpty) q.set('syncIfEmpty', 'true')
       return `${baseOverviewStockList}?${q.toString()}`
     }
-    const q = new URLSearchParams()
-    q.set('market', values.stockMarket)
-    return `${baseStock}?${q.toString()}`
+    return `/api/finance/stock/summary/daily?market=${encodeURIComponent(values.stockMarket)}`
   }
 
   async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
@@ -146,6 +209,9 @@ export function FinanceApiPlayground() {
     endpoint,
     stockMarket,
     stockMarkets,
+    stockDate,
+    stockFrom,
+    stockTo,
     mdSymbols,
     mdStart,
     mdEnd,
@@ -153,6 +219,8 @@ export function FinanceApiPlayground() {
     mdIndicatorWarmup,
     mdIndicatorWarmupDays,
     mdSyncIfEmpty,
+    mdForceSync,
+    mdLatestWithIndicators,
     ovSymbols,
     ovStart,
     ovEnd,
@@ -169,6 +237,11 @@ export function FinanceApiPlayground() {
     }
   })()
 
+  const isOhlcvRange = endpoint === 'marketDaily' || endpoint === 'preciousDaily'
+  const isOhlcvLatest = endpoint === 'marketDailyLatest' || endpoint === 'preciousDailyLatest'
+  const isNavRange = endpoint === 'fundNavDaily'
+  const isNavLatest = endpoint === 'fundNavDailyLatest'
+
   return (
     <div className="flex h-full flex-col bg-white">
       <PlaygroundPanelHeader />
@@ -179,7 +252,7 @@ export function FinanceApiPlayground() {
               <span className="font-medium text-gray-800">Request</span>
               <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET {path}</span>
             </div>
-            <p className="text-[10px] text-gray-500">Finance REST demo — TASI uses stock/summary like other markets.</p>
+            <p className="text-[10px] text-gray-500">Finance REST demo — stock summary daily defaults to latest; add date or from+to for history.</p>
           </div>
           <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">
@@ -188,25 +261,61 @@ export function FinanceApiPlayground() {
                 value={endpoint}
                 onChange={(v) => setState((prev) => ({ ...prev, endpoint: v as Endpoint }))}
                 options={[
-                  { value: 'stockSummary', label: 'Stock summary — single market' },
+                  { value: 'stockSummaryDaily', label: 'Stock summary — daily (latest / date / range)' },
                   { value: 'stockSummaryBatch', label: 'Stock summary — batch (markets=)' },
-                  { value: 'marketDaily', label: 'Six-digit — Exchange daily OHLCV' },
-                  { value: 'fundNavDaily', label: 'Six-digit — Fund NAV daily (LSJZ)' },
+                  { value: 'marketDaily', label: 'Fund/ETF — exchange daily OHLCV (range)' },
+                  { value: 'marketDailyLatest', label: 'Fund/ETF — exchange daily OHLCV (latest)' },
+                  { value: 'fundNavDaily', label: 'Fund — NAV daily (range, LSJZ)' },
+                  { value: 'fundNavDailyLatest', label: 'Fund — NAV daily (latest)' },
+                  { value: 'preciousDaily', label: 'Precious metals — XAUUSD OHLCV (range)' },
+                  { value: 'preciousDailyLatest', label: 'Precious metals — XAUUSD OHLCV (latest)' },
                   { value: 'overviewStockList', label: 'Overview — stockList + MACD (latest per symbol)' },
                 ]}
               />
             </label>
-            {endpoint === 'stockSummary' && (
-              <label className="flex flex-col gap-1">
-                <span>market</span>
-                <input
-                  type="text"
-                  className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                  value={stockMarket}
-                  onChange={(e) => setState((prev) => ({ ...prev, stockMarket: e.target.value }))}
-                  placeholder="e.g. TASI, Nasdaq, S&P 500"
-                />
-              </label>
+            {endpoint === 'stockSummaryDaily' && (
+              <>
+                <label className="flex flex-col gap-1">
+                  <span>market</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={stockMarket}
+                    onChange={(e) => setState((prev) => ({ ...prev, stockMarket: e.target.value }))}
+                    placeholder="e.g. TASI, Nasdaq, S&P 500"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>date (optional — leave empty for latest)</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={stockDate}
+                    onChange={(e) => setState((prev) => ({ ...prev, stockDate: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>from (optional range)</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={stockFrom}
+                    onChange={(e) => setState((prev) => ({ ...prev, stockFrom: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>to (optional range)</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={stockTo}
+                    onChange={(e) => setState((prev) => ({ ...prev, stockTo: e.target.value }))}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </label>
+              </>
             )}
             {endpoint === 'stockSummaryBatch' && (
               <label className="flex flex-col gap-1">
@@ -258,18 +367,20 @@ export function FinanceApiPlayground() {
                 </label>
               </>
             )}
-            {(endpoint === 'marketDaily' || endpoint === 'fundNavDaily') && (
+            {(isOhlcvRange || isNavRange || isNavLatest || isOhlcvLatest) && !(endpoint === 'preciousDaily' || endpoint === 'preciousDailyLatest') && (
+              <label className="flex flex-col gap-1">
+                <span>symbol (six-digit)</span>
+                <input
+                  type="text"
+                  className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                  value={mdSymbols}
+                  onChange={(e) => setState((prev) => ({ ...prev, mdSymbols: e.target.value }))}
+                  placeholder={isNavRange || isNavLatest ? '012922' : '518880'}
+                />
+              </label>
+            )}
+            {(isOhlcvRange || isNavRange) && (
               <>
-                <label className="flex flex-col gap-1">
-                  <span>symbols (comma-separated six-digit)</span>
-                  <input
-                    type="text"
-                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                    value={mdSymbols}
-                    onChange={(e) => setState((prev) => ({ ...prev, mdSymbols: e.target.value }))}
-                    placeholder={endpoint === 'fundNavDaily' ? '012922,016665' : '518880,510300'}
-                  />
-                </label>
                 <label className="flex flex-col gap-1">
                   <span>startDate</span>
                   <input
@@ -290,33 +401,45 @@ export function FinanceApiPlayground() {
                     placeholder="YYYY-MM-DD"
                   />
                 </label>
-                {endpoint === 'marketDaily' ? (
-                  <>
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" checked={mdWithIndicators} onChange={(e) => setState((prev) => ({ ...prev, mdWithIndicators: e.target.checked }))} />
-                      <span>withIndicators</span>
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" checked={mdIndicatorWarmup} onChange={(e) => setState((prev) => ({ ...prev, mdIndicatorWarmup: e.target.checked }))} />
-                      <span>indicatorWarmup (120 days)</span>
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span>indicatorWarmupDays (35-250)</span>
-                      <input
-                        type="text"
-                        className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                        value={mdIndicatorWarmupDays}
-                        onChange={(e) => setState((prev) => ({ ...prev, mdIndicatorWarmupDays: e.target.value }))}
-                        placeholder="e.g. 120"
-                      />
-                    </label>
-                  </>
-                ) : null}
+              </>
+            )}
+            {isOhlcvRange && (
+              <>
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={mdSyncIfEmpty} onChange={(e) => setState((prev) => ({ ...prev, mdSyncIfEmpty: e.target.checked }))} />
-                  <span>syncIfEmpty (allowlisted symbols only)</span>
+                  <input type="checkbox" checked={mdWithIndicators} onChange={(e) => setState((prev) => ({ ...prev, mdWithIndicators: e.target.checked }))} />
+                  <span>withIndicators</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={mdIndicatorWarmup} onChange={(e) => setState((prev) => ({ ...prev, mdIndicatorWarmup: e.target.checked }))} />
+                  <span>indicatorWarmup (120 days)</span>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>indicatorWarmupDays (35-250)</span>
+                  <input
+                    type="text"
+                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                    value={mdIndicatorWarmupDays}
+                    onChange={(e) => setState((prev) => ({ ...prev, mdIndicatorWarmupDays: e.target.value }))}
+                    placeholder="e.g. 120"
+                  />
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={mdForceSync} onChange={(e) => setState((prev) => ({ ...prev, mdForceSync: e.target.checked }))} />
+                  <span>forceSync</span>
                 </label>
               </>
+            )}
+            {isOhlcvLatest && (
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={mdLatestWithIndicators} onChange={(e) => setState((prev) => ({ ...prev, mdLatestWithIndicators: e.target.checked }))} />
+                <span>withIndicators (default true)</span>
+              </label>
+            )}
+            {(isOhlcvRange || isOhlcvLatest || isNavRange || isNavLatest) && (
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={mdSyncIfEmpty} onChange={(e) => setState((prev) => ({ ...prev, mdSyncIfEmpty: e.target.checked }))} />
+                <span>syncIfEmpty (allowlisted symbols only)</span>
+              </label>
             )}
             <div className="flex items-center gap-2">
               <button

@@ -47,33 +47,17 @@ export default function FinanceApiPage() {
             </p>
           </div>
 
-          <details className="mb-3 rounded border border-gray-200 bg-gray-50/80">
-            <summary className="cursor-pointer select-none px-3 py-2 text-[11px] font-semibold text-gray-800">
-              Legacy TASI exchange feed &amp; company paths (historical / deprecated)
-            </summary>
-            <div className="space-y-2 border-t border-gray-200 px-3 py-2">
-              <p className="text-[10px] leading-relaxed text-gray-600">
-                Not for latest TASI index or constituents. Company latest/list → <strong className="font-medium">400</strong>. Historical K-line only where noted.
-              </p>
-              <h4 className="text-[10px] font-semibold uppercase tracking-wide text-gray-700">{STOCKS_API_SUBGROUP.indexDailyFromFeed}</h4>
-              <div className={DOC_ENDPOINT_BOX_CLASS}>
-                <DocEndpointRow method="GET" path="/api/finance/stock/tasi/summary/daily" enableCopy />
-                <DocEndpointRow method="GET" path="/api/finance/stock/tasi/summary/daily/latest" enableCopy />
-                <DocEndpointRow method="GET" path="/api/finance/stock/tasi/daily/latest" enableCopy />
-              </div>
-              <h4 className="text-[10px] font-semibold uppercase tracking-wide text-gray-700">{STOCKS_API_SUBGROUP.indexHourlyFromFeed}</h4>
-              <div className={DOC_ENDPOINT_BOX_CLASS}>
-                <DocEndpointRow method="GET" path="/api/finance/stock/tasi/summary/hourly" enableCopy />
-              </div>
-              <h4 className="text-[10px] font-semibold uppercase tracking-wide text-gray-700">{STOCKS_API_SUBGROUP.constituentsDailyFromFeed}</h4>
-              <div className={DOC_ENDPOINT_BOX_CLASS}>
-                <DocEndpointRow method="GET" path="/api/finance/stock/tasi/company/daily" enableCopy />
-                <DocEndpointRow method="GET" path="/api/finance/stock/tasi/company/daily/latest" enableCopy />
-                <DocEndpointRow method="GET" path="/api/finance/market/company/daily" enableCopy />
-                <DocEndpointRow method="GET" path="/api/finance/market/company/daily/latest" enableCopy />
-              </div>
-            </div>
-          </details>
+          <h3 className={SUBHEAD}>{STOCKS_API_SUBGROUP.indexDailySeries}</h3>
+          <div className={DOC_ENDPOINT_BOX_CLASS}>
+            <DocEndpointRow method="GET" path="/api/finance/stock/summary/daily" enableCopy />
+            <p className={DOC_ENDPOINT_DESC_CLASS}>
+              One market per request via <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">market=</code> (default TASI). No date params →{' '}
+              <strong className="font-medium">latest</strong> (same data as <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">/stock/summary</code>). Optional{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">date=YYYY-MM-DD</code> for a single historical row from Turso; or{' '}
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">from</code> + <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">to</code> for a range (max
+              365 days) → <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">data.items</code>.
+            </p>
+          </div>
 
           <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>
             {FINANCE_MAJOR.funds} — {FUNDS_API_SECTION_TITLE}
@@ -81,8 +65,7 @@ export default function FinanceApiPage() {
           <p className="mb-2 text-[10px] leading-relaxed text-gray-600">
             Six-digit catalog: two <strong className="font-medium">daily</strong> response families — <strong className="font-medium">exchange OHLCV</strong> (listed/traded) vs{' '}
             <strong className="font-medium">NAV disclosure</strong> (unit + daily %). Canonical paths mirror{' '}
-            <code className="rounded bg-gray-100 px-1 py-0.5">/finance/fund/:symbol</code> (symbol in the URL). Multi-symbol batch remains on legacy{' '}
-            <code className="rounded bg-gray-100 px-1 py-0.5">/api/finance/market/daily?symbols=…</code>.
+            <code className="rounded bg-gray-100 px-1 py-0.5">/finance/fund/:symbol</code> (symbol in the URL).
           </p>
 
           <h3 className={SUBHEAD}>{FUNDS_DAILY_SUBTYPE.exchangeDailyBars}</h3>
@@ -96,7 +79,6 @@ export default function FinanceApiPage() {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">indicatorWarmup</code> (120 days),{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">indicatorWarmupDays</code> (35-250),{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">forceSync</code>.
-              Legacy: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/daily?symbols=…</code>.
             </p>
             <DocEndpointRow method="GET" path="/api/finance/fund/518880/ohlcv/daily/latest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
@@ -104,8 +86,7 @@ export default function FinanceApiPage() {
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">withIndicators</code> defaults <strong className="font-medium">true</strong> (pass{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">false</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">0</code>,{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">no</code>, or <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">off</code> to skip MACD
-              streak); <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code> defaults <strong className="font-medium">true</strong> when omitted. Legacy:{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/market/daily/latest?symbols=…</code>.
+              streak); <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code> defaults <strong className="font-medium">true</strong> when omitted.
             </p>
           </div>
 
@@ -115,14 +96,12 @@ export default function FinanceApiPage() {
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Replace <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">012922</code> with a configured NAV six-digit code. Query:{' '}
               <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">startDate</code>, <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">endDate</code>; optional{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>. Legacy:{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/fund/nav/daily?symbols=…</code>.
+              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code>.
             </p>
             <DocEndpointRow method="GET" path="/api/finance/fund/012922/nav/daily/latest" enableCopy />
             <p className={DOC_ENDPOINT_DESC_CLASS}>
               Latest one NAV row for that path symbol. <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">syncIfEmpty</code> defaults{' '}
-              <strong className="font-medium">true</strong> when omitted. Legacy:{' '}
-              <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">GET /api/finance/fund/nav/daily/latest?symbols=…</code>.
+              <strong className="font-medium">true</strong> when omitted.
             </p>
           </div>
 
@@ -140,7 +119,11 @@ export default function FinanceApiPage() {
           <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>
             {FINANCE_MAJOR.preciousMetals} — {PRECIOUS_METALS_API_SECTION_SUBTITLE}
           </h2>
-          <p className="text-[10px] leading-relaxed text-gray-600">{PRECIOUS_METALS_API_PLACEHOLDER}</p>
+          <p className="mb-2 text-[10px] leading-relaxed text-gray-600">{PRECIOUS_METALS_API_PLACEHOLDER}</p>
+          <div className={DOC_ENDPOINT_BOX_CLASS}>
+            <DocEndpointRow method="GET" path="/api/finance/fund/XAUUSD/ohlcv/daily" enableCopy />
+            <DocEndpointRow method="GET" path="/api/finance/fund/XAUUSD/ohlcv/daily/latest" enableCopy />
+          </div>
 
           <h2 className={`${DOC_SECTION_TITLE_CLASS} mt-3`}>Response example (stock summary — TASI)</h2>
           <pre className="max-h-48 overflow-auto rounded bg-white p-2 text-[10px] leading-relaxed text-gray-800">

@@ -16,19 +16,10 @@ export const FINANCE_MAJOR = {
 /** Stocks section subtitle in API docs (pair with FINANCE_MAJOR.stocks in headings). */
 export const STOCKS_API_SECTION_TITLE = 'Market index & listed companies'
 
-/**
- * Stock-market REST subgroups (exchange-scoped paths use `market=`; feed implemented for TASI only today).
- * 对应关系：多市场指数快照 + 单市场指数日 K / 小时（历史；最新走 stock/summary）。
- */
+/** Stock-market REST subgroup for multi-market index snapshots. */
 export const STOCKS_API_SUBGROUP = {
-  /** Multi-market latest bar (FMP + TASI where wired). */
   indexSnapshotMultiMarket: 'Index — latest snapshot (multi-market)',
-  /** Exchange index daily OHLC / summary from feed. */
-  indexDailyFromFeed: 'Index — daily series (exchange feed)',
-  /** Exchange index hourly buckets vs daily alignment. */
-  indexHourlyFromFeed: 'Index — hourly buckets (exchange feed)',
-  /** Listed names daily list or per-code OHLC from feed (TASI list disabled; historical K-line only). */
-  constituentsDailyFromFeed: 'Constituents — deprecated (use stock/summary for TASI index)',
+  indexDailySeries: 'Index — daily summary (Turso history)',
 } as const
 
 /** Funds section subtitle in API docs (pair with FINANCE_MAJOR.funds in headings). */
@@ -54,4 +45,4 @@ export const PRECIOUS_METALS_API_SECTION_SUBTITLE = 'Spot bullion (reserved)'
 
 /** Precious metals: same OHLCV route as funds/ETF daily bars, separate Turso `source`. */
 export const PRECIOUS_METALS_API_PLACEHOLDER =
-  'Use GET /api/finance/fund/XAUUSD/ohlcv/daily (canonical; allowlisted for sync) or legacy GET /api/finance/market/daily?symbols=XAUUSD. Rows persist in Turso with source eastmoney-precious-spot (vs eastmoney for six-digit A-share/ETF kline, eastmoney-fund-nav for LSJZ NAV). Only XAUUSD in scope today.'
+  'Spot bullion daily OHLCV via GET /api/finance/fund/XAUUSD/ohlcv/daily (allowlisted for sync). Rows persist in Turso with source eastmoney-precious-spot. Only XAUUSD in scope today.'

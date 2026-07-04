@@ -24,7 +24,7 @@ sidebarItems:
 
 apiPage:
   title: Finance REST API
-  subtitle: Stocks — TASI latest via /api/finance/stock/summary?market=TASI (same as other markets). Legacy TASI feed paths under /api/finance/stock/tasi/… remain for historical K-line only. Funds — per-symbol /api/finance/fund/:symbol/ohlcv|nav/…. Precious — XAUUSD via fund OHLCV + Turso eastmoney-precious-spot.
+  subtitle: Stocks — TASI latest via /api/finance/stock/summary?market=TASI (same as other markets). Funds — per-symbol /api/finance/fund/:symbol/ohlcv|nav/…. Precious — XAUUSD via fund OHLCV + Turso eastmoney-precious-spot.
   endpoints:
     - method: GET
       path: /api/finance/stock/summary
@@ -32,48 +32,38 @@ apiPage:
       exampleResponse: |
         {"code":0,"message":"ok","data":{"market":"TASI","summary":{"market":"TASI","date":"2026-05-01","open":12000,"high":12100,"low":11950,"close":12050,"change":50,"changePercent":0.42,"volumeTraded":100000000,"valueTraded":2500000000,"source":"tasi"}}}
     - method: GET
-      path: /api/finance/stock/tasi/summary/daily
-      description: 'TASI index daily / K-line; same query as market/summary/daily without market= (slug in path). Legacy GET /api/finance/market/summary/daily?market=TASI.'
+      path: /api/finance/stock/summary/daily
+      description: 'Daily index summary for one market. No date params → latest. Optional date= (single day from Turso) or from+to (range, max 365 days).'
       exampleResponse: |
-        {"date":"2025-03-14","open":12000,"high":12100,"low":11950,"close":12050,"volumeTraded":100000000}
-    - method: GET
-      path: /api/finance/stock/tasi/company/daily
-      description: 'Deprecated for latest/full list (returns 400). Historical K-line only: code+from+to. For TASI index use GET /api/finance/stock/summary?market=TASI.'
-      exampleResponse: |
-        [{"code":"1120","name":"SNB","date":"2025-03-14","open":42.5,"high":43,"low":42.2,"lastPrice":42.8,"volume":1000000}]
-    - method: GET
-      path: /api/finance/stock/tasi/summary/hourly
-      description: 'TASI SAHMK hourly alignment. Legacy GET /api/finance/market/summary/hourly?market=TASI.'
-      exampleResponse: |
-        {}
-    - method: GET
-      path: /api/finance/stock/tasi/summary/daily/latest
-      description: 'Deprecated for TASI latest — use GET /api/finance/stock/summary?market=TASI. Feed session + asOf when called.'
-      exampleResponse: |
-        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","summary":{}}}
-    - method: GET
-      path: /api/finance/stock/tasi/company/daily/latest
-      description: 'Deprecated — TASI constituent list not supported (400). Use GET /api/finance/stock/summary?market=TASI.'
-      exampleResponse: |
-        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","items":[]}}
+        {"code":0,"message":"ok","data":{"market":"TASI","summary":{"market":"TASI","date":"2026-05-01","open":12000,"high":12100,"low":11950,"close":12050,"change":50,"changePercent":0.42,"volumeTraded":100000000,"valueTraded":2500000000,"source":"tasi"}}}
     - method: GET
       path: /api/finance/fund/518880/ohlcv/daily
-      description: 'Single-symbol exchange OHLCV range (path symbol). Query startDate,endDate; optional withIndicators,syncIfEmpty. Legacy GET /api/finance/market/daily?symbols=518880&…'
+      description: 'Single-symbol exchange OHLCV range (path symbol). Query startDate,endDate; optional withIndicators,syncIfEmpty,forceSync.'
       exampleResponse: |
         {"code":0,"message":"ok","data":{"items":[],"synced":false}}
     - method: GET
       path: /api/finance/fund/518880/ohlcv/daily/latest
-      description: 'Single-symbol latest OHLCV bar. withIndicators defaults true (pass false, 0, no, or off to skip MACD streak); syncIfEmpty defaults true. Legacy GET /api/finance/market/daily/latest?symbols=518880.'
+      description: 'Single-symbol latest OHLCV bar. withIndicators defaults true (pass false, 0, no, or off to skip MACD streak); syncIfEmpty defaults true.'
       exampleResponse: |
         {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[],"synced":false}}
     - method: GET
       path: /api/finance/fund/012922/nav/daily
-      description: 'Single-symbol NAV range. Query startDate,endDate; optional syncIfEmpty. Legacy GET /api/finance/fund/nav/daily?symbols=012922&…'
+      description: 'Single-symbol NAV range. Query startDate,endDate; optional syncIfEmpty.'
       exampleResponse: |
         {"code":0,"message":"ok","data":{"items":[],"synced":false}}
     - method: GET
       path: /api/finance/fund/012922/nav/daily/latest
-      description: 'Single-symbol latest NAV; syncIfEmpty defaults true. Legacy GET /api/finance/fund/nav/daily/latest?symbols=012922.'
+      description: 'Single-symbol latest NAV; syncIfEmpty defaults true.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[],"synced":false}}
+    - method: GET
+      path: /api/finance/fund/XAUUSD/ohlcv/daily
+      description: 'Precious metals spot bullion daily OHLCV (XAUUSD). Same query params as fund OHLCV daily.'
+      exampleResponse: |
+        {"code":0,"message":"ok","data":{"items":[],"synced":false}}
+    - method: GET
+      path: /api/finance/fund/XAUUSD/ohlcv/daily/latest
+      description: 'Latest XAUUSD OHLCV bar. withIndicators defaults true; syncIfEmpty defaults true.'
       exampleResponse: |
         {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[],"synced":false}}
     - method: GET
@@ -81,57 +71,12 @@ apiPage:
       description: 'Latest bar per six-digit symbol with macdUp/macdDown (stock.md EWM MACD). Query symbols,startDate,endDate; optional syncIfEmpty.'
       exampleResponse: |
         {"code":0,"message":"ok","data":{"stockList":[{"date":"2025-06-13","stockCode":"510300","stockName":"沪深300ETF","price":1.4763,"macdUp":0,"macdDown":0}],"synced":false}}
-    - method: GET
-      path: /api/finance/market/company/daily
-      description: 'Deprecated for TASI latest/full list (400). Historical K-line or past date= only. TASI index → GET /api/finance/stock/summary?market=TASI.'
-      exampleResponse: |
-        [{"code":"1120","name":"SNB","date":"2025-03-14","open":42.5,"high":43,"low":42.2,"lastPrice":42.8,"volume":1000000}]
-    - method: GET
-      path: /api/finance/market/summary/daily
-      description: 'Generic market= (default TASI); historical index K-line only. Latest → GET /api/finance/stock/summary?market=TASI.'
-      exampleResponse: |
-        {"date":"2025-03-14","open":12000,"high":12100,"low":11950,"close":12050,"volumeTraded":100000000}
-    - method: GET
-      path: /api/finance/market/summary/hourly
-      description: 'Generic market= (default TASI); TASI only today. SAHMK hourly alignment vs daily summary.'
-      exampleResponse: |
-        {}
-    - method: GET
-      path: /api/finance/market/daily
-      description: 'Six-digit exchange OHLCV only (e.g. 518880). Rejects fund NAV codes (400). Query: symbols,startDate,endDate. Optional withIndicators; optional syncIfEmpty for allowlisted fund/ETF. Each item always includes macdUp/macdDown (numbers when withIndicators=true on the latest bar per symbol, else null). data.synced when ingest ran.'
-      exampleResponse: |
-        {"code":0,"message":"ok","data":{"items":[{"date":"2025-04-29","symbol":"518880","open":5.7,"close":5.71,"high":5.72,"low":5.69,"volume":1,"amount":1,"amplitude":0,"changeRate":0,"changeAmount":0,"turnoverRate":0,"macdUp":null,"macdDown":null},{"date":"2025-04-30","symbol":"518880","open":5.715,"close":5.739,"high":5.758,"low":5.715,"volume":2579209,"amount":1480522810,"amplitude":0,"changeRate":1.11,"changeAmount":0.063,"turnoverRate":5.97,"macdUp":3,"macdDown":0}],"synced":false}}
-    - method: GET
-      path: /api/finance/market/daily/latest
-      description: 'Latest one OHLCV bar per symbol (no date range). Query: symbols; withIndicators defaults true (false, 0, no, or off to skip); syncIfEmpty defaults true. data: asOf (ISO-8601), items (same row shape as market/daily, always macdUp/macdDown keys), synced.'
-      exampleResponse: |
-        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[{"date":"2026-05-01","symbol":"510300","open":4.1,"close":4.09,"high":4.12,"low":4.08,"volume":1,"amount":1,"amplitude":0,"changeRate":0,"changeAmount":0,"turnoverRate":0,"macdUp":2,"macdDown":0}],"synced":false}}
-    - method: GET
-      path: /api/finance/fund/nav/daily
-      description: 'Fund LSJZ NAV only (configured NAV six-digit codes). Query: symbols,startDate,endDate; optional syncIfEmpty for allowlisted NAV catalog. data.items: unitNav, dailyChangePercent.'
-      exampleResponse: |
-        {"code":0,"message":"ok","data":{"items":[{"date":"2024-12-31","symbol":"012922","unitNav":1.346,"dailyChangePercent":-1.15}],"synced":false}}
-    - method: GET
-      path: /api/finance/fund/nav/daily/latest
-      description: 'Latest one NAV row per symbol (no date range). Query: symbols; syncIfEmpty defaults true. data: asOf, items, synced.'
-      exampleResponse: |
-        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","items":[{"date":"2026-04-30","symbol":"012922","unitNav":1.2,"dailyChangePercent":0.1}],"synced":false}}
-    - method: GET
-      path: /api/finance/market/summary/daily/latest
-      description: 'Deprecated for TASI latest — use GET /api/finance/stock/summary?market=TASI.'
-      exampleResponse: |
-        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","summary":{"date":"2026-05-01","open":1,"high":1,"low":1,"close":1,"change":0,"changePercent":0,"companiesTraded":1,"volumeTraded":1,"valueTraded":1,"numberOfTrades":1,"marketCap":1}}}
-    - method: GET
-      path: /api/finance/market/company/daily/latest
-      description: 'Deprecated — TASI constituents not supported (400). Use GET /api/finance/stock/summary?market=TASI for latest index.'
-      exampleResponse: |
-        {"code":0,"message":"ok","data":{"asOf":"2026-05-02T12:00:00.000Z","dataDate":"2026-05-01","items":[]}}
   playgroundComponentName: FinanceApiPlayground
   playgroundImportPath: '@/app/finance/api/components'
 
 mcpPage:
   title: Finance MCP tools
-  subtitle: Primary — get_stock_summary for TASI and all index markets; get_market_daily* / get_fund_nav_daily* for funds and XAUUSD. Legacy TASI feed tools (summary daily/hourly) remain registered for historical K-line only. Company tools removed.
+  subtitle: Primary — get_stock_summary for TASI and all index markets; get_market_daily* / get_fund_nav_daily* for funds and XAUUSD.
   tools:
     - name: get_stock_summary
       description: 'Primary for all index snapshots including TASI latest: market (single) or markets (comma-separated). Same as GET /api/finance/stock/summary?market=TASI.'
@@ -145,11 +90,5 @@ mcpPage:
       description: 'Latest one NAV row per symbol: symbols only; optional syncIfEmpty (default true). Returns { asOf, items, synced }.'
     - name: get_overview_stock_list
       description: 'Params: symbols, startDate, endDate; optional syncIfEmpty. Returns stockList with MACD streak.'
-    - name: get_market_summary_daily
-      description: 'Legacy TASI feed — historical index K-line only (date or from+to). Latest index → get_stock_summary.'
-    - name: get_market_summary_hourly
-      description: 'Legacy TASI feed — SAHMK hourly alignment vs daily summary (market=TASI). Not for index snapshots.'
-    - name: get_market_summary_daily_latest
-      description: 'Deprecated — use get_stock_summary for TASI latest. Feed latest session when called.'
   playgroundComponentName: TasiMcpPlayground
   playgroundImportPath: '@/app/finance/mcp/components'

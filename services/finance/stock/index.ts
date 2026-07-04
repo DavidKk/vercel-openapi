@@ -1,7 +1,8 @@
 import { createLogger } from '@/services/logger'
 
-import { getSummaryDaily } from '../tasi'
-import { readLatestStockSummary, upsertStockSummaryDaily } from './turso'
+import { getSummaryDaily, getTodayUtc, parseDate, TASI_MAX_RANGE_DAYS } from '../tasi'
+import type { TasiMarketSummary } from '../tasi/types'
+import { readLatestStockSummary, readStockSummaryByDate, readStockSummaryRange, upsertStockSummaryDaily } from './turso'
 import type { StockMarket, StockMarketSummary } from './types'
 
 const logger = createLogger('finance-stock')
@@ -160,11 +161,10 @@ export function parseStockMarket(value: string): StockMarket | null {
  * Map TASI summary shape into stock summary.
  *
  * @param market Market name
- * @returns Stock summary or null
+ * @param data TASI summary payload
+ * @returns Stock summary
  */
-async function getTasiSummaryAsStock(market: 'TASI'): Promise<StockMarketSummary | null> {
-  const data = await getSummaryDaily({})
-  if (!data || Array.isArray(data)) return null
+function mapTasiSummaryToStock(market: StockMarket, data: TasiMarketSummary): StockMarketSummary {
   const date = data.date ?? new Date().toISOString().slice(0, 10)
   return {
     market,
@@ -179,6 +179,36 @@ async function getTasiSummaryAsStock(market: 'TASI'): Promise<StockMarketSummary
     valueTraded: data.valueTraded ?? null,
     source: 'tasi',
   }
+}
+
+/**
+ * Clamp date range to max days.
+ *
+ * @param from Start date (YYYY-MM-DD)
+ * @param to End date (YYYY-MM-DD)
+ * @param maxDays Maximum inclusive span
+ * @returns Clamped from/to pair
+ */
+function clampDateRange(from: string, to: string, maxDays: number): { from: string; to: string } {
+  const a = new Date(from)
+  const b = new Date(to)
+  const diff = Math.round((b.getTime() - a.getTime()) / 86400000)
+  if (diff <= maxDays) return { from, to }
+  const end = new Date(a)
+  end.setUTCDate(end.getUTCDate() + maxDays)
+  return { from, to: end.toISOString().slice(0, 10) }
+}
+
+/**
+ * Fetch the latest TASI summary from the TASI feed and map it into stock summary shape.
+ *
+ * @param market Market name (always TASI)
+ * @returns Latest TASI stock summary or null when unavailable
+ */
+async function getTasiSummaryAsStock(market: 'TASI'): Promise<StockMarketSummary | null> {
+  const data = await getSummaryDaily({})
+  if (!data || Array.isArray(data)) return null
+  return mapTasiSummaryToStock(market, data)
 }
 
 /**
@@ -257,6 +287,48 @@ export async function getStockSummary(market: StockMarket): Promise<StockMarketS
 export async function getStockSummaryBatch(markets: StockMarket[]): Promise<StockMarketSummary[]> {
   const list = await Promise.all(markets.map((market) => getStockSummary(market)))
   return list.filter((item): item is StockMarketSummary => item != null)
+}
+
+/**
+ * Get daily stock summary for one market. No date params → latest (same as {@link getStockSummary}).
+ * TASI historical rows come from the TASI Turso feed; other markets from `finance_stock_summary_daily`.
+ *
+ * @param market Market key
+ * @param options Optional `date` (single day) or `from`+`to` (range, max 365 days)
+ * @returns Latest/single summary, range array, or null when not found
+ */
+export async function getStockSummaryDaily(
+  market: StockMarket,
+  options: { date?: string; from?: string; to?: string } = {}
+): Promise<StockMarketSummary | StockMarketSummary[] | null> {
+  if (options.from != null && options.to != null) {
+    const from = parseDate(options.from)
+    const to = parseDate(options.to)
+    if (!from || !to || from > to) return []
+    const { from: rangeFrom, to: rangeTo } = clampDateRange(from, to, TASI_MAX_RANGE_DAYS)
+    if (market === 'TASI') {
+      const rows = await getSummaryDaily({ from: rangeFrom, to: rangeTo })
+      if (!Array.isArray(rows)) return []
+      return rows.map((row) => mapTasiSummaryToStock(market, row))
+    }
+    return readStockSummaryRange(market, rangeFrom, rangeTo)
+  }
+
+  if (options.date != null) {
+    const date = parseDate(options.date)
+    if (!date) return null
+    if (market === 'TASI') {
+      const data = await getSummaryDaily({ date })
+      if (!data || Array.isArray(data)) return null
+      return mapTasiSummaryToStock(market, data)
+    }
+    if (date === getTodayUtc()) {
+      return getStockSummary(market)
+    }
+    return readStockSummaryByDate(market, date)
+  }
+
+  return getStockSummary(market)
 }
 
 /**

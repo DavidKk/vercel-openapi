@@ -1,12 +1,18 @@
-import { getStockSummary, getStockSummaryBatch, runStockSummaryIngest } from '@/services/finance/stock'
-import { readLatestStockSummary, upsertStockSummaryDaily } from '@/services/finance/stock/turso'
+import { getStockSummary, getStockSummaryBatch, getStockSummaryDaily, runStockSummaryIngest } from '@/services/finance/stock'
+import { readLatestStockSummary, readStockSummaryByDate, readStockSummaryRange, upsertStockSummaryDaily } from '@/services/finance/stock/turso'
+import { getSummaryDaily } from '@/services/finance/tasi'
 
 jest.mock('@/services/finance/tasi', () => ({
   getSummaryDaily: jest.fn(),
+  getTodayUtc: jest.fn(() => '2026-05-01'),
+  parseDate: jest.requireActual('@/services/finance/tasi').parseDate,
+  TASI_MAX_RANGE_DAYS: 365,
 }))
 
 jest.mock('@/services/finance/stock/turso', () => ({
   readLatestStockSummary: jest.fn(),
+  readStockSummaryByDate: jest.fn(),
+  readStockSummaryRange: jest.fn(),
   upsertStockSummaryDaily: jest.fn(),
 }))
 
@@ -213,5 +219,75 @@ describe('services/finance/stock', () => {
     const result = await runStockSummaryIngest(['S&P 500', 'Dow Jones'])
     expect(result).toEqual({ total: 2, success: 2, failed: 0 })
     expect(upsertStockSummaryDaily).toHaveBeenCalledTimes(2)
+  })
+
+  it('should return latest summary from getStockSummaryDaily when no date params', async () => {
+    ;(readLatestStockSummary as jest.Mock).mockResolvedValue({
+      market: 'S&P 500',
+      date: '2026-04-29',
+      open: 1,
+      high: 2,
+      low: 0.5,
+      close: 1.5,
+      change: 0.1,
+      changePercent: 0.2,
+      volumeTraded: 100,
+      valueTraded: 150,
+      source: 'fmp',
+    })
+
+    const summary = await getStockSummaryDaily('S&P 500')
+    expect(summary).toMatchObject({ market: 'S&P 500', close: 1.5 })
+    expect(readStockSummaryByDate).not.toHaveBeenCalled()
+  })
+
+  it('should read historical summary by date for non-TASI markets', async () => {
+    ;(readStockSummaryByDate as jest.Mock).mockResolvedValue({
+      market: 'S&P 500',
+      date: '2026-03-01',
+      open: 1,
+      high: 2,
+      low: 0.5,
+      close: 1.5,
+      change: 0.1,
+      changePercent: 0.2,
+      volumeTraded: 100,
+      valueTraded: 150,
+      source: 'fmp',
+    })
+
+    const summary = await getStockSummaryDaily('S&P 500', { date: '2026-03-01' })
+    expect(readStockSummaryByDate).toHaveBeenCalledWith('S&P 500', '2026-03-01')
+    expect(summary).toMatchObject({ date: '2026-03-01' })
+  })
+
+  it('should read TASI historical summary by date via tasi feed', async () => {
+    ;(getSummaryDaily as jest.Mock).mockResolvedValue({
+      date: '2026-03-01',
+      open: 12000,
+      high: 12100,
+      low: 11950,
+      close: 12050,
+      change: 50,
+      changePercent: 0.42,
+      volumeTraded: 100000000,
+      valueTraded: 2500000000,
+    })
+
+    const summary = await getStockSummaryDaily('TASI', { date: '2026-03-01' })
+    expect(getSummaryDaily).toHaveBeenCalledWith({ date: '2026-03-01' })
+    expect(summary).toMatchObject({ market: 'TASI', source: 'tasi', date: '2026-03-01' })
+  })
+
+  it('should read summary range from Turso for non-TASI markets', async () => {
+    ;(readStockSummaryRange as jest.Mock).mockResolvedValue([
+      { market: 'Nasdaq', date: '2026-03-01', close: 1, source: 'fmp' },
+      { market: 'Nasdaq', date: '2026-03-02', close: 2, source: 'fmp' },
+    ])
+
+    const items = await getStockSummaryDaily('Nasdaq', { from: '2026-03-01', to: '2026-03-31' })
+    expect(readStockSummaryRange).toHaveBeenCalledWith('Nasdaq', '2026-03-01', '2026-03-31')
+    expect(Array.isArray(items)).toBe(true)
+    expect(items).toHaveLength(2)
   })
 })

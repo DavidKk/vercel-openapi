@@ -47,6 +47,46 @@ export async function upsertStockSummaryDaily(summary: StockMarketSummary): Prom
 }
 
 /**
+ * Read summary for one market on a specific date.
+ *
+ * @param market Market name
+ * @param date Trading date (YYYY-MM-DD)
+ * @returns Summary or null when not found
+ */
+export async function readStockSummaryByDate(market: StockMarket, date: string): Promise<StockMarketSummary | null> {
+  const db = getTursoClient()
+  if (!db) return null
+  await ensureTable()
+  const rs = await db.execute({
+    sql: `SELECT payload FROM ${TABLE_NAME} WHERE market = ? AND date = ? LIMIT 1`,
+    args: [market, date],
+  })
+  const row = rs.rows[0] as unknown as { payload: string } | undefined
+  if (!row) return null
+  return JSON.parse(row.payload) as StockMarketSummary
+}
+
+/**
+ * Read daily summaries for one market in a date range (inclusive, ordered by date).
+ *
+ * @param market Market name
+ * @param fromDate Start date (YYYY-MM-DD)
+ * @param toDate End date (YYYY-MM-DD)
+ * @returns Summaries ordered by date ascending
+ */
+export async function readStockSummaryRange(market: StockMarket, fromDate: string, toDate: string): Promise<StockMarketSummary[]> {
+  const db = getTursoClient()
+  if (!db) return []
+  await ensureTable()
+  const rs = await db.execute({
+    sql: `SELECT payload FROM ${TABLE_NAME} WHERE market = ? AND date >= ? AND date <= ? ORDER BY date`,
+    args: [market, fromDate, toDate],
+  })
+  const rows = rs.rows as unknown as { payload: string }[]
+  return rows.map((row) => JSON.parse(row.payload) as StockMarketSummary)
+}
+
+/**
  * Read latest summary for one market.
  *
  * @param market Market name
