@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 const logger = createLogger('cron-finance-tasi-sync')
 
 /**
- * TASI (Saudi exchange) daily or hourly ingest: cf-feed-bridge → Turso/KV, plus optional SAHMK hourly alignment.
+ * TASI (Saudi exchange) daily or hourly ingest: SAHMK → Turso/KV, plus optional SAHMK hourly alignment.
  * Query: `mode=daily` (default) or `mode=hourly`.
  * For FMP multi-market summaries use sibling `finance-fmp-sync`. For Eastmoney OHLCV use `finance-eastmoney-sync`.
  * Auth: CRON_SECRET (Bearer or ?secret=).

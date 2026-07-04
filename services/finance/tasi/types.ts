@@ -1,5 +1,5 @@
 /**
- * TASI company daily record (matches cf-feed-bridge API shape).
+ * TASI company daily record (normalized API shape).
  * Used for storage payload and API responses.
  */
 export interface TasiCompanyDailyRecord {
@@ -31,7 +31,7 @@ export interface TasiCompanyDailyRecord {
 }
 
 /**
- * TASI market summary (matches cf-feed-bridge API shape).
+ * TASI market summary (normalized API shape).
  */
 export interface TasiMarketSummary {
   date: string | null

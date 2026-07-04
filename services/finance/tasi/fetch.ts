@@ -1,28 +1,33 @@
 /**
- * Fetch today's finance (TASI) data from cf-feed-bridge. Used for read (today) and cron ingest.
- * In-memory cache with TTL to avoid hammering the bridge during dev/refresh.
+ * Fetch today's TASI data from SAHMK Developer API. Used for read (today) and cron ingest.
  */
 
 import { createLogger } from '@/services/logger'
 
+import { mapSahmkQuoteToCompany, mapSahmkSummaryToTasiSummary } from './mapSahmk'
+import { sahmkGetJson } from './sahmk-client'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 
 const logger = createLogger('finance-tasi-fetch')
 
-/**
- * Paths on cf-feed-bridge (external Worker).
- * Local public routes expose `/api/finance/stock/tasi/*`, while cf-feed-bridge
- * keeps the original `/api/finance/tasi/*` paths.
- */
-const BRIDGE_COMPANY_DAILY_PATH = '/api/finance/tasi/company/daily'
-const BRIDGE_SUMMARY_DAILY_PATH = '/api/finance/tasi/summary/daily'
-
-/** TTL for in-memory cache (ms). 60s to reduce requests during development. */
-const TASI_BRIDGE_CACHE_MS = 60 * 1000
+const SAHMK_CACHE_MS = 60 * 1000
+const COMPANIES_PAGE_SIZE = 100
+const QUOTES_BATCH_SIZE = 50
+/** Pause between paginated / batched calls to stay under SAHMK burst limits. */
+const SAHMK_REQUEST_GAP_MS = 1200
 
 interface CacheEntry<T> {
   value: T
   expires: number
+}
+
+interface SahmkCompaniesPage {
+  results?: Array<{ symbol?: string; status?: string }>
+  total?: number
+}
+
+interface SahmkQuotesResponse {
+  quotes?: Array<Record<string, unknown>>
 }
 
 let companyCache: CacheEntry<TasiCompanyDailyRecord[]> | null = null
@@ -32,111 +37,147 @@ function isExpired<T>(entry: CacheEntry<T> | null): boolean {
   return entry == null || Date.now() >= entry.expires
 }
 
-/** Base URL of TASI feed (cf-feed-bridge). Set TASI_FEED_URL in env. */
-function getTasiFeedBaseUrl(): string {
-  const url = process.env.TASI_FEED_URL
-  if (!url) throw new Error('TASI_FEED_URL is not set')
-  return url.replace(/\/$/, '')
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isPlanRestrictedError(err: unknown): boolean {
+  return err != null && typeof err === 'object' && 'planRestricted' in err && Boolean((err as { planRestricted?: boolean }).planRestricted)
 }
 
 /**
- * Build request headers for cf-feed-bridge calls.
- * Preferred env:
- * - TASI_FEED_REQUEST_HEADERS_JSON (JSON object, e.g. {"x-api-key":"...","x-internal-call":"vercel"})
- *
- * Legacy envs (backward compatible):
- * - TASI_FEED_X_API_KEY_HEADER_KEY / TASI_FEED_X_API_KEY_HEADER_VALUE
- * - TASI_FEED_X_INTERNAL_CALL_HEADER_KEY / TASI_FEED_X_INTERNAL_CALL_HEADER_VALUE
+ * List active TASI symbols via SAHMK company directory (paginated).
+ * @returns Symbol codes
  */
-function buildBridgeHeaders(): Headers {
-  const headers = new Headers({ Accept: 'application/json' })
-  const headersJson = process.env.TASI_FEED_REQUEST_HEADERS_JSON?.trim()
-  if (headersJson) {
+async function listTasiSymbols(): Promise<string[]> {
+  const symbols: string[] = []
+  let offset = 0
+  let pageIndex = 0
+
+  while (true) {
+    if (pageIndex > 0) await sleep(SAHMK_REQUEST_GAP_MS)
+    pageIndex += 1
+
+    const page = await sahmkGetJson<SahmkCompaniesPage>('/companies/', `companies page ${pageIndex}`, {
+      market: 'TASI',
+      limit: String(COMPANIES_PAGE_SIZE),
+      offset: String(offset),
+    })
+    const results = page.results ?? []
+
+    for (const row of results) {
+      const symbol = row.symbol?.trim()
+      if (!symbol) continue
+      if (row.status && row.status !== 'active') continue
+      symbols.push(symbol)
+    }
+
+    const total = page.total ?? results.length
+    offset += COMPANIES_PAGE_SIZE
+    if (results.length === 0 || offset >= total) break
+  }
+
+  if (!symbols.length) {
+    throw new Error('SAHMK companies directory returned no TASI symbols')
+  }
+
+  return symbols
+}
+
+/**
+ * Fetch quotes for many symbols via SAHMK bulk `/quotes/` (Starter+).
+ * Does not fall back to per-symbol `/quote/` to avoid burst throttling.
+ * @param symbols Symbol list
+ * @returns Quote payloads
+ */
+async function fetchQuotesForSymbols(symbols: string[]): Promise<Array<Record<string, unknown>>> {
+  const quotes: Array<Record<string, unknown>> = []
+  const batchCount = Math.ceil(symbols.length / QUOTES_BATCH_SIZE)
+
+  for (let i = 0; i < symbols.length; i += QUOTES_BATCH_SIZE) {
+    const batchIndex = Math.floor(i / QUOTES_BATCH_SIZE) + 1
+    if (batchIndex > 1) await sleep(SAHMK_REQUEST_GAP_MS)
+
+    const batch = symbols.slice(i, i + QUOTES_BATCH_SIZE)
     try {
-      const parsed = JSON.parse(headersJson) as Record<string, unknown>
-      for (const [key, value] of Object.entries(parsed)) {
-        const k = key.trim()
-        const v = typeof value === 'string' ? value.trim() : String(value ?? '').trim()
-        if (k && v) headers.set(k, v)
+      const body = await sahmkGetJson<SahmkQuotesResponse>('/quotes/', `quotes batch ${batchIndex}/${batchCount}`, {
+        symbols: batch.join(','),
+      })
+      if (!Array.isArray(body.quotes) || !body.quotes.length) {
+        throw new Error(`SAHMK quotes batch ${batchIndex} returned empty list`)
       }
-      return headers
-    } catch {
-      logger.warn('invalid TASI_FEED_REQUEST_HEADERS_JSON; fallback to legacy header envs')
+      quotes.push(...body.quotes)
+    } catch (err) {
+      if (isPlanRestrictedError(err)) {
+        throw new Error(
+          'SAHMK bulk quotes (/quotes/) requires Starter plan or higher. Free tier cannot ingest full TASI daily list (use Starter+ or run ingest via cron with fewer symbols).'
+        )
+      }
+      throw err
     }
   }
 
-  const apiKeyHeaderKey = (process.env.TASI_FEED_X_API_KEY_HEADER_KEY || 'x-api-key').trim()
-  const apiKeyHeaderValue = (process.env.TASI_FEED_X_API_KEY_HEADER_VALUE || '').trim()
-  const internalCallHeaderKey = (process.env.TASI_FEED_X_INTERNAL_CALL_HEADER_KEY || 'x-internal-call').trim()
-  const internalCallHeaderValue = (process.env.TASI_FEED_X_INTERNAL_CALL_HEADER_VALUE || '').trim()
-
-  if (apiKeyHeaderKey && apiKeyHeaderValue) {
-    headers.set(apiKeyHeaderKey, apiKeyHeaderValue)
-  }
-  if (internalCallHeaderKey && internalCallHeaderValue) {
-    headers.set(internalCallHeaderKey, internalCallHeaderValue)
-  }
-  return headers
+  return quotes
 }
 
 /**
- * Fetch company daily (today) from cf-feed-bridge.
- * Results are cached in memory for TASI_BRIDGE_CACHE_MS to reduce repeated requests.
- *
+ * Fetch company daily rows for the latest TASI session from SAHMK.
+ * @param summaryDate Trading session date from market summary
  * @returns Company daily records
  */
-/** cf-feed-bridge may wrap response as { code, success, data, message }. We accept either raw array or data. */
-export async function fetchCompanyDailyFromBridge(): Promise<TasiCompanyDailyRecord[]> {
+export async function fetchCompanyDailyFromSahmk(summaryDate: string | null): Promise<TasiCompanyDailyRecord[]> {
   if (!isExpired(companyCache)) {
     logger.info('company daily: in-memory cache hit', { count: companyCache!.value.length })
     return companyCache!.value
   }
-  const base = getTasiFeedBaseUrl()
-  const url = `${base}${BRIDGE_COMPANY_DAILY_PATH}`
-  logger.info('company daily: in-memory cache miss, fetching from bridge', { url })
-  const res = await fetch(url, { headers: buildBridgeHeaders() })
-  if (!res.ok) {
-    logger.fail('company daily: bridge failed', { status: res.status, url })
-    throw new Error(`cf-feed-bridge company/daily failed: ${res.status} (${url})`)
+
+  logger.info('company daily: in-memory cache miss, fetching from SAHMK')
+  const symbols = await listTasiSymbols()
+  const quotes = await fetchQuotesForSymbols(symbols)
+  const records = quotes.map((quote) => mapSahmkQuoteToCompany(quote, summaryDate))
+
+  if (!records.length) {
+    throw new Error('SAHMK quotes returned no company rows')
   }
-  const body = (await res.json()) as TasiCompanyDailyRecord[] | { data?: TasiCompanyDailyRecord[] }
-  const data = Array.isArray(body) ? body : body?.data
-  if (!Array.isArray(data)) {
-    logger.fail('company daily: invalid response')
-    throw new Error('cf-feed-bridge company/daily did not return array')
-  }
-  companyCache = { value: data, expires: Date.now() + TASI_BRIDGE_CACHE_MS }
-  logger.info('company daily: fetched', { count: data.length })
-  return data
+
+  companyCache = { value: records, expires: Date.now() + SAHMK_CACHE_MS }
+  logger.info('company daily: fetched from SAHMK', { count: records.length })
+  return records
 }
 
 /**
- * Fetch market summary (today) from cf-feed-bridge.
- * Results are cached in memory for TASI_BRIDGE_CACHE_MS to reduce repeated requests.
- *
+ * Fetch TASI market summary for the latest session from SAHMK.
  * @returns Market summary
  */
-/** cf-feed-bridge may wrap response as { code, success, data, message }. We accept either raw object or data. */
-export async function fetchSummaryFromBridge(): Promise<TasiMarketSummary> {
+export async function fetchSummaryFromSahmk(): Promise<TasiMarketSummary> {
   if (!isExpired(summaryCache)) {
     logger.info('summary daily: in-memory cache hit')
     return summaryCache!.value
   }
-  const base = getTasiFeedBaseUrl()
-  const url = `${base}${BRIDGE_SUMMARY_DAILY_PATH}`
-  logger.info('summary daily: in-memory cache miss, fetching from bridge', { url })
-  const res = await fetch(url, { headers: buildBridgeHeaders() })
-  if (!res.ok) {
-    logger.fail('summary daily: bridge failed', { status: res.status, url })
-    throw new Error(`cf-feed-bridge summary/daily failed: ${res.status} (${url})`)
+
+  logger.info('summary daily: in-memory cache miss, fetching from SAHMK')
+  const raw = await sahmkGetJson<Record<string, unknown>>('/market/summary/', 'market summary', { index: 'TASI' })
+  const summary = mapSahmkSummaryToTasiSummary(raw)
+
+  summaryCache = { value: summary, expires: Date.now() + SAHMK_CACHE_MS }
+  logger.info('summary daily: fetched from SAHMK', { date: summary.date })
+  return summary
+}
+
+/**
+ * Fetch today's company list and market summary together from SAHMK.
+ * @returns Snapshot payload for KV/Turso ingest
+ */
+export async function fetchTodaySnapshotFromSahmk(): Promise<{
+  date: string
+  company: TasiCompanyDailyRecord[]
+  summary: TasiMarketSummary
+}> {
+  const summary = await fetchSummaryFromSahmk()
+  const company = await fetchCompanyDailyFromSahmk(summary.date)
+  const date = summary.date ?? company[0]?.date
+  if (!date) {
+    throw new Error('SAHMK snapshot missing trading date')
   }
-  const body = (await res.json()) as TasiMarketSummary | { data?: TasiMarketSummary }
-  const data = body != null && typeof body === 'object' && 'data' in body && (body as { data?: TasiMarketSummary }).data != null ? (body as { data: TasiMarketSummary }).data : body
-  if (!data || typeof data !== 'object') {
-    logger.fail('summary daily: invalid response')
-    throw new Error('cf-feed-bridge summary/daily invalid')
-  }
-  summaryCache = { value: data as TasiMarketSummary, expires: Date.now() + TASI_BRIDGE_CACHE_MS }
-  logger.info('summary daily: fetched', { date: (data as TasiMarketSummary).date })
-  return data as TasiMarketSummary
+  return { date, company, summary: { ...summary, date } }
 }

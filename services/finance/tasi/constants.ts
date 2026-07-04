@@ -6,3 +6,6 @@ export const TASI_SNAPSHOT_TTL_MS = 2 * 60 * 60 * 1000
 
 /** Max date range for K-line queries and DB retention (1 year). */
 export const TASI_MAX_RANGE_DAYS = 365
+
+/** When false, latest constituent list is not fetched (same as FMP index markets: summary only). Historical Turso/K-line still available. */
+export const TASI_COMPANY_DAILY_ENABLED = false

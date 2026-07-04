@@ -4,19 +4,31 @@
 
 import { createLogger } from '@/services/logger'
 
-import { TASI_MAX_RANGE_DAYS } from './constants'
-import { fetchCompanyDailyFromBridge, fetchSummaryFromBridge } from './fetch'
-import { getTasiDailySnapshotFromKv, isTasiDailySnapshotExpired, saveTasiDailySnapshotToKv } from './snapshot'
+import { TASI_COMPANY_DAILY_ENABLED, TASI_MAX_RANGE_DAYS } from './constants'
+import { fetchSummaryFromSahmk } from './fetch'
+import { getTasiDailySnapshotFromKv, isTasiDailySnapshotExpired, saveTasiDailySnapshotToKv, type TasiDailySnapshot } from './snapshot'
 import { deleteOlderThanRetention, readCompanyDailyByDate, readCompanyKline, readSummaryByDate, readSummaryKline, writeCompanyDaily, writeSummary } from './turso'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
 
 const logger = createLogger('finance-tasi')
 
-/** Dedupe: one in-flight "fetch today + persist" so parallel getCompany/getSummary share it. */
-let todayRefreshPromise: Promise<{ date: string; company: TasiCompanyDailyRecord[]; summary: TasiMarketSummary }> | null = null
+/** Dedupe parallel summary refresh calls (read path + cron). */
+let summaryRefreshPromise: Promise<TasiMarketSummary> | null = null
 
-export { TASI_MAX_RANGE_DAYS } from './constants'
+export { TASI_COMPANY_DAILY_ENABLED, TASI_MAX_RANGE_DAYS } from './constants'
 export type { TasiCompanyDailyRecord, TasiMarketSummary } from './types'
+
+/**
+ * When company daily list is disabled, return an API error message for latest/list requests (K-line and historical dates still allowed).
+ * @param options Request query options
+ * @returns Error message or null when the request is allowed
+ */
+export function tasiCompanyDailyListError(options: { date?: string; code?: string; from?: string; to?: string }): string | null {
+  if (TASI_COMPANY_DAILY_ENABLED) return null
+  if (options.code != null && options.from != null && options.to != null) return null
+  if (options.date != null && options.date !== getTodayUtc()) return null
+  return 'Company-level daily list is not supported for TASI yet (index summary only).'
+}
 
 /** Today in YYYY-MM-DD (UTC). */
 export function getTodayUtc(): string {
@@ -50,7 +62,7 @@ function clampRange(from: string, to: string, maxDays: number): { from: string; 
 }
 
 /**
- * Get company daily: for today use KV snapshot (if not expired) → remote; else from Turso or K-line. DB not used for today read.
+ * Get company daily: for today use KV snapshot (if not expired); else from Turso or K-line. Remote company ingest is deferred (SAHMK Starter+).
  *
  * @param options date (single day), or code+from+to (K-line)
  * @returns Company records or []
@@ -78,16 +90,19 @@ export async function getCompanyDaily(options: { date?: string; code?: string; f
   return getCompanyDailyToday()
 }
 
-/** Latest trading day: use KV snapshot if not expired (by TTL), else fetch from remote. No date match — data is previous trading day. */
+/** Latest trading day list: disabled like FMP index markets; historical Turso/K-line unchanged. */
 async function getCompanyDailyToday(): Promise<TasiCompanyDailyRecord[]> {
+  if (!TASI_COMPANY_DAILY_ENABLED) {
+    logger.info('company daily: list not supported (summary-only mode)')
+    return []
+  }
   const cached = await getTasiDailySnapshotFromKv()
   if (cached && !isTasiDailySnapshotExpired(cached) && Array.isArray(cached.company) && cached.company.length > 0) {
     logger.info('company daily: cache hit KV', { snapshotDate: cached.date, count: cached.company.length })
     return cached.company
   }
-  logger.info('company daily: cache miss, fetching from remote')
-  const snapshot = await getTodaySnapshotFromRemoteAndPersist()
-  return snapshot.company
+  logger.info('company daily: skipped remote fetch (company ingest deferred; use cached KV or historical Turso)')
+  return []
 }
 
 /**
@@ -119,82 +134,82 @@ export async function getSummaryDaily(options: { date?: string; from?: string; t
   return getSummaryDailyToday()
 }
 
-/** Latest trading day: use KV snapshot if not expired (by TTL), else fetch from remote. No date match — data is previous trading day. */
+/** Latest trading day: use KV snapshot if not expired (by TTL), else fetch summary only from SAHMK. */
 async function getSummaryDailyToday(): Promise<TasiMarketSummary | null> {
   const cached = await getTasiDailySnapshotFromKv()
   if (cached && !isTasiDailySnapshotExpired(cached) && cached.summary != null) {
     logger.info('summary daily: cache hit KV', { snapshotDate: cached.date })
     return cached.summary
   }
-  logger.info('summary daily: cache miss, fetching from remote')
-  const snapshot = await getTodaySnapshotFromRemoteAndPersist()
-  return snapshot.summary
+  logger.info('summary daily: cache miss, fetching summary from SAHMK')
+  return getSummaryFromRemoteAndPersist()
 }
 
 /**
- * Fetch today from remote and apply write rules (same date → KV only; new date → DB then KV). Dedupes parallel calls.
+ * Fetch summary from SAHMK and apply write rules. Does not fetch company quotes.
+ * @returns Market summary for the latest session
  */
-async function getTodaySnapshotFromRemoteAndPersist(): Promise<{ date: string; company: TasiCompanyDailyRecord[]; summary: TasiMarketSummary }> {
-  if (todayRefreshPromise) return todayRefreshPromise
+async function getSummaryFromRemoteAndPersist(): Promise<TasiMarketSummary> {
+  if (summaryRefreshPromise) return summaryRefreshPromise
   const promise = (async () => {
     try {
-      const [company, summary] = await Promise.all([fetchCompanyDailyFromBridge(), fetchSummaryFromBridge()])
-      const date = summary.date ?? getTodayUtc()
-      const snapshot = { date, company, summary }
-      await applyFreshData(snapshot)
-      return snapshot
+      const summary = await fetchSummaryFromSahmk()
+      await applyFreshSummary(summary)
+      return summary
     } finally {
-      todayRefreshPromise = null
+      summaryRefreshPromise = null
     }
   })()
-  todayRefreshPromise = promise
+  summaryRefreshPromise = promise
   return promise
 }
 
 /**
- * Apply write rules: if prev KV has same date → update KV only; else write DB then KV (new day).
+ * Merge fresh summary into KV/Turso. Preserves existing company rows on the same trading date when present.
+ * @param summary Fresh market summary from SAHMK
  */
-async function applyFreshData(snapshot: { date: string; company: TasiCompanyDailyRecord[]; summary: TasiMarketSummary }): Promise<void> {
+async function applyFreshSummary(summary: TasiMarketSummary): Promise<void> {
+  const date = summary.date
+  if (!date) {
+    throw new Error('SAHMK summary missing trading date')
+  }
+
   const prev = await getTasiDailySnapshotFromKv()
-  if (prev && prev.date === snapshot.date) {
-    logger.info('applyFreshData: same date, KV only', { date: snapshot.date })
+  const snapshot: TasiDailySnapshot = {
+    date,
+    company: prev?.date === date && Array.isArray(prev.company) ? prev.company : [],
+    summary: { ...summary, date },
+  }
+
+  if (prev && prev.date === date) {
+    logger.info('applyFreshSummary: same date, KV only', { date })
     await saveTasiDailySnapshotToKv(snapshot)
     return
   }
-  logger.info('applyFreshData: new date, DB then KV', { date: snapshot.date, companyCount: snapshot.company.length })
+
+  logger.info('applyFreshSummary: new date, DB then KV', { date, companyCount: snapshot.company.length })
   const dbWritePromise = (async () => {
-    await writeCompanyDaily(snapshot.date, snapshot.company)
-    await writeSummary(snapshot.date, snapshot.summary)
+    await writeSummary(date, snapshot.summary)
+    if (snapshot.company.length > 0) {
+      await writeCompanyDaily(date, snapshot.company)
+    }
     await deleteOlderThanRetention()
   })()
   await Promise.all([dbWritePromise, saveTasiDailySnapshotToKv(snapshot)])
 }
 
 /**
- * Cron ingest: fetch from remote, then apply write rules (same date → KV only; new date → DB then KV). Fallback so no day is missed.
+ * Cron ingest: fetch summary from SAHMK, then apply write rules. Company ingest deferred until SAHMK Starter+ bulk quotes.
  *
  * @returns { written: boolean, date: string }
  */
 export async function runIngest(): Promise<{ written: boolean; date: string }> {
-  logger.info('ingest: fetch from bridge')
-  const [company, summary] = await Promise.all([fetchCompanyDailyFromBridge(), fetchSummaryFromBridge()])
-  const date = summary.date ?? getTodayUtc()
-  const snapshot = { date, company, summary }
-
-  const prev = await getTasiDailySnapshotFromKv()
-  const sameDate = prev != null && prev.date === date
-  if (sameDate) {
-    logger.info('ingest: same date, KV only', { date })
-    await saveTasiDailySnapshotToKv(snapshot)
-    return { written: true, date }
+  logger.info('ingest: fetch summary from SAHMK')
+  const summary = await getSummaryFromRemoteAndPersist()
+  const date = summary.date
+  if (!date) {
+    throw new Error('SAHMK summary missing trading date')
   }
-  logger.info('ingest: new date, DB then KV', { date, companyCount: company.length })
-  const dbWritePromise = (async () => {
-    await writeCompanyDaily(date, company)
-    await writeSummary(date, summary)
-    await deleteOlderThanRetention()
-  })()
-  await Promise.all([dbWritePromise, saveTasiDailySnapshotToKv(snapshot)])
   logger.info('ingest: done', { date })
   return { written: true, date }
 }

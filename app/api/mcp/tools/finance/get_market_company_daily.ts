@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { tool } from '@/initializer/mcp'
 import { parseStockMarket } from '@/services/finance/stock'
-import { getCompanyDaily } from '@/services/finance/tasi'
+import { getCompanyDaily, tasiCompanyDailyListError } from '@/services/finance/tasi'
 
 /**
  * MCP tool: Saudi company daily rows (TASI feed / Turso). Other markets are not available on this tool.
@@ -24,6 +24,15 @@ export const get_market_company_daily = tool(
         error: 'Only market=TASI is supported for company daily on this tool.',
         hint: 'Use get_stock_summary for other market index snapshots.',
       }
+    }
+    const listError = tasiCompanyDailyListError({
+      date: params.date,
+      code: params.code ?? undefined,
+      from: params.from ?? undefined,
+      to: params.to ?? undefined,
+    })
+    if (listError) {
+      return { error: listError, hint: 'Use get_market_summary_daily or get_stock_summary for TASI index data.' }
     }
     const list = await getCompanyDaily({
       date: params.date,

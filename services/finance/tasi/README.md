@@ -4,12 +4,16 @@
 
 - **KV (Upstash)**: Current-day snapshot (`tasi-daily.json` payload). Source of truth for "today" when not expired. Must have a TTL; after expiry we re-fetch from remote.
 - **DB (Turso)**: Backup / history only. Not used for "current" read. New trading days are written here for backup and for K-line / history APIs.
-- **Remote (cf-feed-bridge)**: Live data. Used when the KV snapshot is expired or missing. Server calls **`GET {TASI_FEED_URL}/api/finance/tasi/company/daily`** and **`.../finance/tasi/summary/daily`**. Local public routes still expose **`/api/finance/stock/tasi/*`** to match the web route.
+- **Remote (SAHMK)**: Live data via [SAHMK Developer API](https://www.sahmk.sa/en/developers/docs). Requires `SAHMK_API_KEY`. Daily ingest currently calls:
+  - `GET /market/summary/?index=TASI` — index summary (**active**)
+  - `GET /companies/?market=TASI` + `GET /quotes/?symbols=...` — full constituent list (**deferred**; requires Starter+ bulk quotes)
+
+**Company ingest** is off (`TASI_COMPANY_DAILY_ENABLED=false`): same as FMP index markets — **summary only** on the UI and latest list APIs return 400. Historical Turso rows and K-line queries still work when enabled later set the flag to `true`.
 
 ## Read path (today)
 
 1. **KV first**: If a snapshot exists for the trading day and is **not expired** → return it (no remote call).
-2. **If KV snapshot expired or missing**: Fetch from remote (bridge). Then apply write rules (below) and return the fresh data.
+2. **If KV snapshot expired or missing**: Fetch from SAHMK. Then apply write rules (below) and return the fresh data.
 
 Past dates and K-line: always read from DB (Turso).
 
@@ -29,16 +33,16 @@ So: same date → KV only; new date → DB + KV.
 
 ## Cron (tasi-sync)
 
-- Runs the same logic: fetch from remote, then apply the write rules above.
+- Runs the same logic: fetch from SAHMK, then apply the write rules above.
 - **Purpose**: Fallback so that even with no user traffic, no trading day is missed (data is still fetched and persisted).
 
 ## Summary
 
-| What            | Role    | Read (today)                     | Write rule                             |
-| --------------- | ------- | -------------------------------- | -------------------------------------- |
-| KV snapshot     | Current | First, if not expired            | Always updated when we have fresh data |
-| Remote (bridge) | Live    | When KV snapshot expired/missing | N/A (source only)                      |
-| DB (Turso)      | Backup  | Not used for today               | Only when new date (new day)           |
+| What           | Role    | Read (today)                     | Write rule                             |
+| -------------- | ------- | -------------------------------- | -------------------------------------- |
+| KV snapshot    | Current | First, if not expired            | Always updated when we have fresh data |
+| Remote (SAHMK) | Live    | When KV snapshot expired/missing | N/A (source only)                      |
+| DB (Turso)     | Backup  | Not used for today               | Only when new date (new day)           |
 
 ## IndexedDB (browser)
 

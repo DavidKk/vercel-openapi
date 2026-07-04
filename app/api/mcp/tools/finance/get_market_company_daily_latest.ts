@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { tool } from '@/initializer/mcp'
 import { parseStockMarket } from '@/services/finance/stock'
-import { getCompanyDaily } from '@/services/finance/tasi'
+import { getCompanyDaily, tasiCompanyDailyListError } from '@/services/finance/tasi'
 
 /**
  * MCP tool: TASI all-company snapshot for the latest session plus response timestamp.
@@ -18,6 +18,10 @@ export const get_market_company_daily_latest = tool(
     const market = parseStockMarket(marketRaw)
     if (!market || market !== 'TASI') {
       throw new Error('Only market=TASI is supported.')
+    }
+    const listError = tasiCompanyDailyListError({})
+    if (listError) {
+      throw new Error(listError)
     }
     const asOf = new Date().toISOString()
     const items = await getCompanyDaily({})

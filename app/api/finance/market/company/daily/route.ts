@@ -1,3 +1,4 @@
+import { tasiCompanyDailyListGuard } from '@/app/api/finance/stock/tasiCompanyDailyGuard'
 import { api } from '@/initializer/controller'
 import { jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import { parseStockMarket } from '@/services/finance/stock'
@@ -24,6 +25,9 @@ export const GET = api(async (_req, ctx) => {
   const from = ctx.searchParams.get('from') ?? undefined
   const to = ctx.searchParams.get('to') ?? undefined
   logger.info('request', { market, date, code, from, to })
+
+  const blocked = tasiCompanyDailyListGuard({ date, code, from, to })
+  if (blocked) return blocked
 
   const list = await getCompanyDaily({ date, code, from, to })
   return jsonSuccess(list, {

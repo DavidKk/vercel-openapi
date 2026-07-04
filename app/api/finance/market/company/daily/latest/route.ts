@@ -1,3 +1,4 @@
+import { tasiCompanyDailyLatestGuard } from '@/app/api/finance/stock/tasiCompanyDailyGuard'
 import { api } from '@/initializer/controller'
 import { jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import { parseStockMarket } from '@/services/finance/stock'
@@ -19,6 +20,9 @@ export const GET = api(async (_req, ctx) => {
     return jsonInvalidParameters('Only market=TASI is supported on this path.')
   }
   logger.info('request', { market })
+
+  const blocked = tasiCompanyDailyLatestGuard()
+  if (blocked) return blocked
 
   const asOf = new Date().toISOString()
   const items = await getCompanyDaily({})

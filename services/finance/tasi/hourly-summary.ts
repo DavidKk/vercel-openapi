@@ -1,8 +1,9 @@
+import { mapSahmkSummaryToTasiSummary } from './mapSahmk'
+import { sahmkGetJson } from './sahmk-client'
 import { getTasiDailySnapshotFromKv } from './snapshot'
 import { deleteOlderThanRetention, writeSummaryHourly } from './turso'
 import type { TasiMarketSummary } from './types'
 
-const SAHMK_DEFAULT_BASE = 'https://app.sahmk.sa/api/v1'
 const FIELD_KEYS: Array<keyof TasiMarketSummary> = [
   'date',
   'open',
@@ -17,40 +18,6 @@ const FIELD_KEYS: Array<keyof TasiMarketSummary> = [
   'numberOfTrades',
   'marketCap',
 ]
-
-function toNumberOrNull(input: unknown): number | null {
-  if (typeof input === 'number' && Number.isFinite(input)) return input
-  if (typeof input === 'string' && input.trim()) {
-    const n = Number(input)
-    if (Number.isFinite(n)) return n
-  }
-  return null
-}
-
-function toStringOrNull(input: unknown): string | null {
-  if (typeof input !== 'string') return null
-  const s = input.trim()
-  return s || null
-}
-
-function mapSahmkSummaryToTasiSummary(raw: Record<string, unknown>): TasiMarketSummary {
-  const changePercent = toNumberOrNull(raw.index_change_percent ?? raw.change_percent)
-  return {
-    date: toStringOrNull(raw.date ?? raw.trading_date ?? raw.updated_at),
-    open: toNumberOrNull(raw.index_open ?? raw.open),
-    high: toNumberOrNull(raw.index_high ?? raw.high),
-    low: toNumberOrNull(raw.index_low ?? raw.low),
-    close: toNumberOrNull(raw.index_value ?? raw.close),
-    change: toNumberOrNull(raw.index_change ?? raw.change),
-    changePercent,
-    companiesTraded: toNumberOrNull(raw.companies_traded ?? raw.stocks_traded ?? raw.companies),
-    volumeTraded: toNumberOrNull(raw.volume ?? raw.volume_traded),
-    valueTraded: toNumberOrNull(raw.value ?? raw.value_traded),
-    numberOfTrades: toNumberOrNull(raw.trades ?? raw.number_of_trades),
-    marketCap: toNumberOrNull(raw.market_cap ?? raw.total_market_cap),
-    notes: 'mapped-from-sahmk-hourly',
-  }
-}
 
 function isEqualValue(a: unknown, b: unknown): boolean {
   if (a == null && b == null) return true
@@ -83,38 +50,29 @@ function getHourTsUtcIso(date = new Date()): string {
   return d.toISOString()
 }
 
+/**
+ * Compare latest KV daily summary with a fresh SAHMK market summary payload.
+ * @returns Alignment report
+ */
 export async function getTasiSummaryHourlyAlignment(): Promise<TasiSummaryHourlyAlignmentResult> {
-  const sahmkApiKey = process.env.SAHMK_API_KEY?.trim()
-  if (!sahmkApiKey) {
-    throw new Error('SAHMK_API_KEY is not set')
-  }
-  const base = (process.env.SAHMK_API_BASE_URL?.trim() || SAHMK_DEFAULT_BASE).replace(/\/$/, '')
-  const url = `${base}/market/summary/?index=TASI`
-  const response = await fetch(url, {
-    headers: new Headers({
-      'X-API-Key': sahmkApiKey,
-      Accept: 'application/json',
-    }),
-  })
-  const rawText = await response.text()
-  let rawData: unknown = rawText
-  try {
-    rawData = JSON.parse(rawText) as unknown
-  } catch {
-    // keep raw string
-  }
+  let rawData: unknown
+  let upstreamStatus = 200
 
-  if (!response.ok) {
+  try {
+    rawData = await sahmkGetJson<Record<string, unknown>>('/market/summary/', 'market summary hourly', { index: 'TASI' })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    const statusMatch = message.match(/failed \((\d+)\):/)
+    upstreamStatus = statusMatch ? Number(statusMatch[1]) : 500
     return {
       ok: false,
-      upstreamStatus: response.status,
-      upstreamBody: rawData,
+      upstreamStatus,
+      upstreamBody: message,
     }
   }
 
   const rawObject = rawData != null && typeof rawData === 'object' ? (rawData as Record<string, unknown>) : {}
-  const mappedSummary = mapSahmkSummaryToTasiSummary(rawObject)
-  // Compare with latest cached daily snapshot only to avoid triggering daily fetch/write side effects.
+  const mappedSummary = mapSahmkSummaryToTasiSummary(rawObject, 'mapped-from-sahmk-hourly')
   const snapshot = await getTasiDailySnapshotFromKv()
   const currentSummary = snapshot?.summary ?? null
 
@@ -134,7 +92,7 @@ export async function getTasiSummaryHourlyAlignment(): Promise<TasiSummaryHourly
   return {
     ok: true,
     interval: 'hourly',
-    upstreamStatus: response.status,
+    upstreamStatus,
     aligned: alignedFields === totalFields,
     alignmentRate: `${alignedFields}/${totalFields}`,
     fieldCompare,
@@ -158,6 +116,7 @@ export interface TasiSummaryHourlyIngestResult {
 /**
  * Hourly ingest: fetch SAHMK summary, map/compare, then persist mapped summary to hourly table.
  * Retention cleanup uses shared 1-year policy.
+ * @returns Ingest result
  */
 export async function runIngestHourlySummary(): Promise<TasiSummaryHourlyIngestResult> {
   const alignment = await getTasiSummaryHourlyAlignment()

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 
 import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
 import { useDebugPanel } from '@/components/DebugPanel'
-import type { TasiCompanyDailyRecord, TasiMarketSummary } from '@/services/finance/tasi'
+import type { TasiMarketSummary } from '@/services/finance/tasi'
 import { getLatestValidSnapshotFromIdb } from '@/services/finance/tasi/browser'
 
 import { TasiOverview } from './TasiOverview'
@@ -78,12 +78,9 @@ export function TasiOverviewSkeleton(props?: TasiOverviewSkeletonProps) {
                   <td className="sticky left-0 z-10 bg-white px-2 py-1.5">
                     <span className="inline-block h-4 w-12 animate-pulse rounded bg-gray-200" aria-hidden />
                   </td>
-                  <td className="px-2 py-1.5">
-                    <span className="inline-block h-4 w-24 animate-pulse rounded bg-gray-100" aria-hidden />
-                  </td>
-                  {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((j) => (
-                    <td key={j} className="px-2 py-1.5 text-right">
-                      <span className="inline-block ml-auto h-4 w-14 animate-pulse rounded bg-gray-100" aria-hidden />
+                  {Array.from({ length: 10 }).map((_, j) => (
+                    <td key={j} className="px-2 py-1.5">
+                      <span className="inline-block h-4 w-14 animate-pulse rounded bg-gray-100" aria-hidden />
                     </td>
                   ))}
                 </tr>
@@ -97,10 +94,9 @@ export function TasiOverviewSkeleton(props?: TasiOverviewSkeletonProps) {
 }
 
 /**
- * Client-side loader for TASI overview: IDB cache used only when not expired (same TTL as server KV snapshot); else fetch from API.
+ * Client-side loader for TASI overview: summary only (same UX as FMP index markets; company table shows NODATA).
  */
 export function TasiOverviewLoader(props?: { headerTitle?: string; headerAddon?: ReactNode }) {
-  const [company, setCompany] = useState<TasiCompanyDailyRecord[] | null>(null)
   const [summary, setSummary] = useState<TasiMarketSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -111,35 +107,27 @@ export function TasiOverviewLoader(props?: { headerTitle?: string; headerAddon?:
   useEffect(() => {
     let cancelled = false
 
-    /** Use IDB only if snapshot exists and is not expired (same TTL as server). When valid, skip API. */
     async function run() {
       const snapshot = await getLatestValidSnapshotFromIdb()
       if (cancelled) return
-      if (snapshot && snapshot.company.length > 0 && snapshot.summary) {
-        setCompany(snapshot.company)
+      if (snapshot?.summary) {
         setSummary(snapshot.summary)
         setError(null)
         setLoading(false)
         return
       }
-      /** Cache miss or expired: fetch from API. */
+
       try {
-        const [companyRes, summaryRes] = await Promise.all([
-          fetch('/api/finance/stock/tasi/company/daily', { cache: 'default' }),
-          fetch('/api/finance/stock/tasi/summary/daily', { cache: 'default' }),
-        ])
+        const summaryRes = await fetch('/api/finance/stock/tasi/summary/daily', { cache: 'default' })
         if (cancelled) return
-        if (!companyRes.ok || !summaryRes.ok) {
-          const msg = !companyRes.ok ? await companyRes.text() : await summaryRes.text()
-          setError(msg || 'Failed to load data')
+        if (!summaryRes.ok) {
+          setError(await summaryRes.text().catch(() => 'Failed to load data'))
           setLoading(false)
           return
         }
-        const [companyEnvelope, summaryEnvelope] = await Promise.all([companyRes.json(), summaryRes.json()])
+        const summaryEnvelope = await summaryRes.json()
         if (cancelled) return
-        const companyList = Array.isArray(companyEnvelope?.data) ? companyEnvelope.data : null
         const summaryData = summaryEnvelope?.data != null && typeof summaryEnvelope.data === 'object' && !Array.isArray(summaryEnvelope.data) ? summaryEnvelope.data : null
-        setCompany(companyList ?? null)
         setSummary(summaryData)
         setError(null)
       } catch (e) {
@@ -164,9 +152,9 @@ export function TasiOverviewLoader(props?: { headerTitle?: string; headerAddon?:
     )
   }
 
-  if (forceLoading || (loading && !company && !summary && !error)) {
+  if (forceLoading || (loading && !summary && !error)) {
     return <TasiOverviewSkeleton leadingTitle={props?.headerTitle} headerAddon={props?.headerAddon} ariaLabel="Loading TASI data" />
   }
 
-  return <TasiOverview company={company} summary={summary} error={error} headerTitle={props?.headerTitle} headerAddon={props?.headerAddon} useTasiCurrencyLabels />
+  return <TasiOverview company={[]} summary={summary} error={error} headerTitle={props?.headerTitle} headerAddon={props?.headerAddon} useTasiCurrencyLabels />
 }

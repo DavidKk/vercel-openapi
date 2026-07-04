@@ -24,25 +24,14 @@ declare namespace NodeJS {
     /** Secret for internal automation routes (scheduled jobs; not part of the public API surface) */
     CRON_SECRET?: string
     /**
-     * cf-feed-bridge base URL (no trailing slash). Server-side TASI ingest calls
-     * `GET {TASI_FEED_URL}/api/finance/stock/tasi/company/daily` and `.../stock/tasi/summary/daily`
-     * (see `services/finance/tasi/fetch.ts`).
+     * SAHMK Developer API key — required for TASI daily ingest and hourly alignment.
+     * Docs: https://www.sahmk.sa/en/developers/docs
      */
-    TASI_FEED_URL?: string
-    /** Preferred feed request headers JSON. Example: {"x-api-key":"...","x-internal-call":"vercel"} */
-    TASI_FEED_REQUEST_HEADERS_JSON?: string
-    /** Header key for feed auth header (default: x-api-key) */
-    TASI_FEED_X_API_KEY_HEADER_KEY?: string
-    /** Header value for feed auth header */
-    TASI_FEED_X_API_KEY_HEADER_VALUE?: string
-    /** Header key for internal-call header (default: x-internal-call) */
-    TASI_FEED_X_INTERNAL_CALL_HEADER_KEY?: string
-    /** Header value for internal-call header */
-    TASI_FEED_X_INTERNAL_CALL_HEADER_VALUE?: string
-    /** SAHMK API key (used by GET /api/finance/market/summary/hourly?market=TASI and cron hourly sync mode) */
     SAHMK_API_KEY?: string
     /** Optional SAHMK API base URL override. Default: https://app.sahmk.sa/api/v1 */
     SAHMK_API_BASE_URL?: string
+    /** @deprecated Legacy cf-feed-bridge base URL; TASI daily ingest no longer uses this. */
+    TASI_FEED_URL?: string
     /** FreeCurrencyAPI.com key (optional; when set, exchange rate uses it instead of no-key fallback) */
     FREECURRENCYAPI_API_KEY?: string
     /** QWeather API key (weather module) */

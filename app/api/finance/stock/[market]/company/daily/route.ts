@@ -1,4 +1,5 @@
 import { tasiFeedSlugErrorMessage } from '@/app/api/finance/stock/stockSlugTasiFeed'
+import { tasiCompanyDailyListGuard } from '@/app/api/finance/stock/tasiCompanyDailyGuard'
 import { api } from '@/initializer/controller'
 import { jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import { getCompanyDaily } from '@/services/finance/tasi'
@@ -24,6 +25,9 @@ export const GET = api<{ market: string }>(async (_req, ctx) => {
   const from = ctx.searchParams.get('from') ?? undefined
   const to = ctx.searchParams.get('to') ?? undefined
   logger.info('request', { slug: params.market, date, code, from, to })
+
+  const blocked = tasiCompanyDailyListGuard({ date, code, from, to })
+  if (blocked) return blocked
 
   const list = await getCompanyDaily({ date, code, from, to })
   return jsonSuccess(list, {
