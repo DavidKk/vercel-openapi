@@ -104,24 +104,24 @@ GET /api/finance/stock/summary/daily?market=TASI&from=2026-01-01&to=2026-03-01
 
 | Tool                        | Role                                                                                                                                                                                                                                 |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `get_stock_summary`         | **Primary for TASI latest index** and all markets: `market` or `markets` (comma-separated). Same as `GET /api/finance/stock/summary`.                                                                                                |
+| `get_stock_summary`         | **Latest index snapshot** for all markets: `market` or `markets` (comma-separated). Same as `GET /api/finance/stock/summary`.                                                                                                        |
+| `get_stock_summary_daily`   | **Daily index summary** for one market: omit date/from/to for latest; optional `date` or `from`+`to` (max 365 days). Same as `GET /api/finance/stock/summary/daily`.                                                                 |
 | `get_market_daily`          | Exchange OHLCV only: `symbols`, `startDate`, `endDate`; optional `withIndicators`, `indicatorWarmup`, `indicatorWarmupDays`; optional `syncIfEmpty` (default **true**), optional `forceSync`. Fund NAV codes → `get_fund_nav_daily`. |
 | `get_market_daily_latest`   | Latest one OHLCV bar per symbol: `symbols` only; optional `withIndicators` (default **true**); optional `syncIfEmpty` (default **true**). Returns `{ asOf, items, synced }`.                                                         |
 | `get_fund_nav_daily`        | Fund NAV only: same `symbols` / dates; optional `syncIfEmpty` (default **true**). Returns `{ items, synced }` with `unitNav` + `dailyChangePercent`.                                                                                 |
 | `get_fund_nav_daily_latest` | Latest one NAV row per symbol: `symbols` only; optional `syncIfEmpty` (default **true**). Returns `{ asOf, items, synced }`.                                                                                                         |
 | `get_overview_stock_list`   | Same date range + `symbols`; optional `syncIfEmpty`. Returns `{ stockList, synced }` — **one row per symbol** (latest bar + MACD streak), not the full daily series (`get_market_daily`).                                            |
 
-### Legacy TASI feed tools (still registered)
-
-| Tool                              | Role                                                                                                                     |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `get_market_summary_daily`        | TASI index historical K-line / past date only; optional `market` (default TASI). **Latest index → `get_stock_summary`.** |
-| `get_market_summary_hourly`       | TASI SAHMK hourly alignment vs daily summary; optional `market` (default TASI). Not for index snapshots.                 |
-| `get_market_summary_daily_latest` | **Deprecated** for TASI latest — use `get_stock_summary`. Feed latest session when needed for migration only.            |
-
 ### Removed MCP tools
 
 `get_market_company_daily` and `get_market_company_daily_latest` are **unregistered**. TASI constituents are not supported — use `get_stock_summary` for index data.
+
+## Known limitations & follow-up
+
+- **Latest `summary.date` vs calendar today:** Index markets return the **last available trading session** (e.g. TASI on weekends shows the prior Thursday). This is upstream session data, not a stale cache bug.
+- **Non-TASI historical range:** Rows come from `finance_stock_summary_daily`, populated only on **`finance-fmp-sync` cron** days. Range queries return sparse `items` until a backfill job is added.
+- **TASI historical range:** Full ~1y history from the TASI Turso feed via `get_stock_summary_daily` / `GET /api/finance/stock/summary/daily`.
+- **Legacy REST/MCP aliases:** Old slug paths (`/api/finance/stock/tasi/summary/daily`, `get_market_summary_daily*`) remain registered for migration; prefer **`/api/finance/stock/summary/daily`** and **`get_stock_summary_daily`**.
 
 ## Response
 
@@ -138,7 +138,7 @@ Same envelope: **`{ code: 0, message: "ok", data: … }`**. **`data`** may be `[
 
 - User: “TASI summary today” → `GET /api/finance/stock/summary?market=TASI`.
 - User: “Nasdaq summary today” → `GET /api/finance/stock/summary?market=Nasdaq`.
-- User: “TASI index daily Jan–Mar 2026” → `GET /api/finance/stock/summary/daily?market=TASI&from=2026-01-01&to=2026-03-01`.
+- User: “TASI index daily Jan–Mar 2026” → `GET /api/finance/stock/summary/daily?market=TASI&from=2026-01-01&to=2026-03-01` or MCP `get_stock_summary_daily` with the same params.
 - User: “TASI all companies today” → explain constituents not supported; offer `GET /api/finance/stock/summary?market=TASI` for index snapshot.
 
 ## Agent rules

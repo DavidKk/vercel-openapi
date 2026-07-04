@@ -7,7 +7,14 @@ import { FormSelect } from '@/components/FormSelect'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 
-type FinanceMcpToolName = 'get_market_daily' | 'get_market_daily_latest' | 'get_fund_nav_daily' | 'get_fund_nav_daily_latest' | 'get_overview_stock_list' | 'get_stock_summary'
+type FinanceMcpToolName =
+  | 'get_market_daily'
+  | 'get_market_daily_latest'
+  | 'get_fund_nav_daily'
+  | 'get_fund_nav_daily_latest'
+  | 'get_overview_stock_list'
+  | 'get_stock_summary'
+  | 'get_stock_summary_daily'
 
 interface FinanceMcpPlaygroundState {
   loading: boolean
@@ -29,6 +36,7 @@ const DEFAULT_PARAMS: Record<FinanceMcpToolName, string> = {
   get_fund_nav_daily_latest: '{"symbols":"012922"}',
   get_overview_stock_list: '{"symbols":"518880","startDate":"2025-01-01","endDate":"2025-03-01"}',
   get_stock_summary: '{"market":"TASI"}',
+  get_stock_summary_daily: '{"market":"TASI","from":"2026-06-01","to":"2026-07-02"}',
 }
 
 /**
@@ -101,7 +109,8 @@ export function TasiMcpPlayground() {
                 value={tool}
                 onChange={handleToolChange}
                 options={[
-                  { value: 'get_stock_summary', label: 'get_stock_summary (TASI + all markets)' },
+                  { value: 'get_stock_summary', label: 'get_stock_summary (latest snapshot)' },
+                  { value: 'get_stock_summary_daily', label: 'get_stock_summary_daily (latest / date / range)' },
                   { value: 'get_market_daily', label: 'get_market_daily' },
                   { value: 'get_market_daily_latest', label: 'get_market_daily_latest' },
                   { value: 'get_fund_nav_daily', label: 'get_fund_nav_daily' },
@@ -112,10 +121,10 @@ export function TasiMcpPlayground() {
             </label>
             <label className="flex flex-col gap-1">
               <span>
-                params (JSON). TASI latest index → <code className="rounded bg-gray-100 px-0.5">get_stock_summary</code> with{' '}
-                <code className="rounded bg-gray-100 px-0.5">{`{"market":"TASI"}`}</code>. Legacy TASI feed tools (
-                <code className="rounded bg-gray-100 px-0.5">get_market_summary_daily*</code>, <code className="rounded bg-gray-100 px-0.5">get_market_summary_hourly</code>) are
-                registered but not in this dropdown — see MCP docs. <code className="rounded bg-gray-100 px-0.5">get_market_company_daily*</code> were removed.{' '}
+                params (JSON). Latest index → <code className="rounded bg-gray-100 px-0.5">get_stock_summary</code> with{' '}
+                <code className="rounded bg-gray-100 px-0.5">{`{"market":"TASI"}`}</code>. Historical / range →{' '}
+                <code className="rounded bg-gray-100 px-0.5">get_stock_summary_daily</code> with optional <code className="rounded bg-gray-100 px-0.5">date</code> or{' '}
+                <code className="rounded bg-gray-100 px-0.5">from</code>+<code className="rounded bg-gray-100 px-0.5">to</code>.{' '}
                 <code className="rounded bg-gray-100 px-0.5">get_market_daily</code>: exchange OHLCV — symbols, startDate, endDate; optional{' '}
                 <code className="rounded bg-gray-100 px-0.5">withIndicators</code>, <code className="rounded bg-gray-100 px-0.5">indicatorWarmup</code> (120 days),{' '}
                 <code className="rounded bg-gray-100 px-0.5">indicatorWarmupDays</code> (35-250). <code className="rounded bg-gray-100 px-0.5">get_fund_nav_daily</code>: fund NAV

@@ -53,6 +53,7 @@ const TOOL_NAMES_BY_CATEGORY: Record<string, string[]> = {
   movies: ['list_latest_movies'],
   finance: [
     'get_stock_summary',
+    'get_stock_summary_daily',
     'get_market_daily',
     'get_market_daily_latest',
     'get_fund_nav_daily',
@@ -124,8 +125,16 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
     calls.push({ name: 'calc_fuel_recharge_promo', params: { province, amount, bonus: 10 } })
   }
 
-  if (isFinance && /(TASI|沙特)/i.test(m) && /(指数|快照|summary|概况|大盘)/i.test(m)) {
-    calls.push({ name: 'get_stock_summary', params: { market: 'TASI' } })
+  if (isFinance && /(TASI|沙特|S&P|Nasdaq|Dow|指数|index)/i.test(m) && /(指数|快照|summary|概况|大盘|index)/i.test(m)) {
+    const dates = m.match(/\d{4}-\d{2}-\d{2}/g) ?? []
+    const market = /TASI|沙特/i.test(m) ? 'TASI' : /S&P/i.test(m) ? 'S&P 500' : /Dow/i.test(m) ? 'Dow Jones' : /Nasdaq/i.test(m) ? 'Nasdaq' : 'TASI'
+    if (dates.length >= 2) {
+      calls.push({ name: 'get_stock_summary_daily', params: { market, from: dates[0], to: dates[1] } })
+    } else if (dates.length === 1) {
+      calls.push({ name: 'get_stock_summary_daily', params: { market, date: dates[0] } })
+    } else {
+      calls.push({ name: 'get_stock_summary', params: { market } })
+    }
   }
 
   if (isFinance && /(日线|K线|OHLCV|MACD|指标|510300|518880|XAUUSD)/i.test(m)) {

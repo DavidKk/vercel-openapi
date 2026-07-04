@@ -76,10 +76,12 @@ apiPage:
 
 mcpPage:
   title: Finance MCP tools
-  subtitle: Primary — get_stock_summary for TASI and all index markets; get_market_daily* / get_fund_nav_daily* for funds and XAUUSD.
+  subtitle: Primary — get_stock_summary (latest) and get_stock_summary_daily (history); get_market_daily* / get_fund_nav_daily* for funds and XAUUSD.
   tools:
     - name: get_stock_summary
-      description: 'Primary for all index snapshots including TASI latest: market (single) or markets (comma-separated). Same as GET /api/finance/stock/summary?market=TASI.'
+      description: 'Latest index snapshot: market (single) or markets (comma-separated). Same as GET /api/finance/stock/summary?market=TASI.'
+    - name: get_stock_summary_daily
+      description: 'Daily index summary for one market. Omit date/from/to for latest; optional date or from+to (max 365 days). Same as GET /api/finance/stock/summary/daily.'
     - name: get_market_daily
       description: 'Exchange OHLCV only: symbols, startDate, endDate; optional withIndicators; optional syncIfEmpty (default true). Fund NAV → get_fund_nav_daily.'
     - name: get_market_daily_latest

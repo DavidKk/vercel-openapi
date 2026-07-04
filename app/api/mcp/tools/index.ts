@@ -13,6 +13,7 @@ import { get_market_summary_daily_latest } from './finance/get_market_summary_da
 import { get_market_summary_hourly } from './finance/get_market_summary_hourly'
 import { get_overview_stock_list } from './finance/get_overview_stock_list'
 import { get_stock_summary } from './finance/get_stock_summary'
+import { get_stock_summary_daily } from './finance/get_stock_summary_daily'
 import { calc_fuel_recharge_promo } from './fuel-price/calc_fuel_recharge_promo'
 import { get_fuel_price } from './fuel-price/get_fuel_price'
 import { get_fuel_price_by_province } from './fuel-price/get_fuel_price_by_province'
@@ -58,6 +59,7 @@ const ALL_TOOLS: Tool[] = [
   get_market_summary_hourly,
   get_overview_stock_list,
   get_stock_summary,
+  get_stock_summary_daily,
   list_price_lists,
   search_prices,
   calc_prices,
@@ -85,6 +87,7 @@ const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
   weather: ['get_point_weather', 'get_point_forecast'],
   finance: [
     'get_stock_summary',
+    'get_stock_summary_daily',
     'get_market_daily',
     'get_market_daily_latest',
     'get_fund_nav_daily',
