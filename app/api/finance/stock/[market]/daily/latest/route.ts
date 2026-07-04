@@ -1,7 +1,7 @@
 import { tasiFeedSlugErrorMessage } from '@/app/api/finance/stock/stockSlugTasiFeed'
 import { api } from '@/initializer/controller'
 import { jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
-import { getCompanyDaily, getSummaryDaily } from '@/services/finance/tasi'
+import { getSummaryDaily } from '@/services/finance/tasi'
 import { createLogger } from '@/services/logger'
 
 export const runtime = 'edge'
@@ -10,7 +10,7 @@ const logger = createLogger('api-finance-stock-slug-daily-latest')
 
 /**
  * GET /api/finance/stock/:market/daily/latest
- * Single-call latest snapshot for the stock market page: index summary + all companies (slug must be `tasi`).
+ * Deprecated combined snapshot (summary + companies). Prefer GET /api/finance/stock/summary?market=TASI for latest index.
  */
 export const GET = api<{ market: string }>(async (_req, ctx) => {
   const params = await ctx.params
@@ -21,11 +21,11 @@ export const GET = api<{ market: string }>(async (_req, ctx) => {
   logger.info('request', { slug: params.market })
 
   const asOf = new Date().toISOString()
-  const [summary, items] = await Promise.all([getSummaryDaily({}), getCompanyDaily({})])
-  const dataDate = summary != null && !Array.isArray(summary) ? summary.date : (items[0]?.date ?? null)
+  const summary = await getSummaryDaily({})
+  const dataDate = summary != null && !Array.isArray(summary) ? summary.date : null
 
   return jsonSuccess(
-    { asOf, dataDate, summary, items },
+    { asOf, dataDate, summary, items: [] },
     {
       headers: new Headers({
         'Content-Type': 'application/json',

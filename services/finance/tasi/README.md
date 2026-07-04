@@ -8,7 +8,7 @@
   - `GET /market/summary/?index=TASI` — index summary (**active**)
   - `GET /companies/?market=TASI` + `GET /quotes/?symbols=...` — full constituent list (**deferred**; requires Starter+ bulk quotes)
 
-**Company ingest** is off (`TASI_COMPANY_DAILY_ENABLED=false`): same as FMP index markets — **summary only** on the UI and latest list APIs return 400. Historical Turso rows and K-line queries still work when enabled later set the flag to `true`.
+**Company ingest** is off (`TASI_COMPANY_DAILY_ENABLED=false`): same as FMP index markets — **summary only**. Latest TASI index → **`GET /api/finance/stock/summary?market=TASI`** (or MCP `get_stock_summary`). Legacy `company/daily` latest/list APIs return **400**. Historical Turso rows and K-line queries still work when enabled later set the flag to `true`.
 
 ## Read path (today)
 

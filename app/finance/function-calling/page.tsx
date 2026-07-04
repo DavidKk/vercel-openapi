@@ -2,18 +2,15 @@ import { FunctionCallingPanel } from '@/components/FunctionCallingPanel'
 
 /**
  * Finance Function Calling page.
- * Exposes get_market_company_daily, get_market_company_daily_latest, get_market_summary_daily, get_market_summary_daily_latest,
- * get_market_summary_hourly, get_market_daily, get_market_daily_latest, get_fund_nav_daily, get_fund_nav_daily_latest,
- * get_overview_stock_list, and get_stock_summary as OpenAI-compatible tools.
+ * Exposes primary finance MCP tools as OpenAI-compatible tools (legacy TASI feed tools remain registered).
  */
 export default function FinanceFunctionCallingPage() {
   return (
     <FunctionCallingPanel
       title="Function Calling"
       subtitle={
-        'Finance tools match the sidebar taxonomy: stocks (multi-market snapshot + TASI exchange index/company/hourly), ' +
-        'funds (six-digit OHLCV vs NAV daily + overview stock-list; OHLCV indicators support legacy cold-start and indicatorWarmupDays), ' +
-        'precious metals use XAUUSD on the market daily tools — same tool names as POST /api/mcp/finance.'
+        'Finance tools match POST /api/mcp/finance: primary — get_stock_summary for TASI and all index markets; get_market_daily* / get_fund_nav_daily* for funds and XAUUSD; get_overview_stock_list. ' +
+        'Legacy TASI feed tools (get_market_summary_daily*, get_market_summary_hourly) remain registered for historical K-line only. Company tools removed.'
       }
       defaultToolsCategory="finance"
     />

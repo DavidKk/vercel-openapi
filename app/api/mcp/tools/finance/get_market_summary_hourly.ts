@@ -9,7 +9,7 @@ import { getTasiSummaryHourlyAlignment } from '@/services/finance/tasi/hourly-su
  */
 export const get_market_summary_hourly = tool(
   'get_market_summary_hourly',
-  'Get hourly alignment check for TASI (SAHMK vs current summary/daily mapping). market must be TASI (default).',
+  'Get hourly alignment check for TASI (SAHMK vs daily summary mapping). Not for index snapshots — latest TASI → get_stock_summary. market must be TASI (default).',
   z.object({
     market: z.string().optional().describe('Must be TASI (default).'),
   }),

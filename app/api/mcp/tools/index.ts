@@ -6,8 +6,6 @@ import { convert_currency } from './exchange-rate/convert_currency'
 import { get_exchange_rate } from './exchange-rate/get_exchange_rate'
 import { get_fund_nav_daily } from './finance/get_fund_nav_daily'
 import { get_fund_nav_daily_latest } from './finance/get_fund_nav_daily_latest'
-import { get_market_company_daily } from './finance/get_market_company_daily'
-import { get_market_company_daily_latest } from './finance/get_market_company_daily_latest'
 import { get_market_daily } from './finance/get_market_daily'
 import { get_market_daily_latest } from './finance/get_market_daily_latest'
 import { get_market_summary_daily } from './finance/get_market_summary_daily'
@@ -51,8 +49,6 @@ const ALL_TOOLS: Tool[] = [
   list_latest_movies,
   get_point_weather,
   get_point_forecast,
-  get_market_company_daily,
-  get_market_company_daily_latest,
   get_fund_nav_daily,
   get_fund_nav_daily_latest,
   get_market_daily,
@@ -88,17 +84,15 @@ const CATEGORY_TOOL_NAMES: Record<FunctionCallingCategory, string[]> = {
   movies: ['list_latest_movies'],
   weather: ['get_point_weather', 'get_point_forecast'],
   finance: [
-    'get_market_company_daily',
-    'get_market_company_daily_latest',
-    'get_market_summary_daily',
-    'get_market_summary_daily_latest',
-    'get_market_summary_hourly',
+    'get_stock_summary',
     'get_market_daily',
     'get_market_daily_latest',
     'get_fund_nav_daily',
     'get_fund_nav_daily_latest',
     'get_overview_stock_list',
-    'get_stock_summary',
+    'get_market_summary_daily',
+    'get_market_summary_hourly',
+    'get_market_summary_daily_latest',
   ],
   prices: ['list_price_lists', 'search_prices', 'calc_prices', 'create_product', 'update_product', 'delete_product'],
   'proxy-rule': ['get_clash_rule_config'],

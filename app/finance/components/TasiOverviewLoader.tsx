@@ -118,7 +118,7 @@ export function TasiOverviewLoader(props?: { headerTitle?: string; headerAddon?:
       }
 
       try {
-        const summaryRes = await fetch('/api/finance/stock/tasi/summary/daily', { cache: 'default' })
+        const summaryRes = await fetch('/api/finance/stock/summary?market=TASI', { cache: 'default' })
         if (cancelled) return
         if (!summaryRes.ok) {
           setError(await summaryRes.text().catch(() => 'Failed to load data'))
@@ -127,7 +127,11 @@ export function TasiOverviewLoader(props?: { headerTitle?: string; headerAddon?:
         }
         const summaryEnvelope = await summaryRes.json()
         if (cancelled) return
-        const summaryData = summaryEnvelope?.data != null && typeof summaryEnvelope.data === 'object' && !Array.isArray(summaryEnvelope.data) ? summaryEnvelope.data : null
+        const payload = summaryEnvelope?.data
+        const summaryData =
+          payload != null && typeof payload === 'object' && !Array.isArray(payload) && 'summary' in payload && payload.summary != null
+            ? (payload.summary as TasiMarketSummary)
+            : null
         setSummary(summaryData)
         setError(null)
       } catch (e) {

@@ -30,8 +30,6 @@ declare namespace NodeJS {
     SAHMK_API_KEY?: string
     /** Optional SAHMK API base URL override. Default: https://app.sahmk.sa/api/v1 */
     SAHMK_API_BASE_URL?: string
-    /** @deprecated Legacy cf-feed-bridge base URL; TASI daily ingest no longer uses this. */
-    TASI_FEED_URL?: string
     /** FreeCurrencyAPI.com key (optional; when set, exchange rate uses it instead of no-key fallback) */
     FREECURRENCYAPI_API_KEY?: string
     /** QWeather API key (weather module) */

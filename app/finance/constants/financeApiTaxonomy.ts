@@ -1,7 +1,7 @@
 /**
  * Finance REST documentation grouping: majors match sidebar (Stocks / Funds / Precious metals).
  * Chinese gloss for naming discussions:
- * - Stocks: 股票市场 — 指数快照、指数日/小时、成分日数据（当前 feed 仅 TASI）。
+ * - Stocks: 股票市场 — 指数快照（TASI 最新走 stock/summary）、指数日/小时（feed 仅 TASI；无成分股列表）。
  * - Funds: 基金 — 六位数「交易所日 K」vs「净值日序」两类日数据。
  * - Precious metals: 贵金属 — 品类；XAUUSD 走东财 `122.XAU` 日 K，存 Turso `source=eastmoney-precious-spot`；与 A 股 `eastmoney`、净值 `eastmoney-fund-nav` 区分。
  */
@@ -18,7 +18,7 @@ export const STOCKS_API_SECTION_TITLE = 'Market index & listed companies'
 
 /**
  * Stock-market REST subgroups (exchange-scoped paths use `market=`; feed implemented for TASI only today).
- * 对应关系：多市场指数快照 + 单市场指数日 K / 小时 + 成分股日数据。
+ * 对应关系：多市场指数快照 + 单市场指数日 K / 小时（历史；最新走 stock/summary）。
  */
 export const STOCKS_API_SUBGROUP = {
   /** Multi-market latest bar (FMP + TASI where wired). */
@@ -27,8 +27,8 @@ export const STOCKS_API_SUBGROUP = {
   indexDailyFromFeed: 'Index — daily series (exchange feed)',
   /** Exchange index hourly buckets vs daily alignment. */
   indexHourlyFromFeed: 'Index — hourly buckets (exchange feed)',
-  /** Listed names daily list or per-code OHLC from feed. */
-  constituentsDailyFromFeed: 'Constituents — daily list & OHLC (exchange feed)',
+  /** Listed names daily list or per-code OHLC from feed (TASI list disabled; historical K-line only). */
+  constituentsDailyFromFeed: 'Constituents — deprecated (use stock/summary for TASI index)',
 } as const
 
 /** Funds section subtitle in API docs (pair with FINANCE_MAJOR.funds in headings). */

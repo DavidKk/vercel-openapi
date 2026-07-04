@@ -34,6 +34,7 @@ const PRESET_PROMPTS_BY_CATEGORY: Record<string, { label: string; value: string 
     { label: '按总价总量计算', value: '可乐总价12.5元，总量1.5L，帮我算每个品牌单价对比。' },
   ],
   finance: [
+    { label: 'TASI 指数快照', value: '查一下 TASI 指数今天的快照。' },
     { label: '510300 MACD（旧口径）', value: '查 510300 从 2025-07-23 到 2025-08-14 的日线 MACD，不预热。' },
     { label: '510300 MACD（120天预热）', value: '查 510300 从 2025-07-23 到 2025-08-14 的日线 MACD，预热120天。' },
   ],
@@ -51,17 +52,15 @@ const TOOL_NAMES_BY_CATEGORY: Record<string, string[]> = {
   'exchange-rate': ['get_exchange_rate', 'convert_currency'],
   movies: ['list_latest_movies'],
   finance: [
-    'get_market_company_daily',
-    'get_market_company_daily_latest',
-    'get_market_summary_daily',
-    'get_market_summary_daily_latest',
-    'get_market_summary_hourly',
+    'get_stock_summary',
     'get_market_daily',
     'get_market_daily_latest',
     'get_fund_nav_daily',
     'get_fund_nav_daily_latest',
     'get_overview_stock_list',
-    'get_stock_summary',
+    'get_market_summary_daily',
+    'get_market_summary_hourly',
+    'get_market_summary_daily_latest',
   ],
   prices: ['list_price_lists', 'search_prices', 'calc_prices', 'create_product', 'update_product', 'delete_product'],
   'proxy-rule': ['get_clash_rule_config'],
@@ -123,6 +122,10 @@ function mockInferToolCalls(message: string, category: string): MockToolCall[] {
     const amount = amountMatch ? parseInt(amountMatch[1] ?? amountMatch[2] ?? '200', 10) : 200
     const province = m.match(PROVINCE_PATTERN)?.at(0) ?? '北京'
     calls.push({ name: 'calc_fuel_recharge_promo', params: { province, amount, bonus: 10 } })
+  }
+
+  if (isFinance && /(TASI|沙特)/i.test(m) && /(指数|快照|summary|概况|大盘)/i.test(m)) {
+    calls.push({ name: 'get_stock_summary', params: { market: 'TASI' } })
   }
 
   if (isFinance && /(日线|K线|OHLCV|MACD|指标|510300|518880|XAUUSD)/i.test(m)) {

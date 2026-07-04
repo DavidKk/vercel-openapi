@@ -9,7 +9,7 @@ import { getSummaryDaily } from '@/services/finance/tasi'
  */
 export const get_market_summary_daily = tool(
   'get_market_summary_daily',
-  'Get market summary daily. Only market=TASI (default) returns feed/Turso snapshot or K-line. For S&P 500, Dow Jones, etc., use get_stock_summary.',
+  'Get market summary daily (historical K-line / past date only). Only market=TASI. For latest index use get_stock_summary.',
   z.object({
     market: z.string().optional().describe('Must be TASI (default) for historical index summary here.'),
     date: z.string().optional().describe('Single date YYYY-MM-DD'),

@@ -10,7 +10,7 @@ import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 import { RequestExamplesPopup } from '@/components/RequestExamplesPopup'
 import type { RequestExampleInput } from '@/utils/requestExamples'
 
-type Endpoint = 'company' | 'summary' | 'summaryHourly' | 'stockSummary' | 'stockSummaryBatch' | 'marketDaily' | 'fundNavDaily' | 'overviewStockList'
+type Endpoint = 'stockSummary' | 'stockSummaryBatch' | 'marketDaily' | 'fundNavDaily' | 'overviewStockList'
 
 interface FinanceApiState {
   loading: boolean
@@ -19,10 +19,6 @@ interface FinanceApiState {
   error?: string
   responseBody?: string
   endpoint: Endpoint
-  date: string
-  code: string
-  from: string
-  to: string
   stockMarket: string
   stockMarkets: string
   mdSymbols: string
@@ -39,16 +35,12 @@ interface FinanceApiState {
 }
 
 /**
- * Interactive GET playground for Finance REST routes (TASI market scopes, stock summary, six-digit exchange OHLCV vs fund NAV daily).
+ * Interactive GET playground for Finance REST routes (multi-market stock summary, six-digit exchange OHLCV vs fund NAV daily).
  */
 export function FinanceApiPlayground() {
   const [state, setState] = useState<FinanceApiState>({
     loading: false,
-    endpoint: 'company',
-    date: '',
-    code: '',
-    from: '',
-    to: '',
+    endpoint: 'stockSummary',
     stockMarket: 'TASI',
     stockMarkets: 'TASI,S&P 500,Dow Jones',
     mdSymbols: '518880',
@@ -67,84 +59,56 @@ export function FinanceApiPlayground() {
   const [examplesOpen, setExamplesOpen] = useState(false)
 
   function pathForEndpoint(endpoint: Endpoint): string {
-    if (endpoint === 'company') return '/api/finance/stock/tasi/company/daily'
-    if (endpoint === 'summary') return '/api/finance/stock/tasi/summary/daily'
-    if (endpoint === 'summaryHourly') return '/api/finance/stock/tasi/summary/hourly'
     if (endpoint === 'marketDaily') return '/api/finance/fund/…/ohlcv/daily'
     if (endpoint === 'fundNavDaily') return '/api/finance/fund/…/nav/daily'
     if (endpoint === 'overviewStockList') return '/api/finance/overview/stock-list'
     return '/api/finance/stock/summary'
   }
 
-  async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const baseCompany = '/api/finance/stock/tasi/company/daily'
-    const baseSummary = '/api/finance/stock/tasi/summary/daily'
-    const baseSummaryHourly = '/api/finance/stock/tasi/summary/hourly'
+  function buildRequestUrl(endpoint: Endpoint, values: FinanceApiState): string {
     const baseStock = '/api/finance/stock/summary'
     const baseOverviewStockList = '/api/finance/overview/stock-list'
 
-    let url: string
-    if (state.endpoint === 'company') {
+    if (endpoint === 'stockSummaryBatch') {
       const q = new URLSearchParams()
-      if (state.code && state.from && state.to) {
-        q.set('code', state.code)
-        q.set('from', state.from)
-        q.set('to', state.to)
-        url = `${baseCompany}?${q.toString()}`
-      } else if (state.date) {
-        q.set('date', state.date)
-        url = `${baseCompany}?${q.toString()}`
-      } else {
-        url = baseCompany
-      }
-    } else if (state.endpoint === 'summary') {
-      const q = new URLSearchParams()
-      if (state.from && state.to) {
-        q.set('from', state.from)
-        q.set('to', state.to)
-        url = `${baseSummary}?${q.toString()}`
-      } else if (state.date) {
-        q.set('date', state.date)
-        url = `${baseSummary}?${q.toString()}`
-      } else {
-        url = baseSummary
-      }
-    } else if (state.endpoint === 'summaryHourly') {
-      url = baseSummaryHourly
-    } else if (state.endpoint === 'stockSummaryBatch') {
-      const q = new URLSearchParams()
-      q.set('markets', state.stockMarkets)
-      url = `${baseStock}?${q.toString()}`
-    } else if (state.endpoint === 'marketDaily') {
-      const sym = state.mdSymbols.split(',')[0]?.trim() || '518880'
-      const q = new URLSearchParams()
-      q.set('startDate', state.mdStart)
-      q.set('endDate', state.mdEnd)
-      if (state.mdWithIndicators) q.set('withIndicators', 'true')
-      if (state.mdIndicatorWarmup) q.set('indicatorWarmup', 'true')
-      if (state.mdIndicatorWarmupDays.trim()) q.set('indicatorWarmupDays', state.mdIndicatorWarmupDays.trim())
-      if (state.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily?${q.toString()}`
-    } else if (state.endpoint === 'fundNavDaily') {
-      const sym = state.mdSymbols.split(',')[0]?.trim() || '012922'
-      const q = new URLSearchParams()
-      q.set('startDate', state.mdStart)
-      q.set('endDate', state.mdEnd)
-      if (state.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `/api/finance/fund/${encodeURIComponent(sym)}/nav/daily?${q.toString()}`
-    } else if (state.endpoint === 'overviewStockList') {
-      const q = new URLSearchParams()
-      q.set('symbols', state.ovSymbols)
-      q.set('startDate', state.ovStart)
-      q.set('endDate', state.ovEnd)
-      if (state.ovSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `${baseOverviewStockList}?${q.toString()}`
-    } else {
-      const q = new URLSearchParams()
-      q.set('market', state.stockMarket)
-      url = `${baseStock}?${q.toString()}`
+      q.set('markets', values.stockMarkets)
+      return `${baseStock}?${q.toString()}`
     }
+    if (endpoint === 'marketDaily') {
+      const sym = values.mdSymbols.split(',')[0]?.trim() || '518880'
+      const q = new URLSearchParams()
+      q.set('startDate', values.mdStart)
+      q.set('endDate', values.mdEnd)
+      if (values.mdWithIndicators) q.set('withIndicators', 'true')
+      if (values.mdIndicatorWarmup) q.set('indicatorWarmup', 'true')
+      if (values.mdIndicatorWarmupDays.trim()) q.set('indicatorWarmupDays', values.mdIndicatorWarmupDays.trim())
+      if (values.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      return `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily?${q.toString()}`
+    }
+    if (endpoint === 'fundNavDaily') {
+      const sym = values.mdSymbols.split(',')[0]?.trim() || '012922'
+      const q = new URLSearchParams()
+      q.set('startDate', values.mdStart)
+      q.set('endDate', values.mdEnd)
+      if (values.mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      return `/api/finance/fund/${encodeURIComponent(sym)}/nav/daily?${q.toString()}`
+    }
+    if (endpoint === 'overviewStockList') {
+      const q = new URLSearchParams()
+      q.set('symbols', values.ovSymbols)
+      q.set('startDate', values.ovStart)
+      q.set('endDate', values.ovEnd)
+      if (values.ovSyncIfEmpty) q.set('syncIfEmpty', 'true')
+      return `${baseOverviewStockList}?${q.toString()}`
+    }
+    const q = new URLSearchParams()
+    q.set('market', values.stockMarket)
+    return `${baseStock}?${q.toString()}`
+  }
+
+  async function handleSendRequest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const url = buildRequestUrl(state.endpoint, state)
 
     try {
       setState((prev) => ({ ...prev, loading: true, error: undefined }))
@@ -180,10 +144,6 @@ export function FinanceApiPlayground() {
     error,
     responseBody,
     endpoint,
-    date,
-    code,
-    from,
-    to,
     stockMarket,
     stockMarkets,
     mdSymbols,
@@ -202,71 +162,9 @@ export function FinanceApiPlayground() {
 
   const requestExamples: RequestExampleInput = (() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    let url: string
-    if (endpoint === 'company') {
-      const q = new URLSearchParams()
-      if (code && from && to) {
-        q.set('code', code)
-        q.set('from', from)
-        q.set('to', to)
-        url = `${path}?${q.toString()}`
-      } else if (date) {
-        q.set('date', date)
-        url = `${path}?${q.toString()}`
-      } else {
-        url = path
-      }
-    } else if (endpoint === 'summary') {
-      const q = new URLSearchParams()
-      if (from && to) {
-        q.set('from', from)
-        q.set('to', to)
-        url = `${path}?${q.toString()}`
-      } else if (date) {
-        q.set('date', date)
-        url = `${path}?${q.toString()}`
-      } else {
-        url = path
-      }
-    } else if (endpoint === 'summaryHourly') {
-      url = path
-    } else if (endpoint === 'stockSummaryBatch') {
-      const q = new URLSearchParams()
-      q.set('markets', stockMarkets)
-      url = `${path}?${q.toString()}`
-    } else if (endpoint === 'marketDaily') {
-      const sym = mdSymbols.split(',')[0]?.trim() || '518880'
-      const q = new URLSearchParams()
-      q.set('startDate', mdStart)
-      q.set('endDate', mdEnd)
-      if (mdWithIndicators) q.set('withIndicators', 'true')
-      if (mdIndicatorWarmup) q.set('indicatorWarmup', 'true')
-      if (mdIndicatorWarmupDays.trim()) q.set('indicatorWarmupDays', mdIndicatorWarmupDays.trim())
-      if (mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `/api/finance/fund/${encodeURIComponent(sym)}/ohlcv/daily?${q.toString()}`
-    } else if (endpoint === 'fundNavDaily') {
-      const sym = mdSymbols.split(',')[0]?.trim() || '012922'
-      const q = new URLSearchParams()
-      q.set('startDate', mdStart)
-      q.set('endDate', mdEnd)
-      if (mdSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `/api/finance/fund/${encodeURIComponent(sym)}/nav/daily?${q.toString()}`
-    } else if (endpoint === 'overviewStockList') {
-      const q = new URLSearchParams()
-      q.set('symbols', ovSymbols)
-      q.set('startDate', ovStart)
-      q.set('endDate', ovEnd)
-      if (ovSyncIfEmpty) q.set('syncIfEmpty', 'true')
-      url = `${path}?${q.toString()}`
-    } else {
-      const q = new URLSearchParams()
-      q.set('market', stockMarket)
-      url = `${path}?${q.toString()}`
-    }
-
     return {
       method: 'GET',
-      url: `${origin}${url}`,
+      url: `${origin}${buildRequestUrl(endpoint, state)}`,
       headers: { Accept: 'application/json' },
     }
   })()
@@ -281,7 +179,7 @@ export function FinanceApiPlayground() {
               <span className="font-medium text-gray-800">Request</span>
               <span className={PLAYGROUND_HEADER_BADGE_CLASS}>GET {path}</span>
             </div>
-            <p className="text-[10px] text-gray-500">Finance REST demo — same paths as documented on the left.</p>
+            <p className="text-[10px] text-gray-500">Finance REST demo — TASI uses stock/summary like other markets.</p>
           </div>
           <div className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
             <label className="flex flex-col gap-1">
@@ -290,9 +188,6 @@ export function FinanceApiPlayground() {
                 value={endpoint}
                 onChange={(v) => setState((prev) => ({ ...prev, endpoint: v as Endpoint }))}
                 options={[
-                  { value: 'company', label: 'TASI — Company daily' },
-                  { value: 'summary', label: 'TASI — Summary daily' },
-                  { value: 'summaryHourly', label: 'TASI — Summary hourly' },
                   { value: 'stockSummary', label: 'Stock summary — single market' },
                   { value: 'stockSummaryBatch', label: 'Stock summary — batch (markets=)' },
                   { value: 'marketDaily', label: 'Six-digit — Exchange daily OHLCV' },
@@ -301,82 +196,6 @@ export function FinanceApiPlayground() {
                 ]}
               />
             </label>
-            {endpoint !== 'summaryHourly' &&
-              endpoint !== 'stockSummary' &&
-              endpoint !== 'stockSummaryBatch' &&
-              endpoint !== 'marketDaily' &&
-              endpoint !== 'fundNavDaily' &&
-              endpoint !== 'overviewStockList' && (
-                <label className="flex flex-col gap-1">
-                  <span>date (optional, YYYY-MM-DD)</span>
-                  <input
-                    type="text"
-                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                    value={date}
-                    onChange={(e) => setState((prev) => ({ ...prev, date: e.target.value }))}
-                    placeholder="e.g. 2025-03-01"
-                  />
-                </label>
-              )}
-            {endpoint === 'company' && (
-              <>
-                <label className="flex flex-col gap-1">
-                  <span>code (K-line, with from+to)</span>
-                  <input
-                    type="text"
-                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                    value={code}
-                    onChange={(e) => setState((prev) => ({ ...prev, code: e.target.value }))}
-                    placeholder="e.g. 1120"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span>from (K-line)</span>
-                  <input
-                    type="text"
-                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                    value={from}
-                    onChange={(e) => setState((prev) => ({ ...prev, from: e.target.value }))}
-                    placeholder="YYYY-MM-DD"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span>to (K-line)</span>
-                  <input
-                    type="text"
-                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                    value={to}
-                    onChange={(e) => setState((prev) => ({ ...prev, to: e.target.value }))}
-                    placeholder="YYYY-MM-DD"
-                  />
-                </label>
-              </>
-            )}
-            {endpoint === 'summary' && (
-              <>
-                <label className="flex flex-col gap-1">
-                  <span>from (K-line)</span>
-                  <input
-                    type="text"
-                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                    value={from}
-                    onChange={(e) => setState((prev) => ({ ...prev, from: e.target.value }))}
-                    placeholder="YYYY-MM-DD"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span>to (K-line)</span>
-                  <input
-                    type="text"
-                    className="h-8 rounded-md border border-gray-300 bg-white px-2 text-sm"
-                    value={to}
-                    onChange={(e) => setState((prev) => ({ ...prev, to: e.target.value }))}
-                    placeholder="YYYY-MM-DD"
-                  />
-                </label>
-              </>
-            )}
-            {endpoint === 'summaryHourly' && <p className="text-[10px] text-gray-500">Hourly TASI buckets for alignment checks.</p>}
             {endpoint === 'stockSummary' && (
               <label className="flex flex-col gap-1">
                 <span>market</span>

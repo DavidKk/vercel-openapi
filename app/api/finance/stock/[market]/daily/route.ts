@@ -1,4 +1,5 @@
 import { tasiFeedSlugErrorMessage } from '@/app/api/finance/stock/stockSlugTasiFeed'
+import { tasiCompanyDailyListGuard } from '@/app/api/finance/stock/tasiCompanyDailyGuard'
 import { api } from '@/initializer/controller'
 import { jsonInvalidParameters, jsonSuccess } from '@/initializer/response'
 import { getCompanyDaily, getSummaryDaily } from '@/services/finance/tasi'
@@ -10,11 +11,8 @@ const logger = createLogger('api-finance-stock-slug-daily')
 
 /**
  * GET /api/finance/stock/:market/daily
- * Daily merged payload for the stock market page: index summary + company rows (slug must be `tasi`).
- * Query:
- * - date: single trading day
- * - from/to: range query
- * - code: optional company code filter (applies to company rows only)
+ * Legacy merged payload (slug must be `tasi`). Prefer GET /api/finance/stock/summary?market=TASI for latest index.
+ * Company rows: historical K-line only (code+from+to or past date=); latest list returns 400.
  */
 export const GET = api<{ market: string }>(async (_req, ctx) => {
   const params = await ctx.params
@@ -28,6 +26,9 @@ export const GET = api<{ market: string }>(async (_req, ctx) => {
   const to = ctx.searchParams.get('to') ?? undefined
   const code = ctx.searchParams.get('code') ?? undefined
   logger.info('request', { slug: params.market, date, from, to, code })
+
+  const blocked = tasiCompanyDailyListGuard({ date, code, from, to })
+  if (blocked) return blocked
 
   const [summary, items] = await Promise.all([getSummaryDaily({ date, from, to }), getCompanyDaily({ date, from, to, code })])
 

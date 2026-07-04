@@ -27,7 +27,7 @@ export function tasiCompanyDailyListError(options: { date?: string; code?: strin
   if (TASI_COMPANY_DAILY_ENABLED) return null
   if (options.code != null && options.from != null && options.to != null) return null
   if (options.date != null && options.date !== getTodayUtc()) return null
-  return 'Company-level daily list is not supported for TASI yet (index summary only).'
+  return 'Company-level daily list is not supported for TASI (index summary only). Use GET /api/finance/stock/summary?market=TASI or MCP get_stock_summary.'
 }
 
 /** Today in YYYY-MM-DD (UTC). */

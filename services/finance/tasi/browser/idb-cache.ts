@@ -189,7 +189,7 @@ export async function getLatestSnapshotDateFromIdb(): Promise<string | null> {
  * Get latest snapshot from IDB only if not expired (same TTL as server snapshot).
  * Use this for cache-first read: if expired or missing, return null and caller should fetch from API.
  *
- * @returns { company, summary } or null when no data or cache expired
+ * @returns { company, summary } or null when summary missing or cache expired (company may be empty in summary-only mode)
  */
 export async function getLatestValidSnapshotFromIdb(): Promise<{
   company: TasiCompanyDailyRecord[]
@@ -217,6 +217,5 @@ export async function getLatestValidSnapshotFromIdb(): Promise<{
   }
   const summary = JSON.parse(summaryRow.payload) as TasiMarketSummary
   const company = await readCompanyDailyByDateFromIdb(date)
-  if (company.length === 0) return null
   return { company, summary }
 }

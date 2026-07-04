@@ -5,11 +5,11 @@ import { parseStockMarket } from '@/services/finance/stock'
 import { getSummaryDaily } from '@/services/finance/tasi'
 
 /**
- * MCP tool: TASI index summary for the latest session plus response timestamp.
+ * MCP tool: deprecated for TASI latest index — use get_stock_summary. Historical K-line only via get_market_summary_daily.
  */
 export const get_market_summary_daily_latest = tool(
   'get_market_summary_daily_latest',
-  'TASI market index summary for the latest available trading session. Optional market (default TASI). Returns { asOf, dataDate, summary }.',
+  'Deprecated for TASI latest index — use get_stock_summary (GET /api/finance/stock/summary?market=TASI). Returns feed latest session { asOf, dataDate, summary } when called.',
   z.object({
     market: z.string().optional().describe('Exchange feed market; only TASI is supported (default TASI)'),
   }),
