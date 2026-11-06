@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { RiFileCopy2Line } from 'react-icons/ri'
 import { TbBookDownload } from 'react-icons/tb'
 
@@ -9,6 +9,7 @@ import { FilterToggle } from '@/components/FilterToggle'
 import { useNotification } from '@/components/Notification'
 
 import { ProxyRuleClashYamlSnippet } from './ProxyRuleClashYamlSnippet'
+import { resolveTailscaleHostname } from './tailscale-hostname'
 
 export interface ProxyRuleOverviewClientProps {
   /** Placeholder secret embedded in the sample YAML */
@@ -18,7 +19,7 @@ export interface ProxyRuleOverviewClientProps {
 }
 
 /**
- * Proxy rule overview: ContentPageHeader + DNS/TUN FilterToggle + full-height YAML sample.
+ * Proxy rule overview: ContentPageHeader + DNS/TUN/Tailscale FilterToggle + full-height YAML sample.
  * @param props Overview props
  * @returns Overview client UI
  */
@@ -27,7 +28,13 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
   const [yamlText, setYamlText] = useState('')
   const [includeDns, setIncludeDns] = useState(true)
   const [includeTun, setIncludeTun] = useState(true)
+  const [includeTailscale, setIncludeTailscale] = useState(true)
+  const [tailscaleHostname, setTailscaleHostname] = useState('device')
   const { success } = useNotification()
+
+  useEffect(() => {
+    setTailscaleHostname(resolveTailscaleHostname(navigator.userAgent))
+  }, [])
 
   const handleCopyHeader = useCallback(() => {
     if (!yamlText || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
@@ -52,13 +59,21 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
-      <ContentPageHeader title="Clash rules" description="Preview the merged Clash sample. Toggle DNS / TUN blocks, then copy or download." className="bg-white">
+      <ContentPageHeader title="Clash rules" description="Preview the merged Clash sample. Toggle DNS / TUN / Tailscale, then copy or download." className="bg-white">
         <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
           <FilterToggle pressed={includeDns} onPressedChange={setIncludeDns} title="Toggle DNS block" aria-label="Include DNS block">
             DNS
           </FilterToggle>
           <FilterToggle pressed={includeTun} onPressedChange={setIncludeTun} title="Toggle TUN block" aria-label="Include TUN block">
             TUN
+          </FilterToggle>
+          <FilterToggle
+            pressed={includeTailscale}
+            onPressedChange={setIncludeTailscale}
+            title={`Toggle Tailscale proxy (hostname: ${tailscaleHostname})`}
+            aria-label="Include Tailscale proxy"
+          >
+            Tailscale
           </FilterToggle>
           <button type="button" onClick={handleCopyHeader} className={CONTENT_PAGE_HEADER_ICON_BTN_CLASS} title="Copy sample YAML" aria-label="Copy sample Clash YAML">
             <RiFileCopy2Line className="h-4 w-4" aria-hidden />
@@ -69,7 +84,16 @@ export function ProxyRuleOverviewClient(props: ProxyRuleOverviewClientProps) {
         </div>
       </ContentPageHeader>
 
-      <ProxyRuleClashYamlSnippet secret={secret} actions={actions} includeDns={includeDns} includeTun={includeTun} hideCopyButton onYamlTextChange={setYamlText} />
+      <ProxyRuleClashYamlSnippet
+        secret={secret}
+        actions={actions}
+        includeDns={includeDns}
+        includeTun={includeTun}
+        includeTailscale={includeTailscale}
+        tailscaleHostname={tailscaleHostname}
+        hideCopyButton
+        onYamlTextChange={setYamlText}
+      />
     </div>
   )
 }

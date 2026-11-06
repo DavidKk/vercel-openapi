@@ -15,6 +15,10 @@ export interface BuildClashYamlSnippetTextParams {
   includeDns?: boolean
   /** When false, omit the YAML top-level `tun:` block. Defaults to true. */
   includeTun?: boolean
+  /** When false, omit the Tailscale proxy entry. Defaults to true. */
+  includeTailscale?: boolean
+  /** Clash Tailscale peer / MagicDNS hostname (e.g. iphone, macbook). */
+  tailscaleHostname?: string
 }
 
 /**
@@ -23,7 +27,7 @@ export interface BuildClashYamlSnippetTextParams {
  * @returns Trimmed YAML string
  */
 export function buildClashYamlSnippetText(params: BuildClashYamlSnippetTextParams): string {
-  const { baseUrl, secret, actions, includeDns = true, includeTun = true } = params
+  const { baseUrl, secret, actions, includeDns = true, includeTun = true, includeTailscale = true, tailscaleHostname = 'device' } = params
   const rules = actions.map((name) => ({ type: 'RULE-SET', name, value: name }))
   const ruleProviders = actions.map((name) => ({
     name,
@@ -97,6 +101,15 @@ tun:
     - 192.168.0.0/16
 `
 
+  const safeHostname = (tailscaleHostname.trim() || 'device').replace(/[^a-zA-Z0-9._-]/g, '-')
+  const tailscaleProxyBlock = includeTailscale
+    ? `
+  - name: Tailscale
+    type: tailscale
+    hostname: ${safeHostname}`
+    : ''
+  const proxyGroupTailscaleLine = includeTailscale ? '\n      - Tailscale' : ''
+
   return `
 mixed-port: 7890
 allow-lan: true
@@ -119,13 +132,13 @@ proxies:
     ws-opts:
       path: /
       headers:
-        Host: my.server.com
+        Host: my.server.com${tailscaleProxyBlock}
 
 proxy-groups:
   - name: Proxy
     type: select
     proxies:
-      - Proxy
+      - Proxy${proxyGroupTailscaleLine}
   - name: Streaming
     type: select
     proxies:

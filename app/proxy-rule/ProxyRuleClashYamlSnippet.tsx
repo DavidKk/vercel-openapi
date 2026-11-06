@@ -20,6 +20,10 @@ export interface ProxyRuleClashYamlSnippetProps {
   includeDns?: boolean
   /** When false, omit the YAML top-level `tun:` block. Defaults to true. */
   includeTun?: boolean
+  /** When false, omit the Tailscale proxy. Defaults to true. */
+  includeTailscale?: boolean
+  /** Clash Tailscale hostname (device-derived). */
+  tailscaleHostname?: string
   /** When true, hides the floating copy button (e.g. parent header provides Copy). */
   hideCopyButton?: boolean
   /** Called when computed YAML changes (after base URL is known). */
@@ -32,12 +36,14 @@ export interface ProxyRuleClashYamlSnippetProps {
  * @param props.actions Action names used for RULE-SET providers and rules
  * @param props.includeDns When false, omit the YAML top-level `dns:` block. Defaults to true.
  * @param props.includeTun When false, omit the YAML top-level `tun:` block. Defaults to true.
+ * @param props.includeTailscale When false, omit the Tailscale proxy. Defaults to true.
+ * @param props.tailscaleHostname Clash Tailscale hostname
  * @param props.hideCopyButton Omit floating copy control
  * @param props.onYamlTextChange Notify parent of YAML text updates
  * @returns JSX element rendering the YAML snippet
  */
 export function ProxyRuleClashYamlSnippet(props: ProxyRuleClashYamlSnippetProps) {
-  const { secret, actions, includeDns = true, includeTun = true, hideCopyButton = false, onYamlTextChange } = props
+  const { secret, actions, includeDns = true, includeTun = true, includeTailscale = true, tailscaleHostname = 'device', hideCopyButton = false, onYamlTextChange } = props
   const { success } = useNotification()
   const { resolvedTheme } = useTheme()
   const prismTheme = resolvedTheme === 'dark' ? themes.vsDark : themes.vsLight
@@ -50,8 +56,8 @@ export function ProxyRuleClashYamlSnippet(props: ProxyRuleClashYamlSnippetProps)
   }, [])
 
   const yamlText = useMemo(
-    () => (baseUrl ? buildClashYamlSnippetText({ baseUrl, secret, actions, includeDns, includeTun }) : ''),
-    [actions, baseUrl, secret, includeDns, includeTun]
+    () => (baseUrl ? buildClashYamlSnippetText({ baseUrl, secret, actions, includeDns, includeTun, includeTailscale, tailscaleHostname }) : ''),
+    [actions, baseUrl, secret, includeDns, includeTun, includeTailscale, tailscaleHostname]
   )
 
   useEffect(() => {
