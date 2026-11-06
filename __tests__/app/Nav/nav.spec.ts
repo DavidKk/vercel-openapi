@@ -6,20 +6,20 @@ describe('getModuleSubPath', () => {
       expect(getModuleSubPath('/china-fuel-price/mcp')).toBe('/mcp')
     })
 
-    it('should return /function-calling when path is /dns/function-calling', () => {
-      expect(getModuleSubPath('/dns/function-calling')).toBe('/function-calling')
+    it('should return empty string when path is a removed Function Calling route', () => {
+      expect(getModuleSubPath('/dns/function-calling')).toBe('')
     })
 
     it('should return /api when path is /china-holiday/api', () => {
       expect(getModuleSubPath('/china-holiday/api')).toBe('/api')
     })
 
-    it('should return /skill when path is /china-weather/skill', () => {
-      expect(getModuleSubPath('/china-weather/skill')).toBe('/skill')
+    it('should return empty string when path is a removed Skill route', () => {
+      expect(getModuleSubPath('/dns/skill')).toBe('')
     })
 
-    it('should return full sub-path when path has more segments (e.g. /china-geo/mcp/extra)', () => {
-      expect(getModuleSubPath('/china-geo/mcp/extra')).toBe('/mcp/extra')
+    it('should return full sub-path when path has more segments (e.g. /dns/mcp/extra)', () => {
+      expect(getModuleSubPath('/dns/mcp/extra')).toBe('/mcp/extra')
     })
   })
 
@@ -28,8 +28,8 @@ describe('getModuleSubPath', () => {
       expect(getModuleSubPath('/china-holiday')).toBe('')
     })
 
-    it('should return empty string when path is module root /china-geo', () => {
-      expect(getModuleSubPath('/china-geo')).toBe('')
+    it('should return empty string when path is module root /proxy-rule', () => {
+      expect(getModuleSubPath('/proxy-rule')).toBe('')
     })
 
     it('should return empty string when path is /', () => {

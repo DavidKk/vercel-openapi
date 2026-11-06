@@ -182,7 +182,7 @@ export function SearchFilterDropdown(props: SearchFilterDropdownProps) {
       align={align}
       matchTriggerWidth={false}
       triggerWrapperClassName="inline-flex"
-      menuClassName={classNames('rounded-lg border border-gray-200 bg-white py-2 shadow-lg ring-1 ring-black/5', menuWidthClassName)}
+      menuClassName={classNames('rounded-lg border border-gray-200 bg-white py-2 shadow-lg ring-1 ring-pure-black/5', menuWidthClassName)}
       trigger={
         <button
           ref={triggerRef}

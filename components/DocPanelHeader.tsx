@@ -1,4 +1,4 @@
-import { DOC_PANEL_HEADER_BASE_CLASS, PANEL_HEADER_ACTIONS_CLASS, PANEL_HEADER_SUBTITLE_CLASS, PANEL_HEADER_TITLE_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
 
 export interface DocPanelHeaderProps {
   /** Panel title (e.g. "Holiday API", "Skill") */
@@ -10,18 +10,16 @@ export interface DocPanelHeaderProps {
 }
 
 /**
- * Shared header for doc/skill panels: left block (title + subtitle), right block (actions) vertically centered.
- * Uses flex layout so the right block is one unit, not buttons directly beside the title.
+ * Shared header for doc/skill panels — same title/description density as overview ContentPageHeader.
+ *
+ * @param props Header props
+ * @returns Header element
  */
 export function DocPanelHeader(props: DocPanelHeaderProps) {
   const { title, subtitle, actions } = props
   return (
-    <header className={`${DOC_PANEL_HEADER_BASE_CLASS} flex flex-row items-center justify-between gap-4`}>
-      <div className="min-w-0 flex-1 flex flex-col">
-        <h1 className={PANEL_HEADER_TITLE_CLASS}>{title}</h1>
-        <p className={PANEL_HEADER_SUBTITLE_CLASS}>{subtitle}</p>
-      </div>
-      {actions != null ? <div className={`flex shrink-0 items-center ${PANEL_HEADER_ACTIONS_CLASS}`}>{actions}</div> : null}
-    </header>
+    <ContentPageHeader title={title} description={subtitle} className="bg-white">
+      {actions != null ? <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>{actions}</div> : null}
+    </ContentPageHeader>
   )
 }

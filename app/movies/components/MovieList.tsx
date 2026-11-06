@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from 'react'
 
-/** Compact genre filter trigger (movies header toolbar). */
-const MOVIES_COMPACT_FILTER_BUTTON_CLASS =
-  'inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 transition-colors hover:bg-gray-50'
-
-/** Compact All / Popular tab shell height. */
-const MOVIES_HOT_TAB_SHELL_CLASS = 'flex h-7 shrink-0 items-stretch rounded-md border border-gray-200 bg-gray-50 p-0.5'
-import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
+import {
+  CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS,
+  CONTENT_PAGE_HEADER_FILTER_BTN_CLASS,
+  CONTENT_PAGE_HEADER_SEGMENTED_SHELL_CLASS,
+  ContentPageHeader,
+} from '@/components/ContentPageHeader'
 import { LazyImage } from '@/components/LazyImage'
+import { ScrollArea } from '@/components/ScrollArea'
 import { SearchFilterDropdown } from '@/components/SearchFilterDropdown'
 import type { MergedMovie } from '@/services/maoyan/types'
 import { isHot } from '@/services/movies/popularity'
@@ -117,17 +117,15 @@ export function MovieList(props: MovieListProps) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-white">
-      {/* Header: title left; compact Hot tabs + Genre dropdown on the right */}
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2">
-        <h1 className={`flex-1 ${CONTENT_PAGE_TITLE_CLASS}`}>Movies</h1>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <div className={MOVIES_HOT_TAB_SHELL_CLASS} role="tablist" aria-label="Filter by popularity">
+      <ContentPageHeader title="Movies" description="Browse merged Maoyan / TMDB listings. Filter by popularity and genre." className="bg-white">
+        <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
+          <div className={CONTENT_PAGE_HEADER_SEGMENTED_SHELL_CLASS} role="tablist" aria-label="Filter by popularity">
             <button
               type="button"
               role="tab"
               aria-selected={hotTab === 'all'}
               onClick={() => setHotTab('all')}
-              className={`flex items-center rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
+              className={`flex items-center rounded px-2.5 text-xs font-medium leading-none transition-colors ${
                 hotTab === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -138,7 +136,7 @@ export function MovieList(props: MovieListProps) {
               role="tab"
               aria-selected={hotTab === 'popular'}
               onClick={() => setHotTab('popular')}
-              className={`flex items-center rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
+              className={`flex items-center rounded px-2.5 text-xs font-medium leading-none transition-colors ${
                 hotTab === 'popular' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -154,15 +152,15 @@ export function MovieList(props: MovieListProps) {
               ariaLabel="Filter by genre"
               searchPlaceholder="Search genre…"
               emptyText="No match"
-              buttonClassName={MOVIES_COMPACT_FILTER_BUTTON_CLASS}
+              buttonClassName={CONTENT_PAGE_HEADER_FILTER_BTN_CLASS}
               menuWidthClassName="w-40"
               align="end"
             />
           )}
         </div>
-      </header>
+      </ContentPageHeader>
 
-      <div className="min-h-0 flex-1 overflow-y-auto border-b border-gray-200 bg-gray-50 px-3 py-3 transform-gpu">
+      <ScrollArea className="min-h-0 flex-1 border-b border-gray-200 bg-gray-50" indicator="vertical" reserveGutter={false} scrollClassName="min-h-0 px-3 py-3 transform-gpu">
         {filteredMovies.length === 0 ? (
           <div className="flex h-full items-center justify-center rounded-md border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
             No movies match the current filters. They will appear here after the next successful refresh.
@@ -189,7 +187,7 @@ export function MovieList(props: MovieListProps) {
                     )}
                     <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-2 text-[10px]">
                       <div className="flex flex-wrap items-start gap-1">
-                        {isHot(movie) && <span className="rounded-full bg-amber-500 px-2 py-0.5 font-medium text-white shadow-sm">Hot</span>}
+                        {isHot(movie) && <span className="rounded-full bg-amber-500 px-2 py-0.5 font-medium text-pure-white shadow-sm">Hot</span>}
                         {movie.tmdbUrl && (
                           <a
                             href={movie.tmdbUrl}
@@ -253,7 +251,7 @@ export function MovieList(props: MovieListProps) {
             })}
           </div>
         )}
-      </div>
+      </ScrollArea>
 
       <div className="flex shrink-0 items-center justify-between border-t border-gray-200 px-3 py-1 text-[11px] text-gray-500">
         <span>

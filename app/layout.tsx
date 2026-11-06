@@ -8,6 +8,8 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { AppShell } from '@/components/AppShell'
 import { DebugPanel, DebugPanelProvider } from '@/components/DebugPanel'
 import { NotificationProvider, NotificationStack } from '@/components/Notification'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { themeBootScriptProps } from '@/utils/theme/theme-boot-script-content'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -25,6 +27,7 @@ export const metadata: Metadata = {
     'This service collects and caches commonly used public OPENAPIs to facilitate developer access. It provides caching and forwarding services for commonly used public APIs, making it easier for developers to quickly access them.',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48', type: 'image/x-icon' },
       { url: '/logo-32.ico', sizes: '32x32', type: 'image/x-icon' },
       { url: '/logo-32.png', sizes: '32x32', type: 'image/png' },
     ],
@@ -41,16 +44,21 @@ export default function RootLayout(props: Readonly<RootLayoutProps>) {
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script {...themeBootScriptProps()} />
+      </head>
       <Analytics />
       <SpeedInsights />
       <body className={`${geistSans.variable} ${geistMono.variable} app-shell antialiased flex flex-col overflow-hidden`}>
-        <NotificationProvider>
-          <DebugPanelProvider>
-            <AppShell>{children}</AppShell>
-            <NotificationStack />
-            <DebugPanel />
-          </DebugPanelProvider>
-        </NotificationProvider>
+        <ThemeProvider>
+          <NotificationProvider>
+            <DebugPanelProvider>
+              <AppShell>{children}</AppShell>
+              <NotificationStack />
+              <DebugPanel />
+            </DebugPanelProvider>
+          </NotificationProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

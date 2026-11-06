@@ -3,25 +3,38 @@
 import { closestCenter, DndContext, type DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { RxDragHandleHorizontal } from 'react-icons/rx'
-import { TbFileText } from 'react-icons/tb'
+import { TbFileText, TbTrash } from 'react-icons/tb'
 import { Virtuoso } from 'react-virtuoso'
 
 import { importProxyRuleClashRulesFromYamlText, type UiClashRuleRow, updateProxyRuleClashRules } from '@/app/actions/proxy-rule/clash'
-import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
+import { CONTENT_PAD_DENSE_CLASS } from '@/app/Nav/constants'
+import {
+  CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS,
+  CONTENT_PAGE_HEADER_BTN_CLASS,
+  CONTENT_PAGE_HEADER_BTN_PRIMARY_CLASS,
+  CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS,
+  CONTENT_PAGE_HEADER_INPUT_CLASS,
+  CONTENT_PAGE_HEADER_SELECT_CLASS,
+  ContentPageHeader,
+} from '@/components/ContentPageHeader'
 import { EmptyState } from '@/components/EmptyState'
 import { FormSelect, type FormSelectOption } from '@/components/FormSelect'
 import { useNotification } from '@/components/Notification'
+import { ScrollArea, VirtuosoCustomScroller } from '@/components/ScrollArea'
 import { Spinner } from '@/components/Spinner'
 import { type ClashRule, type ClashStandardRule, STANDARD_RULE_TYPES, stringifyClashRule } from '@/services/proxy-rule/clash/types'
+
+/** Virtuoso components map — custom scroller hides native bar and shows a 2px indicator. */
+const PROXY_RULE_VIRTUOSO_COMPONENTS = { Scroller: VirtuosoCustomScroller }
 
 /** Text input styling aligned with {@link FormSelect} (site-wide form controls). */
 const FORM_INPUT_CLASS =
   'h-8 w-full min-w-0 rounded-md border border-gray-300 bg-white px-2.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500'
 
 /** Same column template for header and rows (horizontal scroll on narrow viewports). */
-const PROXY_RULE_GRID_COLS_CLASS = 'grid w-full min-w-[960px] grid-cols-[4rem_168px_minmax(0,1fr)_140px_minmax(7rem,1fr)_5rem] items-start'
+const PROXY_RULE_GRID_COLS_CLASS = 'grid w-full min-w-[960px] grid-cols-[4rem_168px_minmax(0,1fr)_140px_minmax(7rem,1fr)_3.5rem] items-start'
 
 /**
  * Row height passed to Virtuoso `fixedItemHeight` (aligned with vercel-proxy-rule RuleManager pattern).
@@ -35,6 +48,18 @@ export interface ProxyRuleManageEditorProps {
   actions: string[]
 }
 
+/**
+ * Latest values read by a stable Virtuoso `itemContent` callback so row edits do not remount list items.
+ */
+interface ProxyRuleVirtuosoRenderMeta {
+  orderNoById: Map<string, number>
+  dragDisabled: boolean
+  typeOptions: FormSelectOption[]
+  actionOptions: FormSelectOption[]
+  onPatch: (id: string, patch: Partial<UiClashRuleRow>) => void
+  onRemove: (id: string) => void
+}
+
 interface ProxyRuleVirtuosoRowProps {
   row: UiClashRuleRow & { id: string }
   orderNo: number
@@ -44,6 +69,55 @@ interface ProxyRuleVirtuosoRowProps {
   actionOptions: FormSelectOption[]
   onPatch: (id: string, patch: Partial<UiClashRuleRow>) => void
   onRemove: (id: string) => void
+}
+
+interface ProxyRuleTextInputProps {
+  /** Stable id so caret can be restored even if Virtuoso remounts the row */
+  selectionKey: string
+  value: string
+  onChange: (value: string) => void
+  className?: string
+  required?: boolean
+  placeholder?: string
+}
+
+/** Survives row remounts; keyed by {@link ProxyRuleTextInputProps.selectionKey}. */
+const pendingInputSelectionByKey = new Map<string, { start: number; end: number }>()
+
+/**
+ * Controlled text input that restores caret position after parent/Virtuoso remounts.
+ * @param props Input value, change handler, and native input attributes
+ * @returns Text input element
+ */
+function ProxyRuleTextInput(props: ProxyRuleTextInputProps) {
+  const { selectionKey, value, onChange, className, required, placeholder } = props
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useLayoutEffect(() => {
+    const el = inputRef.current
+    const pending = pendingInputSelectionByKey.get(selectionKey)
+    if (!el || !pending) return
+    el.focus()
+    el.setSelectionRange(pending.start, pending.end)
+    pendingInputSelectionByKey.delete(selectionKey)
+  }, [selectionKey, value])
+
+  return (
+    <input
+      ref={inputRef}
+      value={value}
+      required={required}
+      placeholder={placeholder}
+      className={className}
+      onChange={(e) => {
+        pendingInputSelectionByKey.set(selectionKey, {
+          start: e.target.selectionStart ?? 0,
+          end: e.target.selectionEnd ?? 0,
+        })
+        onChange(e.target.value)
+      }}
+    />
+  )
 }
 
 /**
@@ -82,7 +156,7 @@ const ProxyRuleVirtuosoRow = memo(function ProxyRuleVirtuosoRow(props: ProxyRule
         </div>
       </div>
 
-      <div className="px-3 py-2">
+      <div className={CONTENT_PAD_DENSE_CLASS}>
         <FormSelect
           id={`rule-type-${row.id}`}
           value={row.type}
@@ -93,15 +167,21 @@ const ProxyRuleVirtuosoRow = memo(function ProxyRuleVirtuosoRow(props: ProxyRule
         />
       </div>
 
-      <div className="px-3 py-2">
+      <div className={CONTENT_PAD_DENSE_CLASS}>
         {row.type === 'MATCH' ? (
           <span className="inline-flex h-8 items-center text-gray-400">—</span>
         ) : (
-          <input value={row.value ?? ''} onChange={(e) => onPatch(row.id, { value: e.target.value })} className={FORM_INPUT_CLASS} required={row.type !== 'MATCH'} />
+          <ProxyRuleTextInput
+            selectionKey={`${row.id}:value`}
+            value={row.value ?? ''}
+            onChange={(value) => onPatch(row.id, { value })}
+            className={FORM_INPUT_CLASS}
+            required={row.type !== 'MATCH'}
+          />
         )}
       </div>
 
-      <div className="px-3 py-2">
+      <div className={CONTENT_PAD_DENSE_CLASS}>
         <FormSelect
           id={`rule-action-${row.id}`}
           value={row.action}
@@ -112,21 +192,29 @@ const ProxyRuleVirtuosoRow = memo(function ProxyRuleVirtuosoRow(props: ProxyRule
         />
       </div>
 
-      <div className="px-3 py-2">
+      <div className={CONTENT_PAD_DENSE_CLASS}>
         {row.type === 'IP-CIDR6' ? (
-          <input value={row.flag ?? ''} onChange={(e) => onPatch(row.id, { flag: e.target.value })} className={FORM_INPUT_CLASS} placeholder="optional" />
+          <ProxyRuleTextInput
+            selectionKey={`${row.id}:flag`}
+            value={row.flag ?? ''}
+            onChange={(flag) => onPatch(row.id, { flag })}
+            className={FORM_INPUT_CLASS}
+            placeholder="optional"
+          />
         ) : (
           <span className="inline-flex h-8 items-center text-gray-400">—</span>
         )}
       </div>
 
-      <div className="px-3 py-2">
+      <div className="flex items-center justify-center px-2 py-2">
         <button
           type="button"
           onClick={() => onRemove(row.id)}
-          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-red-600 hover:border-red-200 hover:bg-red-50"
+          title="Remove rule"
+          aria-label="Remove rule"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-pure-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-1 focus:ring-red-500"
         >
-          Remove
+          <TbTrash className="h-4 w-4" aria-hidden />
         </button>
       </div>
     </div>
@@ -219,23 +307,42 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
 
   const getVirtuosoRowKey = useCallback((_index: number, row: UiClashRuleRow & { id: string }) => row.id, [])
 
-  const renderVirtuosoRow = useCallback(
-    (_index: number, row: UiClashRuleRow & { id: string }) => {
-      if (!row) return null
-      return (
-        <ProxyRuleVirtuosoRow
-          row={row}
-          orderNo={orderNoById.get(row.id) ?? 0}
-          dragDisabled={isFilterMode}
-          typeOptions={typeOptions}
-          actionOptions={actionOptions}
-          onPatch={patchRow}
-          onRemove={removeRowById}
-        />
-      )
-    },
-    [orderNoById, isFilterMode, typeOptions, actionOptions, patchRow, removeRowById]
-  )
+  /**
+   * Keep Virtuoso `itemContent` identity stable across row edits.
+   * Recreating this callback (e.g. when orderNoById changes) remounts visible rows and resets input carets.
+   */
+  const virtuosoRenderMetaRef = useRef<ProxyRuleVirtuosoRenderMeta>({
+    orderNoById,
+    dragDisabled: isFilterMode,
+    typeOptions,
+    actionOptions,
+    onPatch: patchRow,
+    onRemove: removeRowById,
+  })
+  virtuosoRenderMetaRef.current = {
+    orderNoById,
+    dragDisabled: isFilterMode,
+    typeOptions,
+    actionOptions,
+    onPatch: patchRow,
+    onRemove: removeRowById,
+  }
+
+  const renderVirtuosoRow = useCallback((_index: number, row: UiClashRuleRow & { id: string }) => {
+    if (!row) return null
+    const meta = virtuosoRenderMetaRef.current
+    return (
+      <ProxyRuleVirtuosoRow
+        row={row}
+        orderNo={meta.orderNoById.get(row.id) ?? 0}
+        dragDisabled={meta.dragDisabled}
+        typeOptions={meta.typeOptions}
+        actionOptions={meta.actionOptions}
+        onPatch={meta.onPatch}
+        onRemove={meta.onRemove}
+      />
+    )
+  }, [])
 
   function addRow() {
     const id = crypto.randomUUID()
@@ -352,57 +459,49 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-white">
-      <ContentPageHeader title="Manage Clash rules" className="bg-white">
+      <ContentPageHeader title="Manage Clash rules" description="Edit Clash rules stored in KV. Filter and reorder rows, then Save to apply." className="bg-white">
         <div className={CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS}>
           <div className="shrink-0">
-            <FormSelect value={typeFilter} onChange={setTypeFilter} options={typeFilterOptions} wrapperClassName="w-[168px]" className="!text-xs" id="clash-rule-type-filter" />
+            <FormSelect
+              value={typeFilter}
+              onChange={setTypeFilter}
+              options={typeFilterOptions}
+              wrapperClassName="w-[168px]"
+              className={CONTENT_PAGE_HEADER_SELECT_CLASS}
+              id="clash-rule-type-filter"
+            />
           </div>
 
-          {/** Fixed-width wrapper so FORM_INPUT_CLASS w-full does not stretch across the toolbar flex row */}
-          <div className="min-w-0 flex-1 sm:max-w-[11rem]">
-            <input type="text" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search (value/action/type)" className={FORM_INPUT_CLASS} />
+          {/** Fixed width so the scrollable toolbar keeps a stable search control size */}
+          <div className="w-[11rem] shrink-0">
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Search (value/action/type)"
+              className={`${CONTENT_PAGE_HEADER_INPUT_CLASS} w-full`}
+            />
           </div>
         </div>
 
         <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
-          <button
-            type="button"
-            onClick={addRow}
-            className="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-3 text-xs font-medium text-gray-800 shadow-sm hover:bg-gray-50"
-          >
+          <button type="button" onClick={addRow} className={CONTENT_PAGE_HEADER_BTN_CLASS}>
             Add rule
           </button>
 
-          <button
-            type="button"
-            disabled={saving || importing}
-            onClick={handleExportYamlClick}
-            className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-xs font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50"
-            title="Export current clash rules as YAML"
-          >
+          <button type="button" disabled={saving || importing} onClick={handleExportYamlClick} className={CONTENT_PAGE_HEADER_BTN_CLASS} title="Export current clash rules as YAML">
             Export
           </button>
 
-          <button
-            type="button"
-            disabled={saving || importing}
-            onClick={handleImportClick}
-            className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-xs font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50"
-            title="Import clash YAML and preview rules"
-          >
+          <button type="button" disabled={saving || importing} onClick={handleImportClick} className={CONTENT_PAGE_HEADER_BTN_CLASS} title="Import clash YAML and preview rules">
             {importing ? 'Importing…' : 'Import'}
           </button>
 
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => void handleSave()}
-            className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-md bg-gray-900 px-3 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-          >
+          <button type="button" disabled={saving} onClick={() => void handleSave()} className={CONTENT_PAGE_HEADER_BTN_PRIMARY_CLASS}>
             {saving ? (
               <>
                 <span className="inline-flex [&_svg]:h-4 [&_svg]:w-4">
-                  <Spinner color="text-white" />
+                  <Spinner color="text-pure-white" />
                 </span>
                 Saving…
               </>
@@ -432,15 +531,15 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
             <EmptyState icon={<TbFileText className="h-12 w-12 text-gray-400/30 opacity-70" />} message={emptyMessage} />
           </div>
         ) : (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-auto">
-            <div className="flex min-h-0 min-w-[960px] flex-1 flex-col">
+          <ScrollArea className="min-h-0 min-w-0 flex-1" indicator="horizontal" reserveGutter={false} scrollClassName="flex min-h-0 flex-col">
+            <div className="flex h-full min-h-0 min-w-[960px] flex-1 flex-col">
               <div className={`shrink-0 ${PROXY_RULE_GRID_COLS_CLASS} border-b border-gray-200 bg-gray-50 text-[11px] font-medium uppercase tracking-wide text-gray-600`}>
-                <div className="px-3 py-2.5">Order</div>
-                <div className="px-3 py-2.5">Type</div>
-                <div className="px-3 py-2.5">Value</div>
-                <div className="px-3 py-2.5">Action</div>
-                <div className="px-3 py-2.5">Flag (IP-CIDR6)</div>
-                <div className="px-3 py-2.5" />
+                <div className={CONTENT_PAD_DENSE_CLASS}>Order</div>
+                <div className={CONTENT_PAD_DENSE_CLASS}>Type</div>
+                <div className={CONTENT_PAD_DENSE_CLASS}>Value</div>
+                <div className={CONTENT_PAD_DENSE_CLASS}>Action</div>
+                <div className={CONTENT_PAD_DENSE_CLASS}>Flag (IP-CIDR6)</div>
+                <div className={CONTENT_PAD_DENSE_CLASS} />
               </div>
               <div className="min-h-0 min-w-0 flex-1">
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -451,12 +550,13 @@ export function ProxyRuleManageEditor(props: ProxyRuleManageEditorProps) {
                       computeItemKey={getVirtuosoRowKey}
                       fixedItemHeight={PROXY_RULE_VIRTUOSO_ITEM_HEIGHT}
                       itemContent={renderVirtuosoRow}
+                      components={PROXY_RULE_VIRTUOSO_COMPONENTS}
                     />
                   </SortableContext>
                 </DndContext>
               </div>
             </div>
-          </div>
+          </ScrollArea>
         )}
       </div>
     </div>

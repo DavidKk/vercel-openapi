@@ -5,7 +5,10 @@ import { TbArrowLeft, TbMinus, TbPlus } from 'react-icons/tb'
 
 import type { ProductType } from '@/app/actions/prices/product'
 import { useProductActions } from '@/app/china-prices/contexts/product'
+import { CONTENT_INSET_X_CLASS, CONTENT_PAD_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, CONTENT_PAGE_HEADER_ICON_BTN_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
 import { useNotification } from '@/components/Notification'
+import { ScrollArea } from '@/components/ScrollArea'
 import { Spinner } from '@/components/Spinner'
 import { validateProductName, validateProductUnitPrice, validateRemark, validateUnit } from '@/utils/validation'
 
@@ -226,36 +229,37 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
 
   return (
     <section className="relative flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2 sm:px-4 md:px-2 md:py-1.5">
-        <div className="flex flex-col">
-          <h2 className="text-sm font-semibold text-gray-900">{isEditing ? 'Edit Product' : 'Add product'}</h2>
-          <p className="mt-0.5 leading-tight text-[10px] text-gray-500">Edit product fields and save.</p>
+      <ContentPageHeader
+        title={isEditing ? 'Edit Product' : 'Add product'}
+        description="Edit product fields and save."
+        className="bg-white"
+        titleClassName="text-sm font-semibold text-gray-900"
+      >
+        <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
+          <button
+            type="button"
+            onClick={onCancel}
+            className={showMobileBack ? `${CONTENT_PAGE_HEADER_ICON_BTN_CLASS} w-auto min-w-8 gap-1 px-2 md:w-8 md:gap-0 md:px-0` : CONTENT_PAGE_HEADER_ICON_BTN_CLASS}
+            aria-label={showMobileBack ? 'Back to product list' : 'Close'}
+            title={showMobileBack ? 'Back to product list' : 'Close'}
+          >
+            {showMobileBack ? (
+              <>
+                <TbArrowLeft className="h-4 w-4 md:hidden" aria-hidden />
+                <span className="md:hidden">Back</span>
+                <span className="hidden md:inline" aria-hidden>
+                  ×
+                </span>
+              </>
+            ) : (
+              '×'
+            )}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          className={`inline-flex items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-100 ${
-            showMobileBack ? 'h-8 gap-1 px-2 text-xs font-medium md:h-7 md:w-7 md:gap-0 md:px-0 md:text-base' : 'h-7 w-7 text-base'
-          }`}
-          aria-label={showMobileBack ? 'Back to product list' : 'Close'}
-          title={showMobileBack ? 'Back to product list' : 'Close'}
-        >
-          {showMobileBack ? (
-            <>
-              <TbArrowLeft className="h-4 w-4 md:hidden" aria-hidden />
-              <span className="md:hidden">Back</span>
-              <span className="hidden md:inline" aria-hidden>
-                ×
-              </span>
-            </>
-          ) : (
-            '×'
-          )}
-        </button>
-      </div>
+      </ContentPageHeader>
 
       <form ref={formRef} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-2 [scrollbar-width:none] sm:px-4 md:px-2 [&::-webkit-scrollbar]:hidden">
+        <ScrollArea className="min-h-0 flex-1" indicator="vertical" reserveGutter={false} scrollClassName={`flex min-h-0 flex-col gap-3 ${CONTENT_PAD_CLASS}`}>
           <ProductFormInput
             label="Product Name"
             value={name}
@@ -317,9 +321,9 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
               </button>
             ) : null}
           </div>
-        </div>
+        </ScrollArea>
 
-        <div className="shrink-0 px-3 pb-2 pt-2 sm:px-4 md:px-2">
+        <div className={`shrink-0 ${CONTENT_INSET_X_CLASS} pb-2 pt-2`}>
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
               <button
@@ -336,7 +340,7 @@ export function ProductForm({ product, afterSaved, onCancel, showEmptyState = tr
               <button
                 type="submit"
                 disabled={isFormSubmitting || !canSubmit}
-                className="flex-1 h-10 rounded-lg bg-gray-900 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 h-10 rounded-lg bg-gray-900 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isEditing ? 'Update' : 'Add'}
               </button>

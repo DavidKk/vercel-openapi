@@ -5,6 +5,9 @@ import { useMemo, useRef, useState } from 'react'
 import { TbBackspace } from 'react-icons/tb'
 
 import type { ProductType } from '@/app/actions/prices/product'
+import { CONTENT_PAD_CLASS, CONTENT_PAD_NESTED_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, CONTENT_PAGE_HEADER_ICON_BTN_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
+import { ScrollArea } from '@/components/ScrollArea'
 import SearchableSelect from '@/components/SearchableSelect'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 import { formatNumberWithCommas, parseFormattedNumber, parseUnit } from '@/utils/format'
@@ -103,7 +106,11 @@ function NumberInput(props: Readonly<NumberInputProps>) {
         <div className="absolute top-[calc(100%+2px)] z-10 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
           <ul className="py-1">
             {suggestions.map((suggestion, index) => (
-              <li key={`${suggestion}-${index}`} className="cursor-pointer px-4 py-2 text-sm text-gray-800 hover:bg-gray-100" onClick={() => handleSuggestionSelect(suggestion)}>
+              <li
+                key={`${suggestion}-${index}`}
+                className={`cursor-pointer ${CONTENT_PAD_CLASS} text-sm text-gray-800 hover:bg-gray-100`}
+                onClick={() => handleSuggestionSelect(suggestion)}
+              >
                 {suggestion}
               </li>
             ))}
@@ -150,29 +157,35 @@ export function PricesCalculator(props: Readonly<PricesCalculatorProps>) {
   }
 
   return (
-    <div className="flex h-full w-full flex-col bg-gradient-to-b from-gray-50 to-white p-3 md:p-4">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col gap-3">
-        <div className="flex h-full min-h-0 flex-col gap-3">
-          <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-            <div className="mb-2 flex items-center gap-2">
+    <div className="flex h-full w-full flex-col bg-white">
+      <ContentPageHeader title="China Prices" description="Compare unit prices against stored product lists." className="bg-white">
+        <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
+          <button
+            type="button"
+            className={CONTENT_PAGE_HEADER_ICON_BTN_CLASS}
+            onClick={() => {
+              clearAll()
+            }}
+            title="Clear"
+            aria-label="Clear inputs"
+          >
+            <TbBackspace className="h-4 w-4" />
+          </button>
+        </div>
+      </ContentPageHeader>
+
+      <ScrollArea className="min-h-0 flex-1" indicator="vertical" reserveGutter={false} scrollClassName={`min-h-0 ${CONTENT_PAD_CLASS}`}>
+        <div className="mx-auto flex w-full max-w-xl flex-col gap-3">
+          <div className={`rounded-xl border border-gray-200 bg-white ${CONTENT_PAD_NESTED_CLASS} shadow-sm`}>
+            <div className="mb-2">
               <SearchableSelect
-                className="flex-1"
+                className="w-full"
                 value={selectedProductName}
                 options={productOptions}
                 onChange={(value) => setSelectedProductName(value)}
                 clearable={false}
                 size="md"
               />
-              <button
-                type="button"
-                className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition hover:bg-gray-100"
-                onClick={() => {
-                  clearAll()
-                }}
-                title="Clear"
-              >
-                <TbBackspace className="h-5 w-5" />
-              </button>
             </div>
             <div className="flex flex-col gap-2">
               <NumberInput value={totalPrice} unit="¥" placeholder="Total Price" onChange={(value) => setTotalPrice(value)} />
@@ -187,15 +200,15 @@ export function PricesCalculator(props: Readonly<PricesCalculatorProps>) {
             </div>
           </div>
 
-          <div className="flex flex-1 min-h-0 flex-col rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+          <div className={`flex min-h-[12rem] flex-col rounded-xl border border-gray-200 bg-white ${CONTENT_PAD_NESTED_CLASS} shadow-sm`}>
             {selectedProduct == null ? (
               <div className="flex h-full items-center justify-center text-sm text-gray-500">Please select a product</div>
             ) : comparisons.length > 0 ? (
-              <div className="flex h-full flex-col gap-2 overflow-auto">
+              <div className="flex flex-col gap-2">
                 {comparisons.map((item, index) => (
                   <div
                     key={`${item.product.id}-${index}`}
-                    className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-gray-300 hover:bg-gray-50"
+                    className={`flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white ${CONTENT_PAD_NESTED_CLASS} text-left transition hover:border-gray-300 hover:bg-gray-50`}
                   >
                     <div className="flex-1">
                       <div className="text-sm font-medium text-gray-900">
@@ -235,7 +248,7 @@ export function PricesCalculator(props: Readonly<PricesCalculatorProps>) {
             )}
           </div>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   )
 }

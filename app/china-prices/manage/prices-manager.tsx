@@ -5,7 +5,14 @@ import { useMemo, useRef, useState } from 'react'
 import type { ProductType } from '@/app/actions/prices/product'
 import { importProductsFromJsonText, replaceProductsInKv } from '@/app/actions/prices/product'
 import { ProductProvider, useProductActions } from '@/app/china-prices/contexts/product'
-import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
+import {
+  CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS,
+  CONTENT_PAGE_HEADER_BTN_CLASS,
+  CONTENT_PAGE_HEADER_BTN_PRIMARY_CLASS,
+  CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS,
+  CONTENT_PAGE_HEADER_INPUT_CLASS,
+  ContentPageHeader,
+} from '@/components/ContentPageHeader'
 import { useNotification } from '@/components/Notification'
 import { useAction } from '@/hooks/useAction'
 
@@ -190,14 +197,14 @@ function PricesManagerContent() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-white">
-      <ContentPageHeader title="Prices Manager" className="bg-white">
+      <ContentPageHeader title="Prices Manager" description="Search, import, and edit product price lists stored in KV." className="bg-white">
         <div className={CONTENT_PAGE_HEADER_FILTERS_ROW_CLASS}>
           <input
             type="text"
             value={productFilterText}
             onChange={(e) => setProductFilterText(e.target.value)}
             placeholder="Search products..."
-            className="h-8 min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 text-xs text-gray-800 outline-none transition-colors focus:border-gray-500 sm:max-w-xs"
+            className={`${CONTENT_PAGE_HEADER_INPUT_CLASS} w-64`}
           />
 
           <input
@@ -227,37 +234,21 @@ function PricesManagerContent() {
               setSelectedProductId(null)
               setIsCreating(true)
             }}
-            className="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-3 text-xs font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+            className={CONTENT_PAGE_HEADER_BTN_CLASS}
             title="Add a new product"
           >
             Add product
           </button>
 
-          <button
-            type="button"
-            onClick={handleExportClick}
-            disabled={importing || loading}
-            className="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-3 text-xs font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50"
-            title="Export products JSON"
-          >
+          <button type="button" onClick={handleExportClick} disabled={importing || loading} className={CONTENT_PAGE_HEADER_BTN_CLASS} title="Export products JSON">
             Export
           </button>
 
-          <button
-            type="button"
-            onClick={handleImportClick}
-            disabled={importing}
-            className="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-3 text-xs font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50"
-          >
+          <button type="button" onClick={handleImportClick} disabled={importing} className={CONTENT_PAGE_HEADER_BTN_CLASS}>
             {importing ? 'Importing…' : 'Import'}
           </button>
 
-          <button
-            type="button"
-            disabled={!draftDirty || savingKv || importing || loading}
-            onClick={() => void saveDraftAction()}
-            className="h-8 shrink-0 rounded-md bg-gray-900 px-3 text-xs font-medium text-white shadow-sm hover:bg-black disabled:opacity-50"
-          >
+          <button type="button" disabled={!draftDirty || savingKv || importing || loading} onClick={() => void saveDraftAction()} className={CONTENT_PAGE_HEADER_BTN_PRIMARY_CLASS}>
             {savingKv ? 'Saving…' : 'Save'}
           </button>
         </div>

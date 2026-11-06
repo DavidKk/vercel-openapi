@@ -1,4 +1,4 @@
-import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLASS } from '@/app/Nav/constants'
+import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_PANEL_BODY_CLASS, DOC_SECTION_TITLE_CLASS } from '@/app/Nav/constants'
 import { DocEndpointRow } from '@/components/DocEndpointRow'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 import { getAuthSession } from '@/services/auth/session'
@@ -22,7 +22,7 @@ export default async function PricesApiPage() {
             canWrite ? 'Read-only endpoints + ADMIN-protected CURD endpoints' : 'Read-only endpoints for listing products, searching products, and calculating comparison results.'
           }
         />
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
+        <div className={DOC_PANEL_BODY_CLASS}>
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="GET" path="/api/prices/products" enableCopy />

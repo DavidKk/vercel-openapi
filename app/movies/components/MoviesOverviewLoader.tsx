@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { TbMovie } from 'react-icons/tb'
 
+import { ContentPageHeader } from '@/components/ContentPageHeader'
 import { useDebugPanel } from '@/components/DebugPanel'
 import { EmptyState } from '@/components/EmptyState'
+import { ScrollArea } from '@/components/ScrollArea'
 import { createIdbCache, IDB_STORES, SHARED_DB_NAME } from '@/services/idb-cache'
 import type { MergedMovie } from '@/services/maoyan/types'
 
@@ -82,14 +84,15 @@ export function MoviesOverviewLoader() {
   if (forceLoading || (loading && !payload)) {
     return (
       <section className="flex h-full flex-col overflow-hidden bg-white">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
-          <div className="h-5 w-24 animate-pulse rounded bg-gray-200 sm:h-6 sm:w-32" aria-hidden />
-          <div className="flex shrink-0 items-center gap-1.5">
-            <div className="h-7 w-[4.5rem] animate-pulse rounded-md bg-gray-100" aria-hidden />
-            <div className="h-7 w-16 animate-pulse rounded-md bg-gray-100" aria-hidden />
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto border-b border-gray-200 bg-gray-50 px-3 py-3">
+        <ContentPageHeader
+          title={<span className="inline-block h-3 w-20 animate-pulse rounded bg-gray-200" aria-hidden />}
+          description={<span className="inline-block h-2.5 w-56 max-w-full animate-pulse rounded bg-gray-100" aria-hidden />}
+          className="bg-white"
+        >
+          <div className="h-8 w-[4.5rem] shrink-0 animate-pulse rounded-md bg-gray-100" aria-hidden />
+          <div className="h-8 w-16 shrink-0 animate-pulse rounded-md bg-gray-100" aria-hidden />
+        </ContentPageHeader>
+        <ScrollArea className="min-h-0 flex-1 border-b border-gray-200 bg-gray-50" indicator="vertical" reserveGutter={false} scrollClassName="min-h-0 px-3 py-3">
           <div className="grid auto-rows-min grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="flex flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -105,7 +108,7 @@ export function MoviesOverviewLoader() {
               </div>
             ))}
           </div>
-        </div>
+        </ScrollArea>
         <div className="flex shrink-0 items-center border-t border-gray-200 px-3 py-1">
           <div className="h-3 w-64 animate-pulse rounded bg-gray-100" aria-hidden />
         </div>

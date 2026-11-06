@@ -1,4 +1,4 @@
-import { TbApi, TbChartLine, TbCode, TbCoin, TbFileText, TbRobot, TbWallet } from 'react-icons/tb'
+import { TbApi, TbChartLine, TbCoin, TbRobot, TbWallet } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -32,8 +32,6 @@ const FINANCE_SIDEBAR_ITEMS = [
   },
   { href: '/finance/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/finance/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
-  { href: '/finance/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },
-  { href: '/finance/skill', title: 'Skill', ariaLabel: 'Skill', icon: <TbFileText className="h-5 w-5" /> },
 ]
 
 /**

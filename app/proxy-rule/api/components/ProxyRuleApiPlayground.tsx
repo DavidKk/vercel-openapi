@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { TbCode } from 'react-icons/tb'
 
-import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
+import { PLAYGROUND_HEADER_BADGE_CLASS, PLAYGROUND_RESPONSE_BODY_CLASS, PLAYGROUND_SECTION_BODY_CLASS, PLAYGROUND_SECTION_HEADER_CLASS } from '@/app/Nav/constants'
 import { getClashConfigTypeFormOptions } from '@/app/proxy-rule/clash-config-type-options'
 import { CompactJsonViewer } from '@/components/CompactJsonViewer'
 import { FormSelect } from '@/components/FormSelect'
@@ -78,7 +78,7 @@ export function ProxyRuleApiPlayground() {
 
       <div className="flex min-h-0 flex-1 flex-col gap-px bg-gray-100">
         <div className="flex flex-col bg-white">
-          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
+          <div className={PLAYGROUND_SECTION_HEADER_CLASS}>
             <span className="font-medium text-gray-800">Request</span>
             <button
               type="button"
@@ -91,7 +91,7 @@ export function ProxyRuleApiPlayground() {
             </button>
           </div>
 
-          <div className="flex flex-col gap-2 px-3 py-2 text-[11px]">
+          <div className={PLAYGROUND_SECTION_BODY_CLASS}>
             <label className="flex flex-col gap-1">
               <span className="text-[11px] text-gray-700">type (query)</span>
               <FormSelect value={type} onChange={setType} options={CLASH_TYPE_OPTIONS} />
@@ -108,7 +108,7 @@ export function ProxyRuleApiPlayground() {
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col bg-white">
-          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
+          <div className={PLAYGROUND_SECTION_HEADER_CLASS}>
             <span className="font-medium text-gray-800">Response</span>
             {status !== undefined && (
               <span className={PLAYGROUND_HEADER_BADGE_CLASS}>
@@ -117,7 +117,7 @@ export function ProxyRuleApiPlayground() {
               </span>
             )}
           </div>
-          <div className="min-h-0 flex-1 overflow-auto p-2">
+          <div className={PLAYGROUND_RESPONSE_BODY_CLASS}>
             {error ? <p className="text-[11px] text-red-600">{error}</p> : null}
             {responseBody ? <CompactJsonViewer value={responseBody} /> : null}
           </div>

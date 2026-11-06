@@ -3,7 +3,7 @@
  * Schema shape: .ai/schemas/README.md. Rules shape: .ai/rules/module-layout.yaml
  */
 
-export type SidebarItemKey = 'overview' | 'api' | 'mcp' | 'functionCalling' | 'skill'
+export type SidebarItemKey = 'overview' | 'api' | 'mcp'
 
 export interface LayoutRuleItem {
   key: string

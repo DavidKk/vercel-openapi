@@ -1,5 +1,5 @@
 import { MdPriceCheck } from 'react-icons/md'
-import { TbApi, TbCode, TbFileText, TbRobot } from 'react-icons/tb'
+import { TbApi, TbRobot } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -13,8 +13,6 @@ const PRICES_SIDEBAR_ITEMS = [
   { href: '/china-prices', title: 'Overview', ariaLabel: 'Overview', icon: <MdPriceCheck className="h-5 w-5" /> },
   { href: '/china-prices/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/china-prices/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
-  { href: '/china-prices/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },
-  { href: '/china-prices/skill', title: 'Skill', ariaLabel: 'Skill', icon: <TbFileText className="h-5 w-5" /> },
 ]
 
 /**

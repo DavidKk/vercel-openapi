@@ -8,6 +8,8 @@ import { TbLogout, TbUserCircle } from 'react-icons/tb'
 
 import { Tooltip } from '@/components/Tooltip'
 
+import { NAV_ICON_BTN_CLASS, NAV_ICON_BTN_INACTIVE_CLASS } from './constants'
+
 interface SessionData {
   authenticated: boolean
   username: string | null
@@ -79,11 +81,7 @@ function AuthEntryContent() {
 
     return (
       <Tooltip content="Login">
-        <Link
-          href={`/login?redirectUrl=${redirectUrl}`}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-          aria-label="Login"
-        >
+        <Link href={`/login?redirectUrl=${redirectUrl}`} className={`${NAV_ICON_BTN_CLASS} ${NAV_ICON_BTN_INACTIVE_CLASS}`} aria-label="Login">
           <MdOutlineAdminPanelSettings className="h-5 w-5" />
         </Link>
       </Tooltip>
@@ -96,7 +94,7 @@ function AuthEntryContent() {
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+          className={`${NAV_ICON_BTN_CLASS} text-gray-600 hover:bg-gray-100 hover:text-gray-900`}
           aria-label="Account"
           aria-expanded={menuOpen}
         >

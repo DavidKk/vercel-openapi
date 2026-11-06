@@ -1,16 +1,18 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MdPriceCheck } from 'react-icons/md'
-import { TbCalendarSearch, TbChartLine, TbCloudRain, TbCurrencyDollar, TbGasStation, TbMapPin, TbMovie, TbRoute2, TbServer2 } from 'react-icons/tb'
+import { TbCalendarSearch, TbChartLine, TbCurrencyDollar, TbGasStation, TbMovie, TbRoute2, TbServer2 } from 'react-icons/tb'
 
+import { BrandMark } from '@/components/BrandMark'
 import { ModuleNavMenuButton } from '@/components/ModuleNavContext'
+import { ThemeMenu } from '@/components/theme/ThemeMenu'
 import { Tooltip } from '@/components/Tooltip'
 
 import { AuthEntry } from './AuthEntry'
+import { NAV_ICON_BTN_ACTIVE_HEADER_CLASS, NAV_ICON_BTN_CLASS, NAV_ICON_BTN_INACTIVE_CLASS } from './constants'
 import { getModuleSubPath, MODULES_WITH_MANAGER_PAGES } from './utils'
 
 const RESIZE_DEBOUNCE_MS = 150
@@ -124,8 +126,6 @@ const NAV_ITEMS = [
   { href: '/china-holiday', title: 'china-holiday', icon: <TbCalendarSearch className="h-5 w-5" /> },
   { href: '/china-prices', title: 'china-prices', icon: <MdPriceCheck className="h-5 w-5" /> },
   { href: '/china-fuel-price', title: 'china-fuel-price', icon: <TbGasStation className="h-5 w-5" /> },
-  { href: '/china-geo', title: 'china-geo', icon: <TbMapPin className="h-5 w-5" /> },
-  { href: '/china-weather', title: 'china-weather', icon: <TbCloudRain className="h-5 w-5" /> },
 ]
 
 export function Nav() {
@@ -137,11 +137,11 @@ export function Nav() {
   const isOnManagePage = segments[1] === 'manage' && !!currentModuleSlug
 
   return (
-    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 py-2">
+    <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white py-2 pl-2.5 pr-3">
       <div className="flex shrink-0 items-center gap-1">
         <ModuleNavMenuButton />
-        <Link href="/" className="flex shrink-0 items-center gap-2 text-sm font-semibold text-gray-900 hover:text-gray-700">
-          <Image src="/logo-32.png" alt="Unbnd logo" width={24} height={24} className="h-6 w-6 shrink-0" />
+        <Link href="/" className="flex shrink-0 items-center gap-2 text-base font-semibold tracking-tight text-gray-900 hover:text-gray-700">
+          <BrandMark size={36} priority />
           <span>Unbnd</span>
         </Link>
       </div>
@@ -161,7 +161,7 @@ export function Nav() {
               <Tooltip key={item.href} content={item.title}>
                 <Link
                   href={href}
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${isActive ? 'bg-gray-200 text-gray-900 ring-1 ring-gray-300 ring-inset' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
+                  className={`${NAV_ICON_BTN_CLASS} ${isActive ? NAV_ICON_BTN_ACTIVE_HEADER_CLASS : NAV_ICON_BTN_INACTIVE_CLASS}`}
                   aria-label={item.title}
                   aria-current={isActive ? 'page' : undefined}
                 >
@@ -172,7 +172,8 @@ export function Nav() {
           })}
         </div>
       </ScrollToActiveOnLeave>
-      <div className="shrink-0">
+      <div className="flex shrink-0 items-center gap-1">
+        <ThemeMenu />
         <AuthEntry />
       </div>
     </header>

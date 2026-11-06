@@ -5,13 +5,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { TbMapPin } from 'react-icons/tb'
 
 import type { FuelPriceData, FuelPriceList } from '@/app/actions/fuel-price/types'
-import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, CONTENT_PAGE_HEADER_FILTER_BTN_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
+import { ScrollArea } from '@/components/ScrollArea'
 import { SearchFilterDropdown } from '@/components/SearchFilterDropdown'
 import { Spinner } from '@/components/Spinner'
-
-/** Region filter trigger: compact on mobile, original filter button size from `sm` up. */
-const FUEL_REGION_FILTER_BUTTON_CLASS =
-  'inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 transition-colors hover:bg-gray-50 sm:h-auto sm:rounded-lg sm:px-3 sm:py-2 sm:text-sm'
 import { useUserLocation } from '@/hooks/useUserLocation'
 
 export interface FuelPriceTableProps {
@@ -147,9 +144,8 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
-        <h1 className={`flex-1 ${CONTENT_PAGE_TITLE_CLASS}`}>China Fuel Price</h1>
-        <div className="shrink-0">
+      <ContentPageHeader title="China Fuel Price" description="Provincial retail fuel prices. Filter by region and sort columns." className="bg-white">
+        <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
           <SearchFilterDropdown
             value={selectedProvince ?? ''}
             onChange={handleSelectProvince}
@@ -158,86 +154,97 @@ export function FuelPriceTable({ fuelPrices }: FuelPriceTableProps) {
             ariaLabel="选择地区"
             searchPlaceholder="搜索地区…"
             emptyText="无匹配地区"
-            buttonClassName={FUEL_REGION_FILTER_BUTTON_CLASS}
+            buttonClassName={CONTENT_PAGE_HEADER_FILTER_BTN_CLASS}
             menuWidthClassName="w-72 min-w-[14rem]"
             align="end"
           />
         </div>
-      </header>
+      </ContentPageHeader>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <div className="h-full w-full">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => requestSort('province')}
-                >
-                  <div className="flex items-center">
-                    City
-                    {getSortIndicator('province') && <span className="ml-1">{getSortIndicator('province')}</span>}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('b92')}>
-                  <div className="flex items-center">
-                    92# Gasoline
-                    {getSortIndicator('b92') && <span className="ml-1">{getSortIndicator('b92')}</span>}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('b95')}>
-                  <div className="flex items-center">
-                    95# Gasoline
-                    {getSortIndicator('b95') && <span className="ml-1">{getSortIndicator('b95')}</span>}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('b98')}>
-                  <div className="flex items-center">
-                    98# Gasoline
-                    {getSortIndicator('b98') && <span className="ml-1">{getSortIndicator('b98')}</span>}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('b0')}>
-                  <div className="flex items-center">
-                    0# Diesel
-                    {getSortIndicator('b0') && <span className="ml-1">{getSortIndicator('b0')}</span>}
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedData.map((item, index) => {
-                const previousItem = previousPricesMap.get(item.province)
-                const isUserProvince = userProvinceData && item.province === userProvinceData.province
-                const isSelected = selectedProvince === item.province
-
-                return (
-                  <tr
-                    key={index}
-                    data-province-row={item.province}
-                    className={classNames(
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50',
-                      isUserProvince && 'bg-blue-50 font-bold',
-                      isSelected && 'bg-indigo-50 ring-1 ring-indigo-300'
-                    )}
+      <ScrollArea className="min-h-0 flex-1" indicator="both" reserveGutter={false} scrollClassName="min-h-0">
+        <div className="min-h-0 flex-1">
+          <div className="h-full w-full">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => requestSort('province')}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <div className="flex items-center">
-                        {item.province}
-                        {isUserProvince && <TbMapPin className="h-4 w-4 ml-2 text-red-500" />}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b92, previousItem?.b92)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b95, previousItem?.b95)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b98, previousItem?.b98)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b0, previousItem?.b0)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                    <div className="flex items-center">
+                      City
+                      {getSortIndicator('province') && <span className="ml-1">{getSortIndicator('province')}</span>}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => requestSort('b92')}
+                  >
+                    <div className="flex items-center">
+                      92# Gasoline
+                      {getSortIndicator('b92') && <span className="ml-1">{getSortIndicator('b92')}</span>}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => requestSort('b95')}
+                  >
+                    <div className="flex items-center">
+                      95# Gasoline
+                      {getSortIndicator('b95') && <span className="ml-1">{getSortIndicator('b95')}</span>}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => requestSort('b98')}
+                  >
+                    <div className="flex items-center">
+                      98# Gasoline
+                      {getSortIndicator('b98') && <span className="ml-1">{getSortIndicator('b98')}</span>}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('b0')}>
+                    <div className="flex items-center">
+                      0# Diesel
+                      {getSortIndicator('b0') && <span className="ml-1">{getSortIndicator('b0')}</span>}
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedData.map((item, index) => {
+                  const previousItem = previousPricesMap.get(item.province)
+                  const isUserProvince = userProvinceData && item.province === userProvinceData.province
+                  const isSelected = selectedProvince === item.province
+
+                  return (
+                    <tr
+                      key={index}
+                      data-province-row={item.province}
+                      className={classNames(
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50',
+                        isUserProvince && 'bg-blue-50 font-bold',
+                        isSelected && 'bg-indigo-50 ring-1 ring-indigo-300'
+                      )}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <div className="flex items-center">
+                          {item.province}
+                          {isUserProvince && <TbMapPin className="h-4 w-4 ml-2 text-red-500" />}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b92, previousItem?.b92)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b95, previousItem?.b95)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b98, previousItem?.b98)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPriceWithChange(item.b0, previousItem?.b0)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </ScrollArea>
 
       <div className="flex shrink-0 flex-row items-center justify-between gap-2 border-t border-gray-200 px-3 py-1 text-[11px] leading-tight text-gray-500 sm:justify-end sm:gap-3 sm:px-4 sm:py-1.5 sm:text-xs">
         {nextAdjustmentDate && (

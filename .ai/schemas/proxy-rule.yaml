@@ -15,12 +15,6 @@ sidebarItems:
   - key: mcp
     title: MCP tools
     ariaLabel: MCP tools
-  - key: functionCalling
-    title: Function Calling
-    ariaLabel: Function Calling
-  - key: skill
-    title: Skill
-    ariaLabel: Skill
 
 apiPage:
   title: Proxy rule API

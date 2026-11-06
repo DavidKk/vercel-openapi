@@ -42,11 +42,6 @@ modules:
     spec: modules/fuel-price.md
     schema: schemas/fuel-price.yaml
 
-  - id: geo
-    title: china-geo
-    spec: modules/geo.md
-    schema: schemas/geo.yaml
-
   - id: holiday
     title: china-holiday
     spec: modules/holiday.md
@@ -66,8 +61,3 @@ modules:
     title: Proxy rule
     spec: modules/proxy-rule.md
     schema: schemas/proxy-rule.yaml
-
-  - id: weather
-    title: china-weather
-    spec: modules/weather.md
-    schema: schemas/weather.yaml

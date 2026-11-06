@@ -1,7 +1,7 @@
 /**
  * Module path segments that appear in the nav. Must stay in sync with NAV_ITEMS in index.tsx.
  */
-const MODULE_SLUGS = new Set(['china-holiday', 'china-prices', 'china-fuel-price', 'china-geo', 'china-weather', 'exchange-rate', 'movies', 'dns', 'finance', 'proxy-rule'])
+const MODULE_SLUGS = new Set(['china-holiday', 'china-prices', 'china-fuel-price', 'exchange-rate', 'movies', 'dns', 'finance', 'proxy-rule'])
 
 /**
  * Modules that should show a "manager" page in the global UI.
@@ -12,17 +12,17 @@ const MODULE_SLUGS = new Set(['china-holiday', 'china-prices', 'china-fuel-price
 export const MODULES_WITH_MANAGER_PAGES = new Set(['china-prices', 'proxy-rule'])
 
 /**
- * Sub-path first segment that is shared across modules (e.g. mcp, api, skill, function-calling).
+ * Sub-path first segment that is shared across modules (e.g. mcp, api).
  * Only these are preserved when switching modules; module-specific paths (e.g. finance/stock/tasi) are not.
  */
-const SHARED_SUBPATH_PREFIXES = new Set(['mcp', 'api', 'skill', 'function-calling'])
+const SHARED_SUBPATH_PREFIXES = new Set(['mcp', 'api'])
 
 /**
  * When current path is under a module and a shared sub-path (e.g. /fuel-price/mcp), return that sub-path (e.g. /mcp)
  * so nav links preserve it when switching modules (e.g. holiday -> /holiday/mcp).
  * Module-only paths (e.g. /finance/stock/tasi) are not preserved, so clicking another module goes to its root.
- * @param pathname Current pathname (e.g. /dns/function-calling)
- * @returns Sub-path to preserve (e.g. /function-calling) or empty string
+ * @param pathname Current pathname (e.g. /dns/api)
+ * @returns Sub-path to preserve (e.g. /api) or empty string
  */
 export function getModuleSubPath(pathname: string | null): string {
   if (!pathname) return ''

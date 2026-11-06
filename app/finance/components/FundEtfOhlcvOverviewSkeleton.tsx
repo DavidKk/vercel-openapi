@@ -2,7 +2,8 @@
 
 import type { ReactNode } from 'react'
 
-import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
+import { ContentPageHeader } from '@/components/ContentPageHeader'
+import { ScrollArea } from '@/components/ScrollArea'
 
 export interface FundEtfOhlcvOverviewSkeletonProps {
   /** Same header control as live overview (e.g. fund title dropdown). */
@@ -23,10 +24,12 @@ export function FundEtfOhlcvOverviewSkeleton(props?: FundEtfOhlcvOverviewSkeleto
   return (
     <section className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label={ariaLabel}>
       <div className="flex min-h-0 flex-1 flex-col bg-white">
-        <div className={`shrink-0 min-h-[63px] ${CONTENT_HEADER_CLASS} overflow-visible`}>
-          {headerAddon != null ? headerAddon : <span className="h-6 w-56 shrink-0 animate-pulse rounded bg-gray-200" aria-hidden />}
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto">
+        <ContentPageHeader
+          title={headerAddon != null ? headerAddon : <span className="inline-block h-3 w-40 animate-pulse rounded bg-gray-200" aria-hidden />}
+          description={<span className="inline-block h-2.5 w-52 max-w-full animate-pulse rounded bg-gray-100" aria-hidden />}
+          className="overflow-visible bg-white"
+        />
+        <ScrollArea className="min-h-0 flex-1" indicator="both" reserveGutter={false} scrollClassName="min-h-0">
           <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
             <div className="flex flex-col gap-3 text-base text-gray-800">
               <div className="flex items-center justify-between">
@@ -69,7 +72,7 @@ export function FundEtfOhlcvOverviewSkeleton(props?: FundEtfOhlcvOverviewSkeleto
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
       </div>
     </section>
   )

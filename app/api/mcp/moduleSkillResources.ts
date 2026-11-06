@@ -1,8 +1,6 @@
 import { FUEL_PRICE_API_SKILL } from '@/app/china-fuel-price/skill-content'
-import { GEO_API_SKILL } from '@/app/china-geo/skill-content'
 import { HOLIDAY_API_SKILL } from '@/app/china-holiday/skill-content'
 import { PRICES_API_SKILL_PUBLIC } from '@/app/china-prices/skill-content'
-import { WEATHER_API_SKILL } from '@/app/china-weather/skill-content'
 import { DNS_API_SKILL } from '@/app/dns/skill-content'
 import { EXCHANGE_RATE_API_SKILL } from '@/app/exchange-rate/skill-content'
 import { TASI_API_SKILL } from '@/app/finance/skill-content'
@@ -10,6 +8,8 @@ import { MOVIES_API_SKILL } from '@/app/movies/skill-content'
 import { PROXY_RULE_API_SKILL } from '@/app/proxy-rule/skill-content'
 import type { McpResourceProvider } from '@/initializer/mcp'
 import { TOOL_CATEGORIES } from '@/services/function-calling/categories'
+import { GEO_API_SKILL } from '@/skills/content/geo'
+import { WEATHER_API_SKILL } from '@/skills/content/weather'
 
 import { moduleSkillMarkdownFilename, moduleSkillResourceUri } from './skillNaming'
 
@@ -34,7 +34,7 @@ function skillResourceEntry(moduleId: string) {
   return {
     uri: moduleSkillResourceUri(moduleId),
     name: moduleSkillMarkdownFilename(moduleId),
-    description: `Agent-ready SKILL for the ${moduleId} HTTP API (same source as the ${moduleId} Skill tab; Prices uses public API only).`,
+    description: `Agent-ready SKILL markdown for the ${moduleId} HTTP API (served via MCP resources; Prices uses public API only).`,
     mimeType: 'text/markdown' as const,
   }
 }

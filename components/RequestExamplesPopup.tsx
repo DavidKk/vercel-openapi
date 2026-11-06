@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { TbCopy, TbX } from 'react-icons/tb'
 
 import { useNotification } from '@/components/Notification'
+import { useTheme } from '@/components/theme/ThemeProvider'
 import type { RequestExampleInput, RequestExampleTabId } from '@/utils/requestExamples'
 import { buildRequestExamples } from '@/utils/requestExamples'
 
@@ -47,6 +48,8 @@ function CopyButton(props: { getText: () => string }) {
 export function RequestExamplesPopup(props: RequestExamplesPopupProps) {
   const { open, onClose, request, defaultTab = 'nodejs' } = props
   const [activeTab, setActiveTab] = useState<RequestExampleTabId>(defaultTab)
+  const { resolvedTheme } = useTheme()
+  const prismTheme = resolvedTheme === 'dark' ? themes.vsDark : themes.vsLight
 
   const codes = useMemo(() => {
     if (!request) return null
@@ -105,7 +108,7 @@ export function RequestExamplesPopup(props: RequestExamplesPopupProps) {
   if (!open || !codes) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-pure-black/40 p-3">
       <div className="w-full max-w-3xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <div>
@@ -169,7 +172,7 @@ export function RequestExamplesPopup(props: RequestExamplesPopupProps) {
                 <CopyButton getText={() => codeText} />
               </div>
 
-              <Highlight theme={themes.vsLight} code={codeText} language={language}>
+              <Highlight theme={prismTheme} code={codeText} language={language}>
                 {({ className, style, tokens, getLineProps, getTokenProps }) => (
                   <pre
                     className={`${className} no-scrollbar h-72 w-full overflow-y-auto rounded-md border border-gray-200 bg-transparent p-3 font-mono text-[11px] leading-relaxed`}

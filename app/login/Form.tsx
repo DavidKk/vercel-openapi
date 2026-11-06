@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbCheck, TbEye, TbEyeOff, TbLock, TbShieldCheck, TbUser } from 'react-icons/tb'
 
 import Alert, { type AlertImperativeHandler } from '@/components/Alert'
+import { BrandMark } from '@/components/BrandMark'
 import { Spinner } from '@/components/Spinner'
 
 export interface LoginFormProps {
@@ -32,14 +33,15 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
   const router = useRouter()
 
   const { withIconLeft, passwordInput, plainField, shell, checkboxLabel } = useMemo(() => {
+    /** Neutral surfaces use theme-aware gray/white (no dark:gray — palette inverts). */
     const base =
-      'w-full rounded-lg border border-slate-200 bg-white py-2.5 text-base text-slate-900 shadow-sm placeholder:text-slate-400 placeholder:tracking-normal transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950/80 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/25'
+      'w-full rounded-lg border border-gray-200 bg-white py-2.5 text-base text-gray-900 shadow-sm placeholder:text-gray-400 placeholder:tracking-normal transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/25'
     return {
-      shell: 'min-h-[var(--app-viewport-height)] flex flex-col items-center justify-center bg-slate-100 px-4 py-10 text-slate-900 dark:bg-slate-950 dark:text-slate-100',
+      shell: 'min-h-[var(--app-viewport-height)] flex flex-col items-center justify-center bg-gray-100 px-4 py-10 text-gray-900',
       withIconLeft: `${base} pl-10 pr-3.5`,
       passwordInput: `${base} pl-10 pr-10`,
       plainField: `${base} px-3.5`,
-      checkboxLabel: 'flex w-full cursor-pointer select-none items-center gap-2 text-sm text-slate-600 dark:text-slate-400',
+      checkboxLabel: 'flex w-full cursor-pointer select-none items-center gap-2 text-sm text-gray-600',
     }
   }, [])
 
@@ -134,18 +136,16 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
 
   return (
     <div className={shell}>
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-xl border border-slate-200/90 bg-white p-6 shadow-lg shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/40"
-      >
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">Unbnd</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Sign in to continue to Unbnd</p>
+      <form onSubmit={handleSubmit} className="w-full max-w-md rounded-xl border border-gray-200/90 bg-white p-6 shadow-lg shadow-gray-900/5">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <BrandMark size={64} className="mb-3 rounded-2xl" priority />
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Unbnd</h1>
+          <p className="mt-1 text-sm text-gray-500">Sign in to continue to Unbnd</p>
         </div>
 
         <div className="flex flex-col gap-3">
           <div className="relative w-full">
-            <TbUser className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden />
+            <TbUser className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
             <input
               type="text"
               value={username}
@@ -158,7 +158,7 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
           </div>
 
           <div className="relative w-full">
-            <TbLock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden />
+            <TbLock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
@@ -171,7 +171,7 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               title={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -196,8 +196,8 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
           <label className={checkboxLabel}>
             <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
               <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} className="peer sr-only" />
-              <span className="absolute inset-0 rounded border border-slate-300 bg-white transition-colors peer-checked:border-indigo-600 peer-checked:bg-indigo-600 dark:border-slate-600 dark:bg-slate-900 peer-checked:dark:border-indigo-500 peer-checked:dark:bg-indigo-600" />
-              <TbCheck className="relative h-3.5 w-3.5 text-white opacity-0 transition-opacity peer-checked:opacity-100" aria-hidden />
+              <span className="absolute inset-0 rounded border border-gray-300 bg-white transition-colors peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:dark:border-indigo-500 peer-checked:dark:bg-indigo-600" />
+              <TbCheck className="relative h-3.5 w-3.5 text-pure-white opacity-0 transition-opacity peer-checked:opacity-100" aria-hidden />
             </span>
             <span>Remember me</span>
           </label>
@@ -205,7 +205,7 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
           <button
             disabled={submitting || complete}
             type="submit"
-            className="flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+            className="flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-pure-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400"
           >
             {submitting ? (
               <span className="inline-flex items-center justify-center gap-2" aria-live="polite">
@@ -223,15 +223,15 @@ export function LoginForm(props: Readonly<LoginFormProps>) {
             <div className="flex flex-col gap-3">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center" aria-hidden>
-                  <div className="w-full border-t border-slate-200 dark:border-slate-700" />
+                  <div className="w-full border-t border-gray-200" />
                 </div>
-                <div className="relative flex justify-center text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                  <span className="bg-white px-3 dark:bg-slate-900">Or continue with</span>
+                <div className="relative flex justify-center text-xs font-medium uppercase tracking-wide text-gray-400">
+                  <span className="bg-white px-3">Or continue with</span>
                 </div>
               </div>
               <a
                 href={`/api/auth/signet/start?redirectUrl=${encodeURIComponent(redirectUrl)}`}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-100 dark:hover:border-slate-500 dark:hover:bg-slate-800"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-100"
               >
                 <TbShieldCheck className="h-5 w-5 shrink-0 text-indigo-600 dark:text-indigo-400" aria-hidden />
                 <span>Sign in with Signet</span>

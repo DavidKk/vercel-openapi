@@ -151,7 +151,7 @@ export const DropdownMenuScrollArea = forwardRef<HTMLDivElement | HTMLUListEleme
       {thumb ? (
         <div className="pointer-events-none absolute bottom-0 right-0 top-0 flex justify-end" style={{ width: INDICATOR_TRACK_PX }} aria-hidden>
           <div
-            className="absolute left-0 rounded-full bg-black"
+            className="absolute left-0 rounded-full bg-pure-black"
             style={{
               width: INDICATOR_TRACK_PX,
               height: thumb.height,

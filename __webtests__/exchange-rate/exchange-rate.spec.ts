@@ -14,13 +14,13 @@ function bottomInput(page: Page) {
 /** Open from-currency dropdown and select option by label (e.g. "EUR") */
 async function selectFromCurrency(page: Page, currency: string) {
   await page.getByTestId('converter-row-from').getByRole('button').click()
-  await page.getByTestId('currency-options-list').getByRole('button', { name: currency }).click()
+  await page.getByTestId('currency-options-list').getByRole('option', { name: currency }).click()
 }
 
 /** Open to-currency dropdown and select option by label */
 async function selectToCurrency(page: Page, currency: string) {
   await page.getByTestId('converter-row-to').getByRole('button').click()
-  await page.getByTestId('currency-options-list').getByRole('button', { name: currency }).click()
+  await page.getByTestId('currency-options-list').getByRole('option', { name: currency }).click()
 }
 
 test.describe('Exchange Rate Page', () => {

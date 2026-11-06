@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
+import { NAV_ICON_BTN_ACTIVE_SIDEBAR_CLASS, NAV_ICON_BTN_CLASS, NAV_ICON_BTN_INACTIVE_CLASS } from '@/app/Nav/constants'
 import { isDashboardSidebarItemActive } from '@/components/dashboard-sidebar-utils'
 import { ModuleNavRegistrar } from '@/components/ModuleNavContext'
 import { Tooltip } from '@/components/Tooltip'
@@ -25,10 +26,6 @@ interface DashboardSidebarProps {
   children?: ReactNode
 }
 
-const linkBase = 'flex h-10 w-10 items-center justify-center rounded-xl transition hover:bg-gray-100 hover:text-gray-900'
-const linkActive = 'bg-gray-900 text-white shadow-sm hover:bg-gray-800 hover:text-white'
-const linkInactive = 'text-gray-500'
-
 /**
  * Module sub-navigation: mobile menu is in the global app header (left of logo); icon sidebar from `md` up.
  * Parent layout should use `flex-col md:flex-row`.
@@ -41,10 +38,10 @@ export function DashboardSidebar(props: Readonly<DashboardSidebarProps>) {
   const { items, children } = props
 
   const desktopSidebar = (
-    <nav className="hidden w-14 shrink-0 flex-col items-center gap-3 overflow-y-auto border-r border-gray-200 bg-white px-0 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:flex">
+    <nav className="hidden w-14 shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-gray-200 bg-white px-0 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:flex">
       {items.map((item) => {
         const isActive = isDashboardSidebarItemActive(pathname, item)
-        const className = [linkBase, isActive ? linkActive : linkInactive].join(' ')
+        const className = `${NAV_ICON_BTN_CLASS} ${isActive ? NAV_ICON_BTN_ACTIVE_SIDEBAR_CLASS : NAV_ICON_BTN_INACTIVE_CLASS}`
         return (
           <Tooltip key={item.href} content={item.title} placement="right">
             <Link href={item.href} className={className} aria-label={item.ariaLabel} aria-current={isActive ? 'page' : undefined}>

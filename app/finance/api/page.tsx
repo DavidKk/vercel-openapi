@@ -1,4 +1,4 @@
-import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLASS } from '@/app/Nav/constants'
+import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_PANEL_BODY_CLASS, DOC_SECTION_TITLE_CLASS } from '@/app/Nav/constants'
 import { DocEndpointRow } from '@/components/DocEndpointRow'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 
@@ -27,7 +27,7 @@ export default function FinanceApiPage() {
           title="Finance REST API"
           subtitle="Grouped like the finance sidebar: stocks (TASI via /api/finance/stock/summary?market=TASI like other markets), funds, precious metals."
         />
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
+        <div className={DOC_PANEL_BODY_CLASS}>
           <h2 className={DOC_SECTION_TITLE_CLASS}>
             {FINANCE_MAJOR.stocks} — {STOCKS_API_SECTION_TITLE}
           </h2>

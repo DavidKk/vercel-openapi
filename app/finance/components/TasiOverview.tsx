@@ -4,8 +4,9 @@ import type { ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TbArrowDown, TbArrowsSort, TbArrowUp, TbSearch } from 'react-icons/tb'
 
-import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, CONTENT_PAGE_HEADER_INPUT_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
 import { DropdownMenuScrollArea } from '@/components/DropdownMenuScrollArea'
+import { ScrollArea } from '@/components/ScrollArea'
 import type { TasiCompanyDailyRecord, TasiMarketSummary } from '@/services/finance/tasi'
 import { writeCompanyDailyToIdb, writeSummaryToIdb } from '@/services/finance/tasi/browser'
 import { formatNumber, formatPercent } from '@/utils/formatNumber'
@@ -160,245 +161,255 @@ export function TasiOverview({ company, summary, error, headerTitle = 'TASI', he
   return (
     <section className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col bg-white">
-        <header className="flex shrink-0 items-center justify-between gap-2 overflow-visible border-b border-gray-200 px-4 py-2 sm:py-3">
-          <div className="flex min-w-0 shrink-0 items-center gap-2">
-            {shouldShowHeaderTitle ? <h1 className={CONTENT_PAGE_TITLE_CLASS}>{headerTitle}</h1> : null}
-            {headerAddon ?? null}
-          </div>
-          <div ref={searchWrapRef} className={`relative shrink-0 ${companySearchDisabled ? 'opacity-60' : ''}`}>
-            <div className="relative">
-              <TbSearch
-                className={`absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 sm:left-3 sm:h-4 sm:w-4 ${companySearchDisabled ? 'text-gray-400' : 'text-gray-500'}`}
-                aria-hidden
-              />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => {
-                  if (!companySearchDisabled) setShowSuggestions(true)
-                }}
-                disabled={companySearchDisabled}
-                placeholder="Search by code or name…"
-                className="h-7 w-36 rounded-md border border-gray-200 bg-white py-0 pl-7 pr-2 text-xs outline-none placeholder:text-gray-400 focus:border-gray-400 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 sm:h-auto sm:w-56 sm:rounded sm:py-2 sm:pl-9 sm:pr-3 sm:text-sm"
-                aria-label="Search by code or name"
-                aria-autocomplete="list"
-                aria-expanded={!companySearchDisabled && showSuggestions && suggestionList.length > 0}
-                aria-controls="tasi-search-listbox"
-                aria-activedescendant={undefined}
-              />
-              {showSuggestions && searchQuery.trim() && (
-                <div className="absolute right-0 top-full z-30 mt-1 w-64 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
-                  <DropdownMenuScrollArea as="ul" scrollClassName="max-h-56" scrollProps={{ id: 'tasi-search-listbox', role: 'listbox' }}>
-                    {suggestionList.length === 0 ? (
-                      <li className="px-3 py-2.5 text-sm text-gray-500">No matches</li>
-                    ) : (
-                      suggestionList.map((row) => (
-                        <li key={row.code}>
-                          <button
-                            type="button"
-                            role="option"
-                            className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100"
-                            onMouseDown={(e) => {
-                              e.preventDefault()
-                              setSearchQuery(row.code)
-                              setShowSuggestions(false)
-                            }}
-                          >
-                            <span className="font-mono font-medium">{row.code}</span>
-                            {row.name ? <span className="ml-2 text-gray-500">{row.name}</span> : null}
-                          </button>
-                        </li>
-                      ))
-                    )}
-                  </DropdownMenuScrollArea>
-                </div>
-              )}
+        <ContentPageHeader
+          title={
+            shouldShowHeaderTitle || headerAddon ? (
+              <span className="inline-flex min-w-0 items-center gap-2">
+                {shouldShowHeaderTitle ? <span>{headerTitle}</span> : null}
+                {headerAddon ?? null}
+              </span>
+            ) : (
+              'Stocks'
+            )
+          }
+          description="Search and browse daily OHLCV. Click a row for the company detail chart."
+          className="overflow-visible bg-white"
+        >
+          <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>
+            <div ref={searchWrapRef} className={`relative shrink-0 ${companySearchDisabled ? 'opacity-60' : ''}`}>
+              <div className="relative">
+                <TbSearch className={`absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 ${companySearchDisabled ? 'text-gray-400' : 'text-gray-500'}`} aria-hidden />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => {
+                    if (!companySearchDisabled) setShowSuggestions(true)
+                  }}
+                  disabled={companySearchDisabled}
+                  placeholder="Search by code or name…"
+                  className={`${CONTENT_PAGE_HEADER_INPUT_CLASS} w-36 pl-8 pr-2 sm:w-56`}
+                  aria-label="Search by code or name"
+                  aria-autocomplete="list"
+                  aria-expanded={!companySearchDisabled && showSuggestions && suggestionList.length > 0}
+                  aria-controls="tasi-search-listbox"
+                  aria-activedescendant={undefined}
+                />
+                {showSuggestions && searchQuery.trim() && (
+                  <div className="absolute right-0 top-full z-30 mt-1 w-64 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                    <DropdownMenuScrollArea as="ul" scrollClassName="max-h-56" scrollProps={{ id: 'tasi-search-listbox', role: 'listbox' }}>
+                      {suggestionList.length === 0 ? (
+                        <li className="px-3 py-2.5 text-sm text-gray-500">No matches</li>
+                      ) : (
+                        suggestionList.map((row) => (
+                          <li key={row.code}>
+                            <button
+                              type="button"
+                              role="option"
+                              className="w-full px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100"
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                setSearchQuery(row.code)
+                                setShowSuggestions(false)
+                              }}
+                            >
+                              <span className="font-mono font-medium">{row.code}</span>
+                              {row.name ? <span className="ml-2 text-gray-500">{row.name}</span> : null}
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </DropdownMenuScrollArea>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </header>
-        <div className="min-h-0 flex-1 overflow-auto">
-          {!hasCompanyData ? (
-            <div className="flex min-h-full min-w-full flex-1 flex-col">
-              {summary != null ? (
-                <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
-                  <div className="flex flex-col gap-3 text-base text-gray-800">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-700">Market summary</span>
-                      <span className="text-sm tabular-nums text-gray-500">{summary.date ?? '–'}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 lg:grid-cols-7">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Open${px}`}</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.open)}</span>
+        </ContentPageHeader>
+        <ScrollArea className="min-h-0 flex-1" indicator="both" reserveGutter={false} scrollClassName="min-h-0">
+          <div className="min-h-0 flex-1">
+            {!hasCompanyData ? (
+              <div className="flex min-h-full min-w-full flex-1 flex-col">
+                {summary != null ? (
+                  <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+                    <div className="flex flex-col gap-3 text-base text-gray-800">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-700">Market summary</span>
+                        <span className="text-sm tabular-nums text-gray-500">{summary.date ?? '–'}</span>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`High${px}`}</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.high)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Low${px}`}</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.low)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Close${px}`}</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.close)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Chg%</span>
-                        <span className={`tabular-nums font-semibold ${chgPercentClass(summary.changePercent)}`}>{formatPercent(summary.changePercent)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Vol</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.volumeTraded, { maxFractionDigits: 0 })}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{valueTradedLabel}</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.valueTraded)}</span>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 lg:grid-cols-7">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Open${px}`}</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.open)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`High${px}`}</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.high)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Low${px}`}</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.low)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Close${px}`}</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.close)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Chg%</span>
+                          <span className={`tabular-nums font-semibold ${chgPercentClass(summary.changePercent)}`}>{formatPercent(summary.changePercent)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Vol</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.volumeTraded, { maxFractionDigits: 0 })}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{valueTradedLabel}</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.valueTraded)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
+                ) : null}
+                <div
+                  className="pointer-events-none flex min-h-0 flex-1 select-none flex-col items-center justify-center border-t border-dashed border-gray-200 bg-gray-50/70 p-8"
+                  role="status"
+                  aria-live="polite"
+                  aria-disabled="true"
+                >
+                  <p className="max-w-md text-center text-sm leading-relaxed text-gray-400">NODATA: company-level data is not supported for current market.</p>
                 </div>
-              ) : null}
-              <div
-                className="pointer-events-none flex min-h-0 flex-1 select-none flex-col items-center justify-center border-t border-dashed border-gray-200 bg-gray-50/70 p-8"
-                role="status"
-                aria-live="polite"
-                aria-disabled="true"
-              >
-                <p className="max-w-md text-center text-sm leading-relaxed text-gray-400">NODATA: company-level data is not supported for current market.</p>
               </div>
-            </div>
-          ) : searchQuery.trim() && sortedRows.length === 0 ? (
-            <div className="flex min-h-full min-w-full flex-1 items-center justify-center p-8" role="status" aria-live="polite">
-              <p className="text-sm text-gray-500">No matching content.</p>
-            </div>
-          ) : (
-            <table className="w-full min-w-[640px] border-collapse text-left text-sm" role="grid" aria-label="Finance company daily (TASI)">
-              <caption className="sr-only">Latest trading day company prices and volume</caption>
-              <thead className="sticky top-0 z-20 bg-gray-100">
-                {summary != null && (
-                  <tr className="bg-gray-50">
-                    <th colSpan={11} scope="row" className="bg-gray-50 px-4 py-3 text-left font-normal">
-                      <div className="flex flex-col gap-3 text-base text-gray-800">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-gray-700">Market summary</span>
-                          <span className="text-sm tabular-nums text-gray-500">{summary.date ?? '–'}</span>
+            ) : searchQuery.trim() && sortedRows.length === 0 ? (
+              <div className="flex min-h-full min-w-full flex-1 items-center justify-center p-8" role="status" aria-live="polite">
+                <p className="text-sm text-gray-500">No matching content.</p>
+              </div>
+            ) : (
+              <table className="w-full min-w-[640px] border-collapse text-left text-sm" role="grid" aria-label="Finance company daily (TASI)">
+                <caption className="sr-only">Latest trading day company prices and volume</caption>
+                <thead className="sticky top-0 z-20 bg-gray-100">
+                  {summary != null && (
+                    <tr className="bg-gray-50">
+                      <th colSpan={11} scope="row" className="bg-gray-50 px-4 py-3 text-left font-normal">
+                        <div className="flex flex-col gap-3 text-base text-gray-800">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-700">Market summary</span>
+                            <span className="text-sm tabular-nums text-gray-500">{summary.date ?? '–'}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 lg:grid-cols-7">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Open${px}`}</span>
+                              <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.open)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`High${px}`}</span>
+                              <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.high)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Low${px}`}</span>
+                              <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.low)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Close${px}`}</span>
+                              <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.close)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Chg%</span>
+                              <span className={`tabular-nums font-semibold ${chgPercentClass(summary.changePercent)}`}>{formatPercent(summary.changePercent)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Vol</span>
+                              <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.volumeTraded, { maxFractionDigits: 0 })}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{valueTradedLabel}</span>
+                              <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.valueTraded)}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 lg:grid-cols-7">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Open${px}`}</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.open)}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`High${px}`}</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.high)}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Low${px}`}</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.low)}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Close${px}`}</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.close)}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Chg%</span>
-                            <span className={`tabular-nums font-semibold ${chgPercentClass(summary.changePercent)}`}>{formatPercent(summary.changePercent)}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Vol</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.volumeTraded, { maxFractionDigits: 0 })}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">{valueTradedLabel}</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(summary.valueTraded)}</span>
-                          </div>
-                        </div>
+                      </th>
+                    </tr>
+                  )}
+                  <tr className="shadow-[0_1px_0_0_rgba(0,0,0,0.08)]">
+                    <th scope="col" className={`sticky left-0 z-20 bg-gray-100 ${thBase} ${thSortableClass}`} onClick={() => requestSort('code')}>
+                      <div className="flex items-center">Symbol{getSortIndicator('code')}</div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-left`} onClick={() => requestSort('name')}>
+                      <div className="flex items-center">Company{getSortIndicator('name')}</div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('open')}>
+                      <div className="flex items-center justify-end">
+                        {`Open${px}`}
+                        {getSortIndicator('open')}
+                      </div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('high')}>
+                      <div className="flex items-center justify-end">
+                        {`High${px}`}
+                        {getSortIndicator('high')}
+                      </div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('low')}>
+                      <div className="flex items-center justify-end">
+                        {`Low${px}`}
+                        {getSortIndicator('low')}
+                      </div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('lastPrice')}>
+                      <div className="flex items-center justify-end">
+                        {`Close${px}`}
+                        {getSortIndicator('lastPrice')}
+                      </div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('changePercent')}>
+                      <div className="flex items-center justify-end">% Change{getSortIndicator('changePercent')}</div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('volume')}>
+                      <div className="flex items-center justify-end">Volume Traded{getSortIndicator('volume')}</div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('turnover')}>
+                      <div className="flex items-center justify-end">
+                        {valueTradedLabel}
+                        {getSortIndicator('turnover')}
+                      </div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('numberOfTrades')}>
+                      <div className="flex items-center justify-end">No. of Trades{getSortIndicator('numberOfTrades')}</div>
+                    </th>
+                    <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('marketCap')}>
+                      <div className="flex items-center justify-end">
+                        {marketCapLabel}
+                        {getSortIndicator('marketCap')}
                       </div>
                     </th>
                   </tr>
-                )}
-                <tr className="shadow-[0_1px_0_0_rgba(0,0,0,0.08)]">
-                  <th scope="col" className={`sticky left-0 z-20 bg-gray-100 ${thBase} ${thSortableClass}`} onClick={() => requestSort('code')}>
-                    <div className="flex items-center">Symbol{getSortIndicator('code')}</div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-left`} onClick={() => requestSort('name')}>
-                    <div className="flex items-center">Company{getSortIndicator('name')}</div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('open')}>
-                    <div className="flex items-center justify-end">
-                      {`Open${px}`}
-                      {getSortIndicator('open')}
-                    </div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('high')}>
-                    <div className="flex items-center justify-end">
-                      {`High${px}`}
-                      {getSortIndicator('high')}
-                    </div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('low')}>
-                    <div className="flex items-center justify-end">
-                      {`Low${px}`}
-                      {getSortIndicator('low')}
-                    </div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('lastPrice')}>
-                    <div className="flex items-center justify-end">
-                      {`Close${px}`}
-                      {getSortIndicator('lastPrice')}
-                    </div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('changePercent')}>
-                    <div className="flex items-center justify-end">% Change{getSortIndicator('changePercent')}</div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('volume')}>
-                    <div className="flex items-center justify-end">Volume Traded{getSortIndicator('volume')}</div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('turnover')}>
-                    <div className="flex items-center justify-end">
-                      {valueTradedLabel}
-                      {getSortIndicator('turnover')}
-                    </div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('numberOfTrades')}>
-                    <div className="flex items-center justify-end">No. of Trades{getSortIndicator('numberOfTrades')}</div>
-                  </th>
-                  <th scope="col" className={`${thBase} ${thSortableClass} text-right whitespace-nowrap`} onClick={() => requestSort('marketCap')}>
-                    <div className="flex items-center justify-end">
-                      {marketCapLabel}
-                      {getSortIndicator('marketCap')}
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRows.map((row, i) => (
-                  <tr key={row.code || `row-${i}`} className="group border-b border-gray-100 hover:bg-gray-50">
-                    <td className="sticky left-0 z-10 bg-white px-2 py-1.5 font-mono font-semibold text-gray-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-gray-50">
-                      {row.code || '–'}
-                    </td>
-                    <td className="max-w-[12rem] truncate px-2 py-1.5 text-gray-900" title={row.name ?? undefined}>
-                      {row.name || '–'}
-                    </td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.open)}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.high)}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.low)}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.lastPrice)}</td>
-                    <td className={`px-2 py-1.5 text-right tabular-nums whitespace-nowrap font-semibold ${chgPercentClass(row.changePercent)}`}>
-                      {formatPercent(row.changePercent)}
-                    </td>
-                    <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-800 whitespace-nowrap">{formatNumber(row.volume, { maxFractionDigits: 0 })}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.turnover)}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.numberOfTrades, { maxFractionDigits: 0 })}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.marketCap)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                </thead>
+                <tbody>
+                  {sortedRows.map((row, i) => (
+                    <tr key={row.code || `row-${i}`} className="group border-b border-gray-100 hover:bg-gray-50">
+                      <td className="sticky left-0 z-10 bg-white px-2 py-1.5 font-mono font-semibold text-gray-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-gray-50">
+                        {row.code || '–'}
+                      </td>
+                      <td className="max-w-[12rem] truncate px-2 py-1.5 text-gray-900" title={row.name ?? undefined}>
+                        {row.name || '–'}
+                      </td>
+                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.open)}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.high)}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.low)}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.lastPrice)}</td>
+                      <td className={`px-2 py-1.5 text-right tabular-nums whitespace-nowrap font-semibold ${chgPercentClass(row.changePercent)}`}>
+                        {formatPercent(row.changePercent)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-800 whitespace-nowrap">{formatNumber(row.volume, { maxFractionDigits: 0 })}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.turnover)}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.numberOfTrades, { maxFractionDigits: 0 })}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.marketCap)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </ScrollArea>
       </div>
     </section>
   )

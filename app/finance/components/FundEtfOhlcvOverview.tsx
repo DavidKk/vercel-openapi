@@ -2,8 +2,9 @@
 
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
-import { CONTENT_HEADER_CLASS } from '@/app/Nav/constants'
+import { ContentPageHeader } from '@/components/ContentPageHeader'
 import { useDebugPanel } from '@/components/DebugPanel'
+import { ScrollArea } from '@/components/ScrollArea'
 import type { FinanceFundNavDailyRecord, FinanceMarketOhlcvDailyRecord } from '@/services/finance/market/daily/types'
 import { formatNumber, formatPercent } from '@/utils/formatNumber'
 
@@ -183,162 +184,168 @@ export function FundEtfOhlcvOverview({ symbol, headerAddon }: FundEtfOhlcvOvervi
   return (
     <section className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col bg-white">
-        <div className={`shrink-0 ${CONTENT_HEADER_CLASS} overflow-visible`}>{headerAddon ?? null}</div>
+        <ContentPageHeader
+          title={headerAddon ?? 'Funds'}
+          description={isNavMode ? 'Latest NAV and recent daily history.' : 'Latest session and recent daily OHLCV.'}
+          className="overflow-visible bg-white"
+        />
 
-        <div className="min-h-0 flex-1 overflow-auto">
-          <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
-            <div className="flex flex-col gap-3 text-base text-gray-800">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-700">{isNavMode ? 'Latest NAV' : 'Latest session'}</span>
-                {latestDate ? <span className="text-sm tabular-nums text-gray-500">As of {latestDate}</span> : <span className="text-sm text-gray-400">No data</span>}
-              </div>
-              {hasLatest ? (
-                <>
-                  {isNavMode && latestNav ? (
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Unit NAV</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestNav.unitNav)}</span>
+        <ScrollArea className="min-h-0 flex-1" indicator="both" reserveGutter={false} scrollClassName="min-h-0">
+          <div className="min-h-0 flex-1">
+            <div className="border-b border-gray-100 bg-gray-50 px-4 py-3">
+              <div className="flex flex-col gap-3 text-base text-gray-800">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-700">{isNavMode ? 'Latest NAV' : 'Latest session'}</span>
+                  {latestDate ? <span className="text-sm tabular-nums text-gray-500">As of {latestDate}</span> : <span className="text-sm text-gray-400">No data</span>}
+                </div>
+                {hasLatest ? (
+                  <>
+                    {isNavMode && latestNav ? (
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Unit NAV</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestNav.unitNav)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Daily chg%</span>
+                          <span className={`tabular-nums font-semibold ${chgPercentClass(latestNav.dailyChangePercent)}`}>{formatPercent(latestNav.dailyChangePercent)}</span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Daily chg%</span>
-                        <span className={`tabular-nums font-semibold ${chgPercentClass(latestNav.dailyChangePercent)}`}>{formatPercent(latestNav.dailyChangePercent)}</span>
-                      </div>
-                    </div>
-                  ) : null}
-                  {!isNavMode && latestOhlcv ? (
-                    <div className={`grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 ${showLiquidity ? 'lg:grid-cols-7' : 'lg:grid-cols-5'}`}>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Open</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.open)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">High</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.high)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Low</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.low)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Close</span>
-                        <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.close)}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Chg%</span>
-                        <span className={`tabular-nums font-semibold ${chgPercentClass(latestOhlcv.changeRate)}`}>{formatPercent(latestOhlcv.changeRate)}</span>
-                      </div>
-                      {showLiquidity ? (
-                        <>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Vol</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.volume, { maxFractionDigits: 0 })}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Amount</span>
-                            <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.amount)}</span>
-                          </div>
-                        </>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </>
-              ) : (
-                <p className="text-sm text-gray-500">No rows for this window. Configure Turso; allowlisted public routes may auto backfill when you open this page.</p>
-              )}
-            </div>
-          </div>
-
-          {rowCount === 0 && !loading ? (
-            <div className="flex min-h-[8rem] flex-1 items-center justify-center p-8" role="status" aria-live="polite">
-              <p className="text-sm text-gray-400">No rows.</p>
-            </div>
-          ) : (
-            <table className="w-full min-w-[640px] border-collapse text-left text-sm text-gray-800" role="grid" aria-label="Fund or ETF daily history">
-              <caption className="sr-only">Daily history for the last {RANGE_DAYS} calendar days</caption>
-              <thead className="sticky top-0 z-20 bg-gray-100">
-                <tr className="shadow-[0_1px_0_0_rgba(0,0,0,0.08)]">
-                  {isNavMode ? (
-                    <>
-                      <th scope="col" className={thDate}>
-                        Date
-                      </th>
-                      <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                        Unit NAV
-                      </th>
-                      <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                        % Change
-                      </th>
-                    </>
-                  ) : (
-                    <>
-                      <th scope="col" className={thDate}>
-                        Date
-                      </th>
-                      <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                        Open
-                      </th>
-                      <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                        High
-                      </th>
-                      <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                        Low
-                      </th>
-                      <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                        Close
-                      </th>
-                      <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                        % Change
-                      </th>
-                      {showLiquidity ? (
-                        <>
-                          <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                            Volume traded
-                          </th>
-                          <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
-                            Amount
-                          </th>
-                        </>
-                      ) : null}
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {isNavMode
-                  ? navRows.map((row) => (
-                      <tr key={row.date} className="group border-b border-gray-100 hover:bg-gray-50">
-                        <td className={tdDate}>{row.date}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.unitNav)}</td>
-                        <td className={`px-2 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ${chgPercentClass(row.dailyChangePercent)}`}>
-                          {formatPercent(row.dailyChangePercent)}
-                        </td>
-                      </tr>
-                    ))
-                  : ohlcvRows.map((row) => (
-                      <tr key={row.date} className="group border-b border-gray-100 hover:bg-gray-50">
-                        <td className={tdDate}>{row.date}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.open)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.high)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.low)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.close)}</td>
-                        <td className={`px-2 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ${chgPercentClass(row.changeRate)}`}>
-                          {formatPercent(row.changeRate)}
-                        </td>
+                    ) : null}
+                    {!isNavMode && latestOhlcv ? (
+                      <div className={`grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 ${showLiquidity ? 'lg:grid-cols-7' : 'lg:grid-cols-5'}`}>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Open</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.open)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">High</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.high)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Low</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.low)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Close</span>
+                          <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.close)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Chg%</span>
+                          <span className={`tabular-nums font-semibold ${chgPercentClass(latestOhlcv.changeRate)}`}>{formatPercent(latestOhlcv.changeRate)}</span>
+                        </div>
                         {showLiquidity ? (
                           <>
-                            <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-800 whitespace-nowrap">
-                              {formatNumber(row.volume, { maxFractionDigits: 0 })}
-                            </td>
-                            <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.amount)}</td>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Vol</span>
+                              <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.volume, { maxFractionDigits: 0 })}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Amount</span>
+                              <span className="tabular-nums font-semibold text-gray-900">{formatNumber(latestOhlcv.amount)}</span>
+                            </div>
                           </>
                         ) : null}
-                      </tr>
-                    ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500">No rows for this window. Configure Turso; allowlisted public routes may auto backfill when you open this page.</p>
+                )}
+              </div>
+            </div>
+
+            {rowCount === 0 && !loading ? (
+              <div className="flex min-h-[8rem] flex-1 items-center justify-center p-8" role="status" aria-live="polite">
+                <p className="text-sm text-gray-400">No rows.</p>
+              </div>
+            ) : (
+              <table className="w-full min-w-[640px] border-collapse text-left text-sm text-gray-800" role="grid" aria-label="Fund or ETF daily history">
+                <caption className="sr-only">Daily history for the last {RANGE_DAYS} calendar days</caption>
+                <thead className="sticky top-0 z-20 bg-gray-100">
+                  <tr className="shadow-[0_1px_0_0_rgba(0,0,0,0.08)]">
+                    {isNavMode ? (
+                      <>
+                        <th scope="col" className={thDate}>
+                          Date
+                        </th>
+                        <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                          Unit NAV
+                        </th>
+                        <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                          % Change
+                        </th>
+                      </>
+                    ) : (
+                      <>
+                        <th scope="col" className={thDate}>
+                          Date
+                        </th>
+                        <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                          Open
+                        </th>
+                        <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                          High
+                        </th>
+                        <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                          Low
+                        </th>
+                        <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                          Close
+                        </th>
+                        <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                          % Change
+                        </th>
+                        {showLiquidity ? (
+                          <>
+                            <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                              Volume traded
+                            </th>
+                            <th scope="col" className={`${thBase} text-right whitespace-nowrap`}>
+                              Amount
+                            </th>
+                          </>
+                        ) : null}
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {isNavMode
+                    ? navRows.map((row) => (
+                        <tr key={row.date} className="group border-b border-gray-100 hover:bg-gray-50">
+                          <td className={tdDate}>{row.date}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.unitNav)}</td>
+                          <td className={`px-2 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ${chgPercentClass(row.dailyChangePercent)}`}>
+                            {formatPercent(row.dailyChangePercent)}
+                          </td>
+                        </tr>
+                      ))
+                    : ohlcvRows.map((row) => (
+                        <tr key={row.date} className="group border-b border-gray-100 hover:bg-gray-50">
+                          <td className={tdDate}>{row.date}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.open)}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.high)}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.low)}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-900 whitespace-nowrap">{formatNumber(row.close)}</td>
+                          <td className={`px-2 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ${chgPercentClass(row.changeRate)}`}>
+                            {formatPercent(row.changeRate)}
+                          </td>
+                          {showLiquidity ? (
+                            <>
+                              <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-gray-800 whitespace-nowrap">
+                                {formatNumber(row.volume, { maxFractionDigits: 0 })}
+                              </td>
+                              <td className="px-2 py-1.5 text-right tabular-nums text-gray-800 whitespace-nowrap">{formatNumber(row.amount)}</td>
+                            </>
+                          ) : null}
+                        </tr>
+                      ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </ScrollArea>
       </div>
     </section>
   )

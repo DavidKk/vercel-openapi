@@ -4,7 +4,10 @@ import { Highlight, themes } from 'prism-react-renderer'
 import { useEffect, useMemo, useState } from 'react'
 import { TbCopy } from 'react-icons/tb'
 
+import { CONTENT_PAD_CLASS } from '@/app/Nav/constants'
 import { useNotification } from '@/components/Notification'
+import { ScrollArea } from '@/components/ScrollArea'
+import { useTheme } from '@/components/theme/ThemeProvider'
 
 import { buildClashYamlSnippetText } from './build-clash-yaml-snippet-text'
 
@@ -36,6 +39,8 @@ export interface ProxyRuleClashYamlSnippetProps {
 export function ProxyRuleClashYamlSnippet(props: ProxyRuleClashYamlSnippetProps) {
   const { secret, actions, includeDns = true, includeTun = true, hideCopyButton = false, onYamlTextChange } = props
   const { success } = useNotification()
+  const { resolvedTheme } = useTheme()
+  const prismTheme = resolvedTheme === 'dark' ? themes.vsDark : themes.vsLight
   const [baseUrl, setBaseUrl] = useState('')
 
   useEffect(() => {
@@ -61,8 +66,12 @@ export function ProxyRuleClashYamlSnippet(props: ProxyRuleClashYamlSnippetProps)
     navigator.clipboard.writeText(yamlText).then(() => success('Copied to clipboard'))
   }
 
+  const shellClass = hideCopyButton
+    ? 'relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white'
+    : 'relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-gray-200 bg-gray-50/90'
+
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-gray-200 bg-gray-50/90">
+    <div className={shellClass}>
       {!hideCopyButton && (
         <button
           type="button"
@@ -75,22 +84,24 @@ export function ProxyRuleClashYamlSnippet(props: ProxyRuleClashYamlSnippetProps)
         </button>
       )}
 
-      <Highlight theme={themes.vsLight} code={yamlText || ' '} language="yaml">
-        {({ className, style, tokens, getLineProps, getTokenProps }) => (
-          <pre
-            className={`${className} m-0 min-h-0 flex-1 overflow-auto px-2 py-1.5 font-mono text-[10px] leading-[1.35] [scrollbar-width:thin] ${hideCopyButton ? '' : 'pr-9'}`}
-            style={{ ...style, backgroundColor: 'transparent', margin: 0, whiteSpace: 'pre' }}
-          >
-            {tokens.map((line, i) => (
-              <div key={i} {...getLineProps({ line, className: 'block' })}>
-                {line.map((token, key) => (
-                  <span key={key} {...getTokenProps({ token })} />
-                ))}
-              </div>
-            ))}
-          </pre>
-        )}
-      </Highlight>
+      <ScrollArea className="min-h-0 flex-1" indicator="both" reserveGutter={false} scrollClassName="min-h-0">
+        <Highlight theme={prismTheme} code={yamlText || ' '} language="yaml">
+          {({ className, style, tokens, getLineProps, getTokenProps }) => (
+            <pre
+              className={`${className} m-0 ${CONTENT_PAD_CLASS} font-mono text-[11px] leading-[1.4] text-gray-800 ${hideCopyButton ? '' : 'pr-9'}`}
+              style={{ ...style, backgroundColor: 'transparent', margin: 0, whiteSpace: 'pre' }}
+            >
+              {tokens.map((line, i) => (
+                <div key={i} {...getLineProps({ line, className: 'block' })}>
+                  {line.map((token, key) => (
+                    <span key={key} {...getTokenProps({ token })} />
+                  ))}
+                </div>
+              ))}
+            </pre>
+          )}
+        </Highlight>
+      </ScrollArea>
     </div>
   )
 }

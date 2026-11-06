@@ -1,6 +1,6 @@
 'use client'
 
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const GAP = 6
@@ -19,6 +19,10 @@ interface TooltipProps {
 /**
  * Viewport-safe tooltip: positions so content stays inside the window.
  * Renders via portal to avoid clipping. Uses placement when given; otherwise prefers bottom, flips to top if needed.
+ * Hides on mouse leave, blur, and when the document/window is backgrounded (browser tab switch).
+ *
+ * @param props Tooltip props
+ * @returns Trigger wrapper with portal tooltip
  */
 export function Tooltip(props: TooltipProps) {
   const { content, children, placement: preferredPlacement = 'bottom' } = props
@@ -31,6 +35,25 @@ export function Tooltip(props: TooltipProps) {
   })
   const triggerRef = useRef<HTMLSpanElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    function hide() {
+      setOpen(false)
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState !== 'visible') hide()
+    }
+
+    window.addEventListener('blur', hide)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.removeEventListener('blur', hide)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [open])
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current || !tooltipRef.current) return
@@ -81,7 +104,7 @@ export function Tooltip(props: TooltipProps) {
     <div
       ref={tooltipRef}
       role="tooltip"
-      className="z-[9999] max-w-[min(calc(100vw-16px),14rem)] rounded-md border border-gray-200 bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg whitespace-normal"
+      className="keep-dark-surface z-[9999] max-w-[min(calc(100vw-16px),14rem)] rounded-md border border-gray-700 px-2.5 py-1.5 text-xs shadow-lg whitespace-normal"
       style={style}
     >
       {content}

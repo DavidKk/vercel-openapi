@@ -1,11 +1,5 @@
-import {
-  PANEL_HEADER_ACTIONS_CLASS,
-  PANEL_HEADER_LABEL_CLASS,
-  PANEL_HEADER_SUBTITLE_CLASS,
-  PLAYGROUND_HEADER_BADGE_CLASS,
-  PLAYGROUND_HEADER_DESCRIPTION,
-  PLAYGROUND_HEADER_ROW_CLASS,
-} from '@/app/Nav/constants'
+import { PLAYGROUND_HEADER_BADGE_CLASS, PLAYGROUND_HEADER_DESCRIPTION } from '@/app/Nav/constants'
+import { CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS, ContentPageHeader } from '@/components/ContentPageHeader'
 
 export interface PlaygroundPanelHeaderProps {
   /** Optional right-side badge (e.g. "GET /api/holiday"). When omitted, badge is shown in Request row instead. */
@@ -15,19 +9,18 @@ export interface PlaygroundPanelHeaderProps {
 }
 
 /**
- * Shared header for all Playground panels: left block ("Playground" + subtitle), optional right block (badge).
- * Same row layout and vertical centering as DocPanelHeader.
+ * Shared header for Playground panels — same title/description density as overview ContentPageHeader.
+ *
+ * @param props Header props
+ * @returns Header element
  */
 export function PlaygroundPanelHeader(props: PlaygroundPanelHeaderProps) {
   const { badge, subtitle = PLAYGROUND_HEADER_DESCRIPTION } = props
   const badgeContent = badge === undefined ? null : typeof badge === 'string' ? <span className={PLAYGROUND_HEADER_BADGE_CLASS}>{badge}</span> : badge
+
   return (
-    <div className={PLAYGROUND_HEADER_ROW_CLASS}>
-      <div className="min-w-0 flex-1 flex flex-col">
-        <span className={PANEL_HEADER_LABEL_CLASS}>Playground</span>
-        <p className={PANEL_HEADER_SUBTITLE_CLASS}>{subtitle}</p>
-      </div>
-      {badgeContent !== null && <div className={`shrink-0 ${PANEL_HEADER_ACTIONS_CLASS}`}>{badgeContent}</div>}
-    </div>
+    <ContentPageHeader title="Playground" description={subtitle} className="bg-white">
+      {badgeContent !== null ? <div className={CONTENT_PAGE_HEADER_ACTIONS_ROW_CLASS}>{badgeContent}</div> : null}
+    </ContentPageHeader>
   )
 }

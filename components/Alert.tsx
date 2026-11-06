@@ -53,7 +53,7 @@ export default forwardRef<AlertImperativeHandler, AlertProps>(function Alert(pro
 
   return (
     <div
-      className={`w-full flex px-3 py-2 text-sm text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} rounded-sm opacity-100 animate-fade-out`}
+      className={`w-full flex px-3 py-2 text-sm text-pure-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} rounded-sm opacity-100 animate-fade-out`}
       style={{ animationDelay: '2.8s' }}
     >
       {message} <span className="ml-auto">{count}s</span>

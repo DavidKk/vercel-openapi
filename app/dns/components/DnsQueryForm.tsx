@@ -2,6 +2,10 @@
 
 import { useRef, useState } from 'react'
 
+import { CONTENT_PAD_CLASS } from '@/app/Nav/constants'
+import { ContentPageHeader } from '@/components/ContentPageHeader'
+import { ScrollArea } from '@/components/ScrollArea'
+
 import type { DnsResult } from '../types'
 import { DnsEndpointInput } from './DnsEndpointInput'
 import { ResultGroupedView } from './ResultGroupedView'
@@ -80,52 +84,56 @@ export function DnsQueryForm() {
   const currentResult = results[activeIndex] ?? null
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {/* Top: form 20% from container top, horizontal center */}
-      <div className="flex min-h-[30vh] shrink-0 flex-1 basis-0 flex-col px-4 pt-0 pb-2">
-        <div className="shrink-0 basis-[20%]" aria-hidden />
-        <form onSubmit={handleSubmit} className="mx-auto w-full max-w-md shrink-0">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-sm text-gray-600">DNS service endpoint</span>
-                <DnsEndpointInput
-                  value={dns}
-                  onChange={setDns}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-sm text-gray-600">Domain</span>
-                <input
-                  type="text"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                />
-              </label>
-              <button
-                type="submit"
-                className="w-full rounded-xl border border-gray-200 bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800 disabled:opacity-60"
-                disabled={loading}
-              >
-                {loading ? 'Querying…' : 'Query'}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
+      <ContentPageHeader title="DNS Query" description="Resolve a domain against a DNS endpoint. Recent results stay in this session." className="bg-white" />
 
-      {/* Results: card tabs + content */}
-      <div className="min-h-0 flex-1 overflow-auto px-4 pb-4 pt-3">
+      <ScrollArea
+        className="min-h-0 flex-1"
+        indicator="vertical"
+        reserveGutter={false}
+        scrollClassName={`flex min-h-full flex-col items-center justify-center gap-3 ${CONTENT_PAD_CLASS}`}
+      >
+        <div className="w-full max-w-md">
+          <form onSubmit={handleSubmit}>
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-gray-600">DNS service endpoint</span>
+                  <DnsEndpointInput
+                    value={dns}
+                    onChange={setDns}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-gray-600">Domain</span>
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 outline-none"
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800 disabled:opacity-60"
+                  disabled={loading}
+                >
+                  {loading ? 'Querying…' : 'Query'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
         {error && (
-          <div className="mx-auto max-w-xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <div className="w-full max-w-md rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
             {error}
           </div>
         )}
 
         {results.length > 0 && currentResult && (
-          <div className="mx-auto max-w-xl">
+          <div className="w-full max-w-md">
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="min-w-0 truncate text-xs text-gray-500">
@@ -161,7 +169,7 @@ export function DnsQueryForm() {
             </div>
           </div>
         )}
-      </div>
+      </ScrollArea>
     </div>
   )
 }

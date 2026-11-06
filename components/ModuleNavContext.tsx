@@ -6,6 +6,7 @@ import { createContext, type ReactNode, type RefObject, useCallback, useContext,
 import { createPortal } from 'react-dom'
 import { TbMenu2, TbX } from 'react-icons/tb'
 
+import { NAV_ICON_BTN_CLASS } from '@/app/Nav/constants'
 import { findActiveDashboardSidebarItem, isDashboardSidebarItemActive } from '@/components/dashboard-sidebar-utils'
 
 import type { DashboardSidebarItem } from './DashboardSidebar'
@@ -14,7 +15,7 @@ import type { DashboardSidebarItem } from './DashboardSidebar'
 const DRAWER_TRANSITION_MS = 300
 
 const drawerLinkBase =
-  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-[color,background-color,transform,opacity] duration-200 ease-out motion-reduce:transition-none'
+  'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-[color,background-color,transform,opacity] duration-200 ease-out motion-reduce:transition-none'
 const drawerLinkActive = 'bg-gray-900 text-white'
 const drawerLinkInactive = 'text-gray-700 hover:bg-gray-100'
 
@@ -157,7 +158,7 @@ export function ModuleNavProvider(props: Readonly<ModuleNavProviderProps>) {
             >
               <button
                 type="button"
-                className="absolute inset-0 bg-black/40 backdrop-blur-[1px] motion-reduce:backdrop-blur-none"
+                className="absolute inset-0 bg-pure-black/40 backdrop-blur-[1px] motion-reduce:backdrop-blur-none"
                 aria-label="Close module menu"
                 onClick={closeDrawer}
               />
@@ -178,12 +179,7 @@ export function ModuleNavProvider(props: Readonly<ModuleNavProviderProps>) {
                   style={{ transitionDelay: entered ? '60ms' : '0ms' }}
                 >
                   <span className="text-sm font-semibold text-gray-900">Module menu</span>
-                  <button
-                    type="button"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-700 transition-colors hover:bg-gray-100"
-                    aria-label="Close module menu"
-                    onClick={closeDrawer}
-                  >
+                  <button type="button" className={`${NAV_ICON_BTN_CLASS} text-gray-700 hover:bg-gray-100`} aria-label="Close module menu" onClick={closeDrawer}>
                     <TbX className="h-5 w-5" aria-hidden />
                   </button>
                 </div>
@@ -206,7 +202,8 @@ export function ModuleNavProvider(props: Readonly<ModuleNavProviderProps>) {
                       >
                         <span
                           className={[
-                            'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-200',
+                            NAV_ICON_BTN_CLASS,
+                            'transition-transform duration-200',
                             isActive ? 'bg-white/10 text-white' : 'bg-gray-50 text-gray-600',
                             entered ? 'scale-100' : 'scale-90',
                           ].join(' ')}
@@ -269,7 +266,7 @@ export function ModuleNavMenuButton() {
     <button
       ref={menuButtonRef}
       type="button"
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-700 transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none md:hidden ${
+      className={`${NAV_ICON_BTN_CLASS} text-gray-700 transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none md:hidden ${
         open ? 'scale-95 bg-gray-100 shadow-inner' : 'scale-100'
       }`}
       aria-expanded={open}

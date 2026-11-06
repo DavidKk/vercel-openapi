@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { PLAYGROUND_HEADER_BADGE_CLASS } from '@/app/Nav/constants'
+import { PLAYGROUND_HEADER_BADGE_CLASS, PLAYGROUND_RESPONSE_BODY_CLASS, PLAYGROUND_SECTION_BODY_CLASS, PLAYGROUND_SECTION_HEADER_CLASS } from '@/app/Nav/constants'
 import { JsonViewer } from '@/components/JsonViewer'
 import { PlaygroundPanelHeader } from '@/components/PlaygroundPanelHeader'
 
@@ -69,11 +69,11 @@ export function MoviesMcpPlayground() {
       <PlaygroundPanelHeader />
       <div className="flex min-h-0 flex-1 flex-col gap-px bg-gray-100">
         <div className="flex flex-col bg-white">
-          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
+          <div className={PLAYGROUND_SECTION_HEADER_CLASS}>
             <span className="font-medium text-gray-800">Request</span>
             <span className={PLAYGROUND_HEADER_BADGE_CLASS}>POST {MCP_PATH}</span>
           </div>
-          <form onSubmit={handleSendRequest} className="flex flex-col gap-2 px-3 py-2 text-[11px] text-gray-700">
+          <form onSubmit={handleSendRequest} className={PLAYGROUND_SECTION_BODY_CLASS}>
             <p className="text-[11px] text-gray-600">Tool: list_latest_movies. Params: optional year (e.g. {'{ "year": 2025 }'})</p>
             <textarea
               value={paramsText}
@@ -93,11 +93,11 @@ export function MoviesMcpPlayground() {
           </form>
         </div>
         <div className="flex min-h-0 flex-1 flex-col bg-white">
-          <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2 text-[11px]">
+          <div className={PLAYGROUND_SECTION_HEADER_CLASS}>
             <span className="font-medium text-gray-800">Response</span>
             {status !== undefined && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono text-gray-700">HTTP {status}</span>}
           </div>
-          <div className="min-h-0 flex-1 overflow-auto bg-white p-2 text-[10px] leading-relaxed text-gray-800">
+          <div className={PLAYGROUND_RESPONSE_BODY_CLASS}>
             {error ? (
               <pre className="text-red-600">{error}</pre>
             ) : responseBody ? (

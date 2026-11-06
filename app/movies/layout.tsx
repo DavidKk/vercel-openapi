@@ -1,4 +1,4 @@
-import { TbApi, TbCode, TbFileText, TbMovie, TbRobot } from 'react-icons/tb'
+import { TbApi, TbMovie, TbRobot } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -12,8 +12,6 @@ const MOVIES_SIDEBAR_ITEMS = [
   { href: '/movies', title: 'Latest', ariaLabel: 'Latest movies', icon: <TbMovie className="h-5 w-5" /> },
   { href: '/movies/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/movies/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
-  { href: '/movies/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },
-  { href: '/movies/skill', title: 'Skill', ariaLabel: 'Skill', icon: <TbFileText className="h-5 w-5" /> },
 ]
 
 /**

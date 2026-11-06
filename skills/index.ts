@@ -2,15 +2,15 @@ import { parse as parseYaml } from 'yaml'
 
 import { moduleSkillMarkdownFilename } from '@/app/api/mcp/skillNaming'
 import { FUEL_PRICE_API_SKILL } from '@/app/china-fuel-price/skill-content'
-import { GEO_API_SKILL } from '@/app/china-geo/skill-content'
 import { HOLIDAY_API_SKILL } from '@/app/china-holiday/skill-content'
 import { PRICES_API_SKILL_PUBLIC } from '@/app/china-prices/skill-content'
-import { WEATHER_API_SKILL } from '@/app/china-weather/skill-content'
 import { DNS_API_SKILL } from '@/app/dns/skill-content'
 import { EXCHANGE_RATE_API_SKILL } from '@/app/exchange-rate/skill-content'
 import { TASI_API_SKILL } from '@/app/finance/skill-content'
 import { MOVIES_API_SKILL } from '@/app/movies/skill-content'
 import { PROXY_RULE_API_SKILL } from '@/app/proxy-rule/skill-content'
+import { GEO_API_SKILL } from '@/skills/content/geo'
+import { WEATHER_API_SKILL } from '@/skills/content/weather'
 
 export interface SkillFile {
   /** Target path inside the generated ZIP archive (e.g. "unbnd-exchange-rate-skill.md"). */

@@ -3,39 +3,41 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { TbApi, TbCheck, TbCode, TbCopy, TbDownload, TbPlayerPlay, TbRobot, TbSelector, TbTerminal, TbX } from 'react-icons/tb'
+import { TbApi, TbCheck, TbCopy, TbPlayerPlay, TbRobot, TbSelector, TbX } from 'react-icons/tb'
 
+import { BrandMark } from '@/components/BrandMark'
 import { McpOneClickInstallBar } from '@/components/McpOneClickInstallBar'
 import { useNotification } from '@/components/Notification'
 import { TOOL_CATEGORIES } from '@/services/function-calling/categories'
 
-type HomeTab = 'mcp' | 'function-calling' | 'skill' | 'api'
+type HomeTab = 'mcp' | 'api'
 
 const TABS: { id: HomeTab; label: string; icon: ReactNode }[] = [
   { id: 'api', label: 'API', icon: <TbApi className="h-4 w-4" /> },
   { id: 'mcp', label: 'MCP', icon: <TbRobot className="h-4 w-4" /> },
-  { id: 'function-calling', label: 'Function Calling', icon: <TbCode className="h-4 w-4" /> },
-  { id: 'skill', label: 'Skill', icon: <TbTerminal className="h-4 w-4" /> },
 ]
 
-/** Module options for ?includes= (same slugs as /api/mcp and function-calling). */
+/** Module options for ?includes= (same slugs as /api/mcp). */
 const TOOL_CATEGORY_LABELS: Record<string, string> = {
   holiday: 'china-holiday',
   'fuel-price': 'china-fuel-price',
   'exchange-rate': 'Exchange Rate',
-  weather: 'china-weather',
+  weather: 'Weather API',
+  geo: 'GEO API',
   movies: 'Movies',
   dns: 'DNS',
   finance: 'Finance',
   prices: 'china-prices',
+  'proxy-rule': 'Proxy Rule',
 }
 
-const MODULE_OPTIONS_ORDER: string[] = ['exchange-rate', 'movies', 'dns', 'finance', 'holiday', 'prices', 'fuel-price', 'geo', 'weather']
+/** Home includes picker order; geo/weather stay as API/MCP categories without UI modules. */
+const MODULE_OPTIONS_ORDER: string[] = ['exchange-rate', 'movies', 'dns', 'finance', 'holiday', 'prices', 'fuel-price', 'proxy-rule', 'geo', 'weather']
 
 const MODULE_OPTIONS: { id: string; label: string }[] = [
-  ...MODULE_OPTIONS_ORDER.filter((id) => id === 'geo' || (TOOL_CATEGORIES as readonly string[]).includes(id)).map((id) => ({
+  ...MODULE_OPTIONS_ORDER.filter((id) => (TOOL_CATEGORIES as readonly string[]).includes(id)).map((id) => ({
     id,
-    label: id === 'geo' ? 'china-geo' : (TOOL_CATEGORY_LABELS[id] ?? id),
+    label: TOOL_CATEGORY_LABELS[id] ?? id,
   })),
   ...TOOL_CATEGORIES.filter((id) => !MODULE_OPTIONS_ORDER.includes(id)).map((id) => ({ id, label: TOOL_CATEGORY_LABELS[id] ?? id })),
 ]
@@ -43,7 +45,7 @@ const MODULE_OPTIONS: { id: string; label: string }[] = [
 const ALL_MODULE_IDS = MODULE_OPTIONS.map((o) => o.id)
 
 /**
- * Modal to select modules for ?includes=; chosen list is used to build MCP / function-calling / skill URLs.
+ * Modal to select modules for ?includes=; chosen list is used to build MCP URLs.
  */
 function IncludesModal({ selectedIncludes, onSelect, onClose }: { selectedIncludes: string[]; onSelect: (ids: string[]) => void; onClose: () => void }) {
   const [draft, setDraft] = useState<string[]>(selectedIncludes)
@@ -72,7 +74,7 @@ function IncludesModal({ selectedIncludes, onSelect, onClose }: { selectedInclud
 
   return (
     <div
-      className="fixed top-0 left-0 z-50 !m-0 flex h-[var(--app-viewport-height)] w-full items-center justify-center bg-black/40 p-4"
+      className="fixed top-0 left-0 z-50 !m-0 flex h-[var(--app-viewport-height)] w-full items-center justify-center bg-pure-black/40 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="includes-modal-title"
@@ -131,7 +133,7 @@ function IncludesModal({ selectedIncludes, onSelect, onClose }: { selectedInclud
 }
 
 /**
- * Client-side shell for the home page: four small tab cards switch one content panel below.
+ * Client-side shell for the home page: API / MCP tab cards switch one content panel below.
  * @returns Home page client layout
  */
 export function HomeClient() {
@@ -139,7 +141,6 @@ export function HomeClient() {
   const [origin, setOrigin] = useState<string | null>(null)
   const [selectedIncludes, setSelectedIncludes] = useState<string[]>([])
   const [includesModalOpen, setIncludesModalOpen] = useState(false)
-  const inputRef = useRef<HTMLInputElement | null>(null)
   const { success: showSuccess } = useNotification()
 
   useEffect(() => {
@@ -152,12 +153,7 @@ export function HomeClient() {
   const includesParam = selectedIncludes.length > 0 && selectedIncludes.length < MODULE_OPTIONS.length ? `?includes=${selectedIncludes.join(',')}` : ''
 
   const base = origin != null && origin.length > 0 ? origin : ''
-  const bashCommand = base !== '' ? `curl -fsSL "${base}/api/install-skill" | bash -s -- all` : 'curl -fsSL "/api/install-skill" | bash -s -- all'
-
   const mcpUrl = base ? `${base}/api/mcp${includesParam}` : `/api/mcp${includesParam}`
-  const functionCallingToolsUrl = base ? `${base}/api/function-calling/tools${includesParam}` : `/api/function-calling/tools${includesParam}`
-  const functionCallingChatUrl = base ? `${base}/api/function-calling/chat${includesParam}` : `/api/function-calling/chat${includesParam}`
-  const skillZipUrl = base ? `${base}/api/skills/all${includesParam}` : `/api/skills/all${includesParam}`
 
   const copyText = useCallback(
     async (text: string) => {
@@ -173,45 +169,19 @@ export function HomeClient() {
     [showSuccess]
   )
 
-  const handleFocus = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
-    event.target.select()
-  }, [])
-
-  const handleContainerClick = useCallback(() => {
-    if (inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.select()
-    }
-  }, [])
-
   /** Open URL in new tab (for GET endpoints to see result). */
   const runGetUrl = useCallback((url: string) => {
     const full = url.startsWith('http') ? url : (typeof window !== 'undefined' ? window.location.origin : '') + url
     window.open(full, '_blank', 'noopener,noreferrer')
   }, [])
 
-  /** Trigger download for Skill ZIP. */
-  const runSkillDownload = useCallback(
-    (url: string) => {
-      const full = url.startsWith('http') ? url : (typeof window !== 'undefined' ? window.location.origin : '') + url
-      const a = document.createElement('a')
-      a.href = full
-      a.download = 'skills.zip'
-      a.rel = 'noopener noreferrer'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      showSuccess('Download started')
-    },
-    [showSuccess]
-  )
-
   // Top padding is intentionally larger while content is relatively short.
   // When the home page grows, consider reducing pt-[15vh] to keep layout balanced.
   return (
     <main className="flex min-h-0 flex-1 flex-col items-center bg-gray-50 px-4 pt-[15vh] pb-12">
       <div className="flex w-full max-w-4xl flex-col gap-6 px-2 text-left">
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <BrandMark size={80} className="rounded-2xl" priority />
           <h1 className="select-none text-center text-4xl font-medium text-gray-300">Unbnd</h1>
         </div>
 
@@ -259,7 +229,7 @@ export function HomeClient() {
                     POST endpoint for all MCP tools. Body: <code className="rounded bg-gray-100 px-1 py-0.5 text-[10px]">{'{ tool, params }'}</code>.
                   </p>
                 </div>
-                <Link href="/china-geo/mcp" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
+                <Link href="/dns/mcp" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
                   Open Playground
                 </Link>
               </div>
@@ -294,174 +264,14 @@ export function HomeClient() {
             </>
           )}
 
-          {tab === 'function-calling' && (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-800">Function Calling endpoints</p>
-                  <p className="mt-0.5 text-[11px] text-gray-600">OpenAI-compatible tools + chat endpoints for Function Calling gateways.</p>
-                </div>
-                <Link
-                  href="/china-geo/function-calling"
-                  className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800"
-                >
-                  Open Playground
-                </Link>
-              </div>
-              <div className="mt-3 flex flex-col gap-2">
-                <div>
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Tools (GET)</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      readOnly
-                      value={functionCallingToolsUrl}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 pr-20 py-2 text-[12px] font-mono text-gray-800 outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-300"
-                    />
-                    <div className="absolute inset-y-0 right-1 flex items-center gap-0">
-                      <button
-                        type="button"
-                        onClick={() => runGetUrl(functionCallingToolsUrl)}
-                        className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
-                        aria-label="Run: open tools JSON in new tab"
-                        title="Run: open in new tab"
-                      >
-                        <TbPlayerPlay className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => copyText(functionCallingToolsUrl)}
-                        className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
-                        aria-label="Copy tools endpoint"
-                      >
-                        <TbCopy className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">Chat (POST)</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      readOnly
-                      value={functionCallingChatUrl}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 pr-20 py-2 text-[12px] font-mono text-gray-800 outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-300"
-                    />
-                    <div className="absolute inset-y-0 right-1 flex items-center gap-0">
-                      <button
-                        type="button"
-                        onClick={() => runGetUrl(base ? `${base}/china-geo/function-calling` : '/china-geo/function-calling')}
-                        className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
-                        aria-label="Run: open Function Calling playground"
-                        title="Run: open playground"
-                      >
-                        <TbPlayerPlay className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => copyText(functionCallingChatUrl)}
-                        className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
-                        aria-label="Copy chat endpoint"
-                      >
-                        <TbCopy className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {tab === 'skill' && (
-            <>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-800">Skill install command</p>
-              <p className="mt-0.5 text-[11px] text-gray-600">
-                One-line Bash command to download all API skills into your current directory. The command already uses this site&apos;s origin.
-                {selectedIncludes.length > 0 && <span className="mt-1 block text-gray-500">With modules selected, the ZIP URL below includes only those modules.</span>}
-              </p>
-              {selectedIncludes.length > 0 && (
-                <div className="mt-3">
-                  <label className="mb-1 block text-[11px] font-medium text-gray-700">ZIP download (selected modules)</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      readOnly
-                      value={skillZipUrl}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 pr-20 py-2 text-[12px] font-mono text-gray-800 outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-300"
-                    />
-                    <div className="absolute inset-y-0 right-1 flex items-center gap-0">
-                      <button
-                        type="button"
-                        onClick={() => runSkillDownload(skillZipUrl)}
-                        className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
-                        aria-label="Run: download skill ZIP"
-                        title="Run: download ZIP"
-                      >
-                        <TbDownload className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => copyText(skillZipUrl)}
-                        className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
-                        aria-label="Copy skill ZIP URL"
-                      >
-                        <TbCopy className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div className="relative mt-3" onClick={handleContainerClick}>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  readOnly
-                  value={bashCommand}
-                  onFocus={handleFocus}
-                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 pr-20 py-2 text-[12px] font-mono text-gray-800 outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-300"
-                />
-                <div className="absolute inset-y-0 right-1 flex items-center gap-0">
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      runSkillDownload(skillZipUrl)
-                    }}
-                    className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
-                    aria-label="Run: download skill ZIP"
-                    title="Run: download ZIP"
-                  >
-                    <TbDownload className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      copyText(bashCommand)
-                      if (inputRef.current) {
-                        inputRef.current.focus()
-                        inputRef.current.select()
-                      }
-                    }}
-                    className="flex h-full items-center justify-center px-2 text-gray-500 hover:text-gray-700"
-                    aria-label="Copy install command"
-                  >
-                    <TbCopy className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-
           {tab === 'api' && (
             <>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-800">API</p>
-                  <p className="mt-0.5 text-[11px] text-gray-600">REST API playground by module (geo, holiday, fuel-price, exchange-rate).</p>
+                  <p className="mt-0.5 text-[11px] text-gray-600">REST API playground by module (dns, holiday, fuel-price, exchange-rate).</p>
                 </div>
-                <Link href="/china-geo/api" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
+                <Link href="/dns/api" className="shrink-0 rounded border border-gray-300 bg-gray-900 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-gray-800">
                   Open Playground
                 </Link>
               </div>

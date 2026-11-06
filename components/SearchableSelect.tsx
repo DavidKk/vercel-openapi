@@ -206,7 +206,7 @@ export function SearchableSelect(props: Readonly<SearchableSelectProps>) {
         menuMinWidth={200}
         matchTriggerWidth
         triggerWrapperClassName="flex w-full min-w-0"
-        menuClassName="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md ring-1 ring-black/5"
+        menuClassName="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md ring-1 ring-pure-black/5"
         trigger={
           <button
             ref={triggerRef}

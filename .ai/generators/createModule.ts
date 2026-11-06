@@ -129,7 +129,7 @@ function generateApiPageFile(schema: ModuleSchema): string {
     : ''
 
   const pageName = pascalCase(schema.id)
-  return `import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLASS } from '@/app/Nav/constants'
+  return `import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLASS, DOC_PANEL_BODY_CLASS } from '@/app/Nav/constants'
 import { DocEndpointRow } from '@/components/DocEndpointRow'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 
@@ -145,7 +145,7 @@ export default function ${pageName}ApiPage() {
       {/* Left: documentation */}
       <section className="flex min-h-0 w-1/2 min-w-[320px] flex-1 flex-col border-r border-gray-200 bg-white">
         <DocPanelHeader title="${escapeStr(apiPage.title)}" subtitle="${escapeStr(apiPage.subtitle)}" />
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
+        <div className={DOC_PANEL_BODY_CLASS}>
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
 ${endpointBlocks}
 ${exampleBlock}
@@ -176,7 +176,7 @@ function generateMcpPageFile(schema: ModuleSchema): string {
     .join('\n')
 
   const pageName = pascalCase(schema.id)
-  return `import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLASS } from '@/app/Nav/constants'
+  return `import { DOC_ENDPOINT_BOX_CLASS, DOC_ENDPOINT_DESC_CLASS, DOC_SECTION_TITLE_CLASS, DOC_PANEL_BODY_CLASS } from '@/app/Nav/constants'
 import { DocEndpointRow } from '@/components/DocEndpointRow'
 import { DocPanelHeader } from '@/components/DocPanelHeader'
 
@@ -193,7 +193,7 @@ export default function ${pageName}McpPage() {
       {/* Left: documentation */}
       <section className="flex min-h-0 w-1/2 min-w-[320px] flex-1 flex-col border-r border-gray-200 bg-white">
         <DocPanelHeader title="${escapeStr(mcpPage.title)}" subtitle="${escapeStr(mcpPage.subtitle)}" />
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 text-[11px] text-gray-800">
+        <div className={DOC_PANEL_BODY_CLASS}>
           <h2 className={DOC_SECTION_TITLE_CLASS}>Endpoints</h2>
           <div className={DOC_ENDPOINT_BOX_CLASS}>
             <DocEndpointRow method="POST" path="/api/mcp" />

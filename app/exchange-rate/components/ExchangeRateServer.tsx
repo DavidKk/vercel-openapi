@@ -1,6 +1,7 @@
 import { getCachedExchangeRate } from '@/app/actions/exchange-rate/api'
 import type { ExchangeRateData } from '@/app/actions/exchange-rate/types'
-import { CONTENT_HEADER_CLASS, CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
+import { ContentPageHeader } from '@/components/ContentPageHeader'
+import { ScrollArea } from '@/components/ScrollArea'
 import { Spinner } from '@/components/Spinner'
 
 import { CurrencyConverter } from './CurrencyConverter'
@@ -33,11 +34,9 @@ export default async function ExchangeRateServer({ initialBaseCurrency = 'USD' }
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-white">
-      <div className={`${CONTENT_HEADER_CLASS} text-sm text-gray-600`}>
-        <h1 className={CONTENT_PAGE_TITLE_CLASS}>Exchange rates</h1>
-      </div>
+      <ContentPageHeader title="Exchange rates" description="Convert between currencies using the latest published mid-market rates." className="bg-white" />
 
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
+      <ScrollArea className="min-h-0 flex-1" indicator="vertical" reserveGutter={false} scrollClassName="flex min-h-0 items-center justify-center p-4">
         {initialError ? (
           <div className="w-full max-w-md">
             <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
@@ -51,7 +50,7 @@ export default async function ExchangeRateServer({ initialBaseCurrency = 'USD' }
         ) : (
           <Spinner />
         )}
-      </div>
+      </ScrollArea>
 
       {latestUpdated && (
         <div className="flex shrink-0 items-center justify-end border-t border-gray-200 px-4 py-1.5 text-xs text-gray-500">

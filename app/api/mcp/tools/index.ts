@@ -71,7 +71,7 @@ const ALL_TOOLS: Tool[] = [
 
 const TOOLS_MAP = new Map<string, Tool>(ALL_TOOLS.map((t) => [t.name, t]))
 
-/** Category names for /api/function-calling/[category]/tools (use only tools for one domain) */
+/** Category names for /api/mcp/[module] (use only tools for one domain) */
 export const FUNCTION_CALLING_CATEGORIES = TOOL_CATEGORIES
 
 export type FunctionCallingCategory = ToolCategory
@@ -110,7 +110,7 @@ export function getMCPTools(): Map<string, Tool> {
 }
 
 /**
- * Get MCP tools for a single category (for /api/function-calling/[category]/tools and /api/mcp/[module]).
+ * Get MCP tools for a single category (for /api/mcp/[module]).
  * @param category One of FUNCTION_CALLING_CATEGORIES
  * @returns Map of tool name to Tool, or null if category is unknown
  */

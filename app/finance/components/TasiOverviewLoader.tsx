@@ -3,8 +3,9 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
-import { CONTENT_PAGE_TITLE_CLASS } from '@/app/Nav/constants'
+import { ContentPageHeader } from '@/components/ContentPageHeader'
 import { useDebugPanel } from '@/components/DebugPanel'
+import { ScrollArea } from '@/components/ScrollArea'
 import type { TasiMarketSummary } from '@/services/finance/tasi'
 import { getLatestValidSnapshotFromIdb } from '@/services/finance/tasi/browser'
 
@@ -35,14 +36,23 @@ export function TasiOverviewSkeleton(props?: TasiOverviewSkeletonProps) {
   return (
     <section className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label={ariaLabel}>
       <div className="flex min-h-0 flex-1 flex-col bg-white">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-2 sm:py-3">
-          <div className="flex min-w-0 shrink-0 items-center gap-2">
-            {showLeadingTitle ? <h1 className={CONTENT_PAGE_TITLE_CLASS}>{leadingTitle}</h1> : null}
-            {headerAddon != null ? headerAddon : null}
-          </div>
-          <div className="h-7 w-36 shrink-0 animate-pulse rounded-md border border-gray-200 bg-gray-100 sm:h-9 sm:w-56 sm:rounded" aria-hidden />
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto">
+        <ContentPageHeader
+          title={
+            showLeadingTitle || headerAddon != null ? (
+              <span className="inline-flex items-center gap-2">
+                {showLeadingTitle ? leadingTitle : null}
+                {headerAddon}
+              </span>
+            ) : (
+              <span className="inline-block h-3 w-40 animate-pulse rounded bg-gray-200" aria-hidden />
+            )
+          }
+          description={<span className="inline-block h-2.5 w-52 max-w-full animate-pulse rounded bg-gray-100" aria-hidden />}
+          className="overflow-visible bg-white"
+        >
+          {headerAddon == null ? <div className="h-8 w-36 shrink-0 animate-pulse rounded-md border border-gray-200 bg-gray-100" aria-hidden /> : null}
+        </ContentPageHeader>
+        <ScrollArea className="min-h-0 flex-1" indicator="both" reserveGutter={false} scrollClassName="min-h-0">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
             <caption className="sr-only">Loading latest trading day data</caption>
             <thead className="sticky top-0 z-20 bg-gray-100">
@@ -87,7 +97,7 @@ export function TasiOverviewSkeleton(props?: TasiOverviewSkeletonProps) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
       </div>
     </section>
   )

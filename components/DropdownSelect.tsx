@@ -195,7 +195,7 @@ export function DropdownSelect(props: DropdownSelectProps) {
         menuMinWidth={menuMinWidth}
         matchTriggerWidth={matchTriggerWidth}
         triggerWrapperClassName="flex w-full min-w-0"
-        menuClassName={classNames('rounded-md border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-black/5', menuClassName)}
+        menuClassName={classNames('rounded-md border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-pure-black/5', menuClassName)}
         trigger={
           <button
             ref={triggerRef}
@@ -213,7 +213,7 @@ export function DropdownSelect(props: DropdownSelectProps) {
             }}
             onKeyDown={handleTriggerKeyDown}
             className={classNames(
-              'flex h-8 w-full min-w-0 max-w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-2.5 text-left text-sm text-gray-900 transition-colors',
+              'flex h-8 w-full min-w-0 max-w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-2.5 text-left text-xs text-gray-900 transition-colors',
               'focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600',
               'disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500',

@@ -4,6 +4,8 @@
 import { Highlight, themes } from 'prism-react-renderer'
 import { useMemo } from 'react'
 
+import { useTheme } from '@/components/theme/ThemeProvider'
+
 export interface CompactJsonViewerProps {
   /** Raw JSON/text content returned by an API playground */
   value: string
@@ -18,6 +20,8 @@ export interface CompactJsonViewerProps {
  */
 export function CompactJsonViewer(props: CompactJsonViewerProps) {
   const { value } = props
+  const { resolvedTheme } = useTheme()
+  const prismTheme = resolvedTheme === 'dark' ? themes.vsDark : themes.vsLight
 
   const { code, language } = useMemo(() => {
     const raw = value ?? ''
@@ -36,7 +40,7 @@ export function CompactJsonViewer(props: CompactJsonViewerProps) {
   }
 
   return (
-    <Highlight theme={themes.vsLight} code={code} language={language}>
+    <Highlight theme={prismTheme} code={code} language={language}>
       {({ className, style, tokens, getLineProps, getTokenProps }) => (
         <pre className={`${className} m-0 whitespace-pre-wrap break-words rounded-md bg-white p-2 text-[10px] leading-[1.35]`} style={{ ...style, backgroundColor: 'transparent' }}>
           {tokens.map((line, i) => (

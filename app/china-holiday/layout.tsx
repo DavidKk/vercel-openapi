@@ -1,4 +1,4 @@
-import { TbApi, TbCalendarSearch, TbCode, TbFileText, TbRobot } from 'react-icons/tb'
+import { TbApi, TbCalendarSearch, TbRobot } from 'react-icons/tb'
 
 import { withManageSidebarItem } from '@/components/dashboard-sidebar-items'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
@@ -12,8 +12,6 @@ const HOLIDAY_SIDEBAR_ITEMS = [
   { href: '/china-holiday', title: 'Calendar', ariaLabel: 'Calendar', icon: <TbCalendarSearch className="h-5 w-5" /> },
   { href: '/china-holiday/api', title: 'API', ariaLabel: 'API', icon: <TbApi className="h-5 w-5" /> },
   { href: '/china-holiday/mcp', title: 'MCP tools', ariaLabel: 'MCP tools', icon: <TbRobot className="h-5 w-5" /> },
-  { href: '/china-holiday/function-calling', title: 'Function Calling', ariaLabel: 'Function Calling', icon: <TbCode className="h-5 w-5" /> },
-  { href: '/china-holiday/skill', title: 'Skill', ariaLabel: 'Skill', icon: <TbFileText className="h-5 w-5" /> },
 ]
 
 /**
