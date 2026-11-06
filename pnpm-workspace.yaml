@@ -1,5 +1,11 @@
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - core-js
-  - esbuild
-  - sharp
+# pnpm 12: dependency build scripts must be explicitly reviewed.
+# Unreviewed scripts fail install with ERR_PNPM_IGNORED_BUILDS.
+# `packages` is required when Vercel falls back to older pnpm.
+packages:
+  - '.'
+
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+  esbuild: true
+  sharp: true
